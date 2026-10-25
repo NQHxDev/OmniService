@@ -12,6 +12,8 @@ import { MediaModule } from '@/modules/media/media.module';
 import { PostsModule } from '@/modules/posts/posts.module';
 import { CommerceModule } from '@/modules/commerce/commerce.module';
 import { SuppliersModule } from '@/modules/suppliers/suppliers.module';
+import { OrdersModule } from '@/modules/orders/orders.module';
+import { PaymentsModule } from '@/modules/payments/payments.module';
 
 @Module({
    imports: [
@@ -47,6 +49,8 @@ import { SuppliersModule } from '@/modules/suppliers/suppliers.module';
       PostsModule,
       CommerceModule,
       SuppliersModule,
+      OrdersModule,
+      PaymentsModule,
    ],
    controllers: [],
    providers: [

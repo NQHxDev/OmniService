@@ -1,6 +1,6 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ApiErrorResponses, COMMON_ERROR_CODES, Public, ResponseMessage } from '@common';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiErrorResponses, COMMON_ERROR_CODES, CurrentUser, type JwtPayload, Public, ResponseMessage } from '@common';
 import {
    GetPostFeedDto,
    POST_ERROR_CODES,
@@ -38,8 +38,11 @@ export class PostsController {
       },
    ])
    @ResponseMessage(POST_RESPONSE_MESSAGES.GET_FEED_SUCCESS)
-   async getFeed(@Query() query: GetPostFeedDto): Promise<PostFeedResponseDto> {
-      return this.postsService.getFeed(query);
+   async getFeed(
+      @Query() query: GetPostFeedDto,
+      @CurrentUser() user?: JwtPayload | null,
+   ): Promise<PostFeedResponseDto> {
+      return this.postsService.getFeed(query, user?.sub);
    }
 
    @Get(':id')
@@ -55,6 +58,12 @@ export class PostsController {
       description: 'Unique UUID identifier of the post',
       example: '0192e21b-0002-7000-8000-000000000001',
    })
+   @ApiQuery({
+      name: 'bypassReadModel',
+      required: false,
+      description: 'Flag to bypass CQRS Read-Model and read directly from Master DB (Read-Your-Own-Writes)',
+      type: Boolean,
+   })
    @ApiResponse({
       status: HttpStatus.OK,
       description: 'Post details retrieved successfully.',
@@ -68,8 +77,12 @@ export class PostsController {
       },
    ])
    @ResponseMessage(POST_RESPONSE_MESSAGES.GET_POST_SUCCESS)
-   async getPostById(@Param('id') id: string): Promise<PostItemDto> {
-      return this.postsService.getPostById(id);
+   async getPostById(
+      @Param('id') id: string,
+      @CurrentUser() user?: JwtPayload | null,
+      @Query('bypassReadModel') bypassReadModel?: string,
+   ): Promise<PostItemDto> {
+      return this.postsService.getPostById(id, user?.sub, bypassReadModel === 'true' || bypassReadModel === '1');
    }
 
    @Get(':id/ingredients')

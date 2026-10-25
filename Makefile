@@ -66,6 +66,14 @@ start-commerce:
 start-supplier:
 	pnpm run start:supplier
 
+.PHONY: start-order
+start-order:
+	pnpm run start:order
+
+.PHONY: start-payment
+start-payment:
+	pnpm run start:payment
+
 .PHONY: build
 build:
 	pnpm run build

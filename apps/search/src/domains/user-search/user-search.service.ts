@@ -1,9 +1,15 @@
 import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter, Histogram } from 'prom-client';
-import { AppLogger } from '@common';
+import { AppLogger, decodeSearchAfterCursor, encodeCursor } from '@common';
+import { BULK_OPERATIONS } from '@contracts/search';
 import { ElasticsearchService } from '@search/core/elasticsearch';
-import { SEARCH_INDEXING_COUNTER, SEARCH_QUERY_COUNTER, SEARCH_QUERY_DURATION } from '@search/core/metrics';
+import {
+   METRIC_STATUS,
+   SEARCH_INDEXING_COUNTER,
+   SEARCH_QUERY_COUNTER,
+   SEARCH_QUERY_DURATION,
+} from '@search/core/metrics';
 
 export interface UserDocument {
    id: string;
@@ -143,10 +149,18 @@ export class UserSearchService implements OnModuleInit {
                updatedAt: user.updatedAt ?? new Date(),
             },
          });
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'index', status: 'success' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.INDEX,
+            status: METRIC_STATUS.SUCCESS,
+         });
          this.logger.debug(`Indexed user: ${user.username ?? user.id}`);
       } catch (error) {
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'index', status: 'error' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.INDEX,
+            status: METRIC_STATUS.ERROR,
+         });
          this.logger.error(
             `Failed to index user: ${user.username ?? user.id}`,
             error instanceof Error ? error.stack : undefined,
@@ -184,10 +198,18 @@ export class UserSearchService implements OnModuleInit {
                updatedAt: user.updatedAt ?? new Date(),
             },
          });
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'update', status: 'success' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.UPDATE,
+            status: METRIC_STATUS.SUCCESS,
+         });
          this.logger.debug(`Updated user in index: ${user.username ?? user.id}`);
       } catch (error) {
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'update', status: 'error' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.UPDATE,
+            status: METRIC_STATUS.ERROR,
+         });
          this.logger.error(
             `Failed to update user in index: ${user.username ?? user.id}`,
             error instanceof Error ? error.stack : undefined,
@@ -203,10 +225,18 @@ export class UserSearchService implements OnModuleInit {
             index: this.INDEX_NAME,
             id: userId,
          });
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'delete', status: 'success' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.DELETE,
+            status: METRIC_STATUS.SUCCESS,
+         });
          this.logger.debug(`Deleted user from index: ${userId}`);
       } catch (error) {
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'delete', status: 'error' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.DELETE,
+            status: METRIC_STATUS.ERROR,
+         });
          this.logger.error(
             `Failed to delete user from index: ${userId}`,
             error instanceof Error ? error.stack : undefined,
@@ -226,19 +256,7 @@ export class UserSearchService implements OnModuleInit {
       }
 
       const timer = this.queryDuration?.startTimer({ index: this.INDEX_NAME });
-
-      let searchAfter: (string | number)[] | undefined = undefined;
-      if (cursor && cursor.trim()) {
-         try {
-            const decoded = Buffer.from(cursor.trim(), 'base64url').toString('utf8');
-            const parsed: unknown = JSON.parse(decoded);
-            if (Array.isArray(parsed)) {
-               searchAfter = parsed as (string | number)[];
-            }
-         } catch {
-            this.logger.warn(`Invalid search cursor provided: ${cursor}`);
-         }
-      }
+      const searchAfter = decodeSearchAfterCursor(cursor);
 
       try {
          const client = this.elasticsearchService.getClient();
@@ -300,12 +318,12 @@ export class UserSearchService implements OnModuleInit {
          if (hasMore && slicedHits.length > 0) {
             const lastHit = slicedHits[slicedHits.length - 1];
             if (lastHit?.sort && Array.isArray(lastHit.sort)) {
-               nextCursor = Buffer.from(JSON.stringify(lastHit.sort)).toString('base64url');
+               nextCursor = encodeCursor(lastHit.sort);
             }
          }
 
-         this.queryCounter?.inc({ index: this.INDEX_NAME, status: 'success' });
-         timer?.({ status: 'success' });
+         this.queryCounter?.inc({ index: this.INDEX_NAME, status: METRIC_STATUS.SUCCESS });
+         timer?.({ status: METRIC_STATUS.SUCCESS });
 
          return {
             items: slicedHits.map((hit) => hit._source),
@@ -314,8 +332,8 @@ export class UserSearchService implements OnModuleInit {
             total: totalCount,
          };
       } catch (error) {
-         this.queryCounter?.inc({ index: this.INDEX_NAME, status: 'error' });
-         timer?.({ status: 'error' });
+         this.queryCounter?.inc({ index: this.INDEX_NAME, status: METRIC_STATUS.ERROR });
+         timer?.({ status: METRIC_STATUS.ERROR });
          this.logger.error(`Failed to search users: ${query}`, error instanceof Error ? error.stack : undefined);
          return { items: [], nextCursor: null, hasMore: false, total: 0 };
       }

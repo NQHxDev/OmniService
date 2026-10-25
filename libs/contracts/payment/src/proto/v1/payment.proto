@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package payment.v1;
+
+message PaymentTransactionProto {
+  string transactionId = 1;
+  string orderId = 2;
+  string userId = 3;
+  double amount = 4;
+  string currency = 5;
+  string paymentMethod = 6;
+  string paymentStatus = 7;
+  string providerTransactionId = 8;
+  string paymentUrl = 9;
+  string failureReason = 10;
+  string createdAt = 11;
+  string updatedAt = 12;
+}
+
+message InitiatePaymentRequest {
+  string orderId = 1;
+  string userId = 2;
+  double amount = 3;
+  string currency = 4;
+  string paymentMethod = 5;
+  string returnUrl = 6;
+  string ipAddress = 7;
+  string orderDescription = 8;
+}
+
+message InitiatePaymentResponse {
+  PaymentTransactionProto transaction = 1;
+  string paymentUrl = 2;
+  bool requiresRedirect = 3;
+}
+
+message GetPaymentByIdRequest {
+  string transactionId = 1;
+}
+
+message GetPaymentByOrderIdRequest {
+  string orderId = 1;
+}
+
+message GetPaymentResponse {
+  PaymentTransactionProto transaction = 1;
+}
+
+message ProcessWebhookRequest {
+  string provider = 1;
+  string rawPayload = 2;
+  string signature = 3;
+  map<string, string> queryParams = 4;
+}
+
+message ProcessWebhookResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string paymentStatus = 4;
+}
+
+message RefundPaymentRequest {
+  string transactionId = 1;
+  double amount = 2;
+  string reason = 3;
+}
+
+message RefundPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string refundId = 3;
+}
+
+service PaymentService {
+  rpc InitiatePayment (InitiatePaymentRequest) returns (InitiatePaymentResponse);
+  rpc GetPaymentById (GetPaymentByIdRequest) returns (GetPaymentResponse);
+  rpc GetPaymentByOrderId (GetPaymentByOrderIdRequest) returns (GetPaymentResponse);
+  rpc ProcessWebhook (ProcessWebhookRequest) returns (ProcessWebhookResponse);
+  rpc RefundPayment (RefundPaymentRequest) returns (RefundPaymentResponse);
+}

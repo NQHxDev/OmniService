@@ -39,3 +39,11 @@ processes:
    supplier:
       command: pnpm run start:nowatch:supplier
       disabled: true
+
+   order:
+      command: pnpm run start:nowatch:order
+      disabled: true
+
+   payment:
+      command: pnpm run start:nowatch:payment
+      disabled: true

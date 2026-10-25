@@ -9,6 +9,8 @@ include:
    - apps/media/docker-compose.yml
    - apps/commerce/docker-compose.yml
    - apps/supplier/docker-compose.yml
+   - apps/order/docker-compose.yml
+   - apps/payment/docker-compose.yml
 
 services:
    redis:

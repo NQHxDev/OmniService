@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import { ElasticsearchService } from '@search/core/elasticsearch';
+import { METRIC_STATUS } from '@search/core/metrics';
 import { BulkIndexProcessor } from '@search/core/queue/bulk-processor.service';
 import { BulkOperation } from '@search/core/queue/bulk-operation.interface';
 
@@ -161,7 +162,7 @@ describe('BulkIndexProcessor', () => {
       expect(mockCounter.inc).toHaveBeenCalledWith({
          index: 'users',
          operation: 'index',
-         status: 'error',
+         status: METRIC_STATUS.ERROR,
       });
    });
 
@@ -180,7 +181,7 @@ describe('BulkIndexProcessor', () => {
       expect(mockCounter.inc).toHaveBeenCalledWith({
          index: 'users',
          operation: 'index',
-         status: 'error',
+         status: METRIC_STATUS.ERROR,
       });
    });
 

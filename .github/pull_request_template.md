@@ -34,6 +34,8 @@ Please select the components modified:
 - [ ] `apps/media` (Media Service)
 - [ ] `apps/commerce` (Commerce Service)
 - [ ] `apps/supplier` (Supplier Service)
+- [ ] `apps/order` (Order Service)
+- [ ] `apps/payment` (Payment Service)
 - [ ] `libs/common` (Shared Common Library)
 - [ ] `libs/contracts` (Proto & DTO Contracts)
 - [ ] Other: <!-- specify here -->

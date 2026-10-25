@@ -8,7 +8,7 @@ set -e
 if [ "$#" -gt 0 ]; then
   SERVICES="$*"
 else
-  SERVICES="gateway auth user notification post search media commerce supplier"
+  SERVICES="gateway auth user notification post search media commerce supplier order payment"
 fi
 
 get_ms() {

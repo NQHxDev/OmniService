@@ -20,6 +20,8 @@ export const gatewayEnvSchema = sharedEnvSchema.extend({
    SUPPLIER_GRPC_URL: z.string().default('localhost:50054'),
    MEDIA_GRPC_URL: z.string().default('localhost:50055'),
    SEARCH_GRPC_URL: z.string().default('localhost:50056'),
+   ORDER_GRPC_URL: z.string().default('localhost:50057'),
+   PAYMENT_GRPC_URL: z.string().default('localhost:50058'),
 });
 
 export type GatewayEnvConfig = z.infer<typeof gatewayEnvSchema>;

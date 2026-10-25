@@ -41,7 +41,11 @@
       "prepare": "husky",
       "build": "sh scripts/build-sequential.sh",
       "typecheck": "tsc --noEmit -p tsconfig.build.json",
-      "build:sequential": "sh scripts/build-sequential.sh"
+      "build:sequential": "sh scripts/build-sequential.sh",
+      "start:order": "nest start order -b swc --watch",
+      "start:payment": "nest start payment -b swc --watch",
+      "start:nowatch:order": "nest start order -b swc",
+      "start:nowatch:payment": "nest start payment -b swc"
    },
    "devDependencies": {
       "@eslint/eslintrc": "^3.2.0",
@@ -121,7 +125,9 @@
          "^@common$": "<rootDir>/libs/common/src",
          "^@common/(.*)$": "<rootDir>/libs/common/src/$1",
          "^@contracts/([^/]+)/(.*)$": "<rootDir>/libs/contracts/$1/src/$2",
-         "^@contracts/([^/]+)$": "<rootDir>/libs/contracts/$1/src"
+         "^@contracts/([^/]+)$": "<rootDir>/libs/contracts/$1/src",
+         "^@order/(.*)$": "<rootDir>/apps/order/src/$1",
+         "^@payment/(.*)$": "<rootDir>/apps/payment/src/$1"
       }
    },
    "lint-staged": {

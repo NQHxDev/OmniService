@@ -30,6 +30,8 @@ describe('Search gRPC Constants and Proto Resolution', () => {
       expect(SEARCH_V1_GRPC_METHODS.SEARCH_USERS).toBe('SearchUsers');
       expect(SEARCH_V1_GRPC_METHODS.SEARCH_INGREDIENTS).toBe('SearchIngredients');
       expect(SEARCH_V1_GRPC_METHODS.GLOBAL_SEARCH).toBe('GlobalSearch');
+      expect(SEARCH_V1_GRPC_METHODS.GET_POST_FEED).toBe('GetPostFeed');
+      expect(SEARCH_V1_GRPC_METHODS.GET_POST_DETAIL).toBe('GetPostDetail');
    });
 
    it('should resolve proto path and ensure file exists on disk', () => {

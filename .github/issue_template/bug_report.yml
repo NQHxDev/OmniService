@@ -24,6 +24,8 @@ body:
            - Media Service (apps/media)
            - Commerce Service (apps/commerce)
            - Supplier Service (apps/supplier)
+           - Order Service (apps/order)
+           - Payment Service (apps/payment)
            - Common Library (libs/common)
            - Contracts / Proto (libs/contracts)
            - CI / CD / Infrastructure (.github, Docker, scripts)

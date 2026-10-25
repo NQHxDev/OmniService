@@ -2,9 +2,14 @@ import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter, Histogram } from 'prom-client';
 import { AppLogger } from '@common';
-import { SEARCH_INDICES } from '@contracts/search';
+import { BULK_OPERATIONS, SEARCH_INDICES } from '@contracts/search';
 import { ElasticsearchService } from '@search/core/elasticsearch';
-import { SEARCH_INDEXING_COUNTER, SEARCH_QUERY_COUNTER, SEARCH_QUERY_DURATION } from '@search/core/metrics';
+import {
+   METRIC_STATUS,
+   SEARCH_INDEXING_COUNTER,
+   SEARCH_QUERY_COUNTER,
+   SEARCH_QUERY_DURATION,
+} from '@search/core/metrics';
 import { IngredientStatusEnum } from '@contracts/commerce';
 
 export interface IngredientDocument {
@@ -145,10 +150,18 @@ export class IngredientSearchService implements OnModuleInit {
                updatedAt: ingredient.updatedAt ?? new Date(),
             },
          });
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'index', status: 'success' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.INDEX,
+            status: METRIC_STATUS.SUCCESS,
+         });
          this.logger.debug(`Indexed ingredient: ${ingredient.ingredientName} (${ingredient.ingredientId})`);
       } catch (error) {
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'index', status: 'error' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.INDEX,
+            status: METRIC_STATUS.ERROR,
+         });
          this.logger.error(
             `Failed to index ingredient ${ingredient.ingredientId}`,
             error instanceof Error ? error.stack : undefined,
@@ -168,10 +181,18 @@ export class IngredientSearchService implements OnModuleInit {
                updatedAt: new Date(),
             },
          });
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'update', status: 'success' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.UPDATE,
+            status: METRIC_STATUS.SUCCESS,
+         });
          this.logger.debug(`Updated ingredient in index: ${ingredientId}`);
       } catch (error) {
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'update', status: 'error' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.UPDATE,
+            status: METRIC_STATUS.ERROR,
+         });
          this.logger.error(
             `Failed to update ingredient in index: ${ingredientId}`,
             error instanceof Error ? error.stack : undefined,
@@ -187,10 +208,18 @@ export class IngredientSearchService implements OnModuleInit {
             index: this.INDEX_NAME,
             id: ingredientId,
          });
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'delete', status: 'success' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.DELETE,
+            status: METRIC_STATUS.SUCCESS,
+         });
          this.logger.debug(`Deleted ingredient from index: ${ingredientId}`);
       } catch (error) {
-         this.indexingCounter?.inc({ index: this.INDEX_NAME, operation: 'delete', status: 'error' });
+         this.indexingCounter?.inc({
+            index: this.INDEX_NAME,
+            operation: BULK_OPERATIONS.DELETE,
+            status: METRIC_STATUS.ERROR,
+         });
          this.logger.error(
             `Failed to delete ingredient from index: ${ingredientId}`,
             error instanceof Error ? error.stack : undefined,
@@ -293,7 +322,7 @@ export class IngredientSearchService implements OnModuleInit {
 
          const items = hits.map((hit) => hit._source).filter((doc): doc is IngredientDocument => doc !== undefined);
 
-         this.queryCounter?.inc({ index: this.INDEX_NAME, status: 'success' });
+         this.queryCounter?.inc({ index: this.INDEX_NAME, status: METRIC_STATUS.SUCCESS });
          return {
             items,
             total,
@@ -301,7 +330,7 @@ export class IngredientSearchService implements OnModuleInit {
             offset,
          };
       } catch (error) {
-         this.queryCounter?.inc({ index: this.INDEX_NAME, status: 'error' });
+         this.queryCounter?.inc({ index: this.INDEX_NAME, status: METRIC_STATUS.ERROR });
          this.logger.error(
             `Error executing ingredient search: ${(error as Error).message}`,
             error instanceof Error ? error.stack : undefined,
