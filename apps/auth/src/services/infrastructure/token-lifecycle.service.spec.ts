@@ -58,7 +58,7 @@ describe('TokenLifecycleService', () => {
       jest.clearAllMocks();
       mockRedisService.smembers.mockResolvedValue([]);
       mockRedisService.get.mockResolvedValue(null);
-      mockCreateSession.mockResolvedValue({ id: 'session-id-1' });
+      mockCreateSession.mockResolvedValue({ sessionId: 'session-id-1' });
       mockRevokeAllSessions.mockResolvedValue([]);
 
       const module: TestingModule = await Test.createTestingModule({
@@ -97,7 +97,7 @@ describe('TokenLifecycleService', () => {
    describe('generateTokenPair', () => {
       it('should generate a pair of ECDSA (ES256) access token and opaque refresh token (<jti>.<secret>) with HMAC-SHA256', async () => {
          const user: ITokenAccountPayload = {
-            id: 'user-id-1',
+            accountId: 'user-id-1',
             email: 'test@example.com',
             roles: [DEFAULT_ROLES.USER],
          };
@@ -158,13 +158,13 @@ describe('TokenLifecycleService', () => {
    describe('rotateTokenPair', () => {
       it('should rotate token pair and update existing session record with new opaque token hash', async () => {
          const user: ITokenAccountPayload = {
-            id: 'user-id-1',
+            accountId: 'user-id-1',
             email: 'test@example.com',
             roles: [DEFAULT_ROLES.USER],
          };
 
          mockFindByJti.mockResolvedValue({
-            id: 'session-id-1',
+            sessionId: 'session-id-1',
             accountId: 'user-id-1',
             refreshTokenJti: 'old-jti',
          });
@@ -256,7 +256,7 @@ describe('TokenLifecycleService', () => {
          mockRedisService.get.mockResolvedValue(null);
          mockRedisService.getJson.mockResolvedValue(null); // Redis cache miss
          mockFindByJti.mockResolvedValue({
-            id: 'session-id-1',
+            sessionId: 'session-id-1',
             accountId: 'user-1',
             refreshTokenJti: jti,
             refreshTokenHash: hash,

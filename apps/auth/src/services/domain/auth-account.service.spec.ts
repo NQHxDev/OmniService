@@ -34,7 +34,7 @@ describe('AuthAccountService', () => {
    describe('getEmail', () => {
       it('should return account email and verification status when account exists', async () => {
          mockAccountRepository.findById.mockResolvedValueOnce({
-            id: 'acc-1',
+            accountId: 'acc-1',
             email: 'user@example.com',
             isEmailVerified: true,
          });

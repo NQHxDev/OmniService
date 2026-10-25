@@ -82,7 +82,7 @@ describe('AuditLogBuilder', () => {
    it('should support withAccount with object or separate arguments', () => {
       const dataWithObj = AuditLogBuilder.create()
          .withAction('AUTH_REGISTER')
-         .withAccount({ id: 'acc-123', email: 'acc@example.com' })
+         .withAccount({ accountId: 'acc-123', email: 'acc@example.com' })
          .build();
 
       expect(dataWithObj.accountId).toBe('acc-123');

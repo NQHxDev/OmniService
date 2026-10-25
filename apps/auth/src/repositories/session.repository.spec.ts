@@ -76,7 +76,7 @@ describe('SessionRepository', () => {
          expiresAt: '2026-10-05T00:00:00.000Z',
       });
 
-      expect(result.id).toBe('session-id-1');
+      expect(result.sessionId).toBe('session-id-1');
       expect(result.accountId).toBe('user-id-1');
       expect(mockAccountSessionCreate).toHaveBeenCalled();
    });
@@ -86,7 +86,7 @@ describe('SessionRepository', () => {
 
       const result = await repository.findById('session-id-1');
 
-      expect(result?.id).toBe('session-id-1');
+      expect(result?.sessionId).toBe('session-id-1');
       expect(mockAccountSessionFindUnique).toHaveBeenCalledWith({
          where: { sessionId: 'session-id-1' },
       });
@@ -98,7 +98,7 @@ describe('SessionRepository', () => {
       const result = await repository.findActiveSessionsByAccountId('user-id-1');
 
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('session-id-1');
+      expect(result[0].sessionId).toBe('session-id-1');
       expect(mockAccountSessionFindMany).toHaveBeenCalledTimes(1);
       const findArgs = mockAccountSessionFindMany.mock.calls[0] as [
          { where?: { accountId?: string; isRevoked?: boolean } },

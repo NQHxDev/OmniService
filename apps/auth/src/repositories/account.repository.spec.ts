@@ -69,8 +69,8 @@ describe('AccountRepository', () => {
       });
 
       expect(user).toBeDefined();
-      expect(user.id).toBeDefined();
-      expect(UUID_V7_REGEX.test(user.id)).toBe(true);
+      expect(user.accountId).toBeDefined();
+      expect(UUID_V7_REGEX.test(user.accountId)).toBe(true);
       expect(user.email).toBe('test@example.com');
       expect(user.status).toBe('ACTIVE');
       expect(user.isEmailVerified).toBe(false);
@@ -195,7 +195,7 @@ describe('AccountRepository', () => {
          },
       });
       expect(found).toBeDefined();
-      expect(found?.id).toBe('user-id-123');
+      expect(found?.accountId).toBe('user-id-123');
       expect(found?.roles).toEqual([]);
    });
 

@@ -70,7 +70,7 @@ describe('AuthTokenService', () => {
       };
 
       const mockAccount = {
-         id: 'acc-1',
+         accountId: 'acc-1',
          email: 'test@example.com',
          roles: [SYSTEM_ROLES.USER],
          status: USER_STATUS.ACTIVE,
@@ -168,7 +168,7 @@ describe('AuthTokenService', () => {
             roles: [SYSTEM_ROLES.USER],
          });
          mockAccountRepository.findById.mockResolvedValueOnce({
-            id: 'acc-1',
+            accountId: 'acc-1',
             email: 'user@example.com',
             roles: [SYSTEM_ROLES.USER],
             status: USER_STATUS.ACTIVE,
@@ -194,7 +194,7 @@ describe('AuthTokenService', () => {
       it('should throw UnauthorizedException if account is blocked', async () => {
          mockTokenLifecycleService.validateAccessToken.mockResolvedValueOnce({ sub: 'acc-blocked' });
          mockAccountRepository.findById.mockResolvedValueOnce({
-            id: 'acc-blocked',
+            accountId: 'acc-blocked',
             status: USER_STATUS.BLOCKED,
          });
 
@@ -204,7 +204,7 @@ describe('AuthTokenService', () => {
       it('should throw UnauthorizedException if account is inactive', async () => {
          mockTokenLifecycleService.validateAccessToken.mockResolvedValueOnce({ sub: 'acc-inactive' });
          mockAccountRepository.findById.mockResolvedValueOnce({
-            id: 'acc-inactive',
+            accountId: 'acc-inactive',
             status: USER_STATUS.INACTIVE,
          });
 

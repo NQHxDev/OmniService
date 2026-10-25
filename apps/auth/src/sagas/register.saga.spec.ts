@@ -34,7 +34,7 @@ describe('RegisterSaga', () => {
    };
 
    const mockAccount: AccountEntity = {
-      id: 'acc-new',
+      accountId: 'acc-new',
       email: 'newuser@example.com',
       passwordHash: 'hash',
       roles: [DEFAULT_ROLES.USER],

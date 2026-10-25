@@ -29,7 +29,7 @@ describe('SessionManagementService', () => {
    };
 
    const sampleSession: SessionEntity = {
-      id: 'session-1',
+      sessionId: 'session-1',
       accountId: 'user-1',
       refreshTokenJti: 'jti-1',
       deviceType: 'desktop',
@@ -87,7 +87,7 @@ describe('SessionManagementService', () => {
       it('should return active sessions list with isCurrent marked accurately', async () => {
          const session2: SessionEntity = {
             ...sampleSession,
-            id: 'session-2',
+            sessionId: 'session-2',
             refreshTokenJti: 'jti-2',
             deviceName: 'iPhone 15',
          };
@@ -232,8 +232,8 @@ describe('SessionManagementService', () => {
       it('should revoke all other sessions and invalidate their refresh tokens in parallel', async () => {
          mockSessionRepository.findActiveSessionsByAccountId.mockResolvedValue([
             { ...sampleSession, refreshTokenJti: 'current-jti' },
-            { ...sampleSession, id: 'session-2', refreshTokenJti: 'jti-other-1' },
-            { ...sampleSession, id: 'session-3', refreshTokenJti: 'jti-other-2' },
+            { ...sampleSession, sessionId: 'session-2', refreshTokenJti: 'jti-other-1' },
+            { ...sampleSession, sessionId: 'session-3', refreshTokenJti: 'jti-other-2' },
          ]);
          mockSessionRepository.revokeOtherSessions.mockResolvedValue(['jti-other-1', 'jti-other-2']);
          mockTokenLifecycleService.invalidateRefreshToken.mockResolvedValue(undefined);
@@ -259,7 +259,7 @@ describe('SessionManagementService', () => {
 
       it('should handle audit log failures gracefully without throwing', async () => {
          mockSessionRepository.findActiveSessionsByAccountId.mockResolvedValue([
-            { ...sampleSession, id: 'session-2', refreshTokenJti: 'jti-other-1' },
+            { ...sampleSession, sessionId: 'session-2', refreshTokenJti: 'jti-other-1' },
          ]);
          mockSessionRepository.revokeOtherSessions.mockResolvedValue(['jti-other-1']);
          mockTokenLifecycleService.invalidateRefreshToken.mockResolvedValue(undefined);

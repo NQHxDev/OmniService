@@ -48,7 +48,7 @@ describe('AbstractAuthFlow (Template Method Pattern)', () => {
    let mockSaga: jest.Mocked<IAuthSaga>;
 
    const mockAccount: AccountEntity = {
-      id: 'acc-123',
+      accountId: 'acc-123',
       email: 'test@example.com',
       passwordHash: '$argon2id$mockedpasswordhash',
       roles: [SYSTEM_ROLES.USER],
@@ -103,7 +103,7 @@ describe('AbstractAuthFlow (Template Method Pattern)', () => {
       expect(flow.authenticateOrProvisionMock).toHaveBeenCalledWith(dto, deviceInfo);
       // Step 2 & 3: Token generation & saga registration
       expect(mockTokenLifecycleService.generateTokenPair).toHaveBeenCalledWith(
-         { id: 'acc-123', email: 'test@example.com', roles: [SYSTEM_ROLES.USER] },
+         { accountId: 'acc-123', email: 'test@example.com', roles: [SYSTEM_ROLES.USER] },
          deviceInfo,
       );
       expect(mockSaga.setTokens).toHaveBeenCalledWith({

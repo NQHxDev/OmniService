@@ -106,7 +106,7 @@ describe('AuthLoginService', () => {
 
    describe('login with LoginSaga', () => {
       const mockAccount = {
-         id: 'user-id-1',
+         accountId: 'user-id-1',
          email: 'test@example.com',
          passwordHash: '$argon2id$v=19$m=65536,t=3,p=4$dummyhash',
          roles: [SYSTEM_ROLES.USER],
@@ -136,7 +136,7 @@ describe('AuthLoginService', () => {
 
          // Token pair generated first
          expect(mockTokenLifecycleService.generateTokenPair).toHaveBeenCalledWith(
-            expect.objectContaining({ id: 'user-id-1', email: 'test@example.com' }),
+            expect.objectContaining({ accountId: 'user-id-1', email: 'test@example.com' }),
             undefined,
          );
          // Database updated with new lastLoginAt

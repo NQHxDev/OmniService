@@ -202,7 +202,7 @@ describe('AuthRegistrationService', () => {
 
    describe('register with RegisterSaga', () => {
       const mockCreatedAccount = {
-         id: 'new-account-id',
+         accountId: 'new-account-id',
          email: 'newuser@example.com',
          roles: [SYSTEM_ROLES.USER],
          status: USER_STATUS.ACTIVE,
@@ -243,7 +243,7 @@ describe('AuthRegistrationService', () => {
          expect(mockAccountRepository.create).toHaveBeenCalled();
          expect(mockOutboxRepository.create).toHaveBeenCalled();
          expect(mockTokenLifecycleService.generateTokenPair).toHaveBeenCalledWith(
-            expect.objectContaining({ id: 'new-account-id', email: 'newuser@example.com' }),
+            expect.objectContaining({ accountId: 'new-account-id', email: 'newuser@example.com' }),
             undefined,
          );
          expect(mockEmailBloomFilterService.addEmail).toHaveBeenCalledWith('newuser@example.com');

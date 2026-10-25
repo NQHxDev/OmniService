@@ -26,7 +26,7 @@ describe('LoginSaga', () => {
    };
 
    const mockAccount: AccountEntity = {
-      id: 'acc-1',
+      accountId: 'acc-1',
       email: 'test@example.com',
       passwordHash: 'hash',
       roles: [DEFAULT_ROLES.USER],

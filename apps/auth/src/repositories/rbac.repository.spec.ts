@@ -81,7 +81,7 @@ describe('RbacRepository', () => {
 
       const role = await repository.findRoleByCode('ADMIN');
       expect(role).toBeDefined();
-      expect(role?.id).toBe('role-1');
+      expect(role?.roleId).toBe('role-1');
       expect(role?.code).toBe('ADMIN');
       expect(role?.permissions).toEqual(['USERS:READ']);
    });
@@ -107,7 +107,7 @@ describe('RbacRepository', () => {
 
       const role = await repository.findRoleById('role-1');
       expect(role).toBeDefined();
-      expect(role?.id).toBe('role-1');
+      expect(role?.roleId).toBe('role-1');
    });
 
    it('should find permissions by role id', async () => {
