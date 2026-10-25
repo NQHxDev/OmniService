@@ -20,3 +20,4 @@ export * from '@common/patterns';
 export * from '@common/queues';
 export * from '@common/grpc-health';
 export * from '@common/tracing';
+export * from '@common/saga';

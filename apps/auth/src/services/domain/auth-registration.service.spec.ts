@@ -25,7 +25,9 @@ describe('AuthRegistrationService', () => {
    const mockAccountRepository = {
       findByEmail: jest.fn(),
       create: jest.fn(),
+      update: jest.fn().mockResolvedValue(null),
       delete: jest.fn().mockResolvedValue(true),
+      deleteAbortedByEmail: jest.fn().mockResolvedValue(0),
    };
 
    const mockRbacRepository = {
@@ -322,7 +324,7 @@ describe('AuthRegistrationService', () => {
          ).rejects.toThrow(AUTH_ERROR_CODES.EMAIL_MISMATCH);
       });
 
-      it('should rollback by deleting outbox events and deleting account if token generation fails', async () => {
+      it('should compensate by deleting outbox events and marking account REGISTRATION_ABORTED if token generation fails', async () => {
          mockTokenLifecycleService.generateTokenPair.mockRejectedValue(new Error('Redis session write failed'));
 
          await expect(
@@ -334,8 +336,28 @@ describe('AuthRegistrationService', () => {
          ).rejects.toThrow('Redis session write failed');
 
          expect(mockOutboxRepository.deleteByAggregateId).toHaveBeenCalledWith('new-account-id');
-         expect(mockAccountRepository.delete).toHaveBeenCalledWith('new-account-id');
+         expect(mockAccountRepository.update).toHaveBeenCalledWith('new-account-id', {
+            status: USER_STATUS.REGISTRATION_ABORTED,
+         });
+         expect(mockAccountRepository.delete).not.toHaveBeenCalled();
          expect(mockOutboxPublisherService.triggerPublish).not.toHaveBeenCalled();
+      });
+
+      it('should self-heal and allow re-registration if existing account has REGISTRATION_ABORTED status', async () => {
+         mockAccountRepository.findByEmail.mockResolvedValue({
+            accountId: 'aborted-account-id',
+            email: 'newuser@example.com',
+            status: USER_STATUS.REGISTRATION_ABORTED,
+         });
+
+         const result = await service.register({
+            email: 'newuser@example.com',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+         });
+
+         expect(mockAccountRepository.deleteAbortedByEmail).toHaveBeenCalledWith('newuser@example.com');
+         expect(result.user.userId).toBe('new-account-id');
       });
 
       it('should succeed even if audit log fails (non-blocking fire-and-forget)', async () => {

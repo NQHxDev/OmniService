@@ -10,4 +10,6 @@ export interface IAccountRepository {
    update(accountId: string, data: Partial<AccountEntity>): Promise<AccountEntity | null>;
    softDelete(accountId: string): Promise<boolean>;
    delete(accountId: string): Promise<boolean>;
+   deleteAbortedByEmail(email: string): Promise<number>;
+   findExpiredPending(threshold: Date, limit?: number): Promise<AccountEntity[]>;
 }

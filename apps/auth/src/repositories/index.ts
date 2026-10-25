@@ -6,3 +6,4 @@ export * from '@auth/repositories/session.repository.interface';
 export * from '@auth/repositories/session.repository';
 export * from '@auth/repositories/audit-log.repository.interface';
 export * from '@auth/repositories/audit-log.repository';
+export * from '@auth/repositories/prisma-saga.repository';

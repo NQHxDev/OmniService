@@ -3,7 +3,7 @@ import { uuidv7 } from '@common';
 import type { AccountEntity, CreateAccountData } from '@auth/entities/account.entity';
 import { PrismaService, type PrismaClientOrTransaction } from '@auth/prisma';
 import type { IAccountRepository } from '@auth/repositories/account.repository.interface';
-import { type Account, type AccountStatus, type Role } from '@auth/prisma-client';
+import { AccountStatus, type Account, type Role } from '@auth/prisma-client';
 
 type AccountWithRoles = Account & {
    accountRoles?: Array<{
@@ -170,5 +170,41 @@ export class AccountRepository implements IAccountRepository {
       } catch {
          return false;
       }
+   }
+
+   async deleteAbortedByEmail(email: string): Promise<number> {
+      const normalizedEmail = email.toLowerCase().trim();
+      try {
+         const result = await this.prisma.account.deleteMany({
+            where: {
+               email: normalizedEmail,
+               status: AccountStatus.REGISTRATION_ABORTED,
+            },
+         });
+         return result.count;
+      } catch {
+         return 0;
+      }
+   }
+
+   async findExpiredPending(threshold: Date, limit = 50): Promise<AccountEntity[]> {
+      const accounts = await this.prisma.account.findMany({
+         where: {
+            status: AccountStatus.PENDING_ACTIVATION,
+            createdAt: { lt: threshold },
+            deletedAt: null,
+         },
+         take: limit,
+         include: {
+            accountRoles: {
+               include: {
+                  role: true,
+               },
+            },
+         },
+         orderBy: { createdAt: 'asc' },
+      });
+
+      return accounts.map((a) => this.toEntity(a));
    }
 }

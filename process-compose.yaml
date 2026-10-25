@@ -7,11 +7,11 @@ processes:
       availability:
          restart: on_failure
 
-   # Business Services
    auth:
       command: pnpm run start:nowatch:auth
       disabled: true
 
+   # Business Services
    user:
       command: pnpm run start:nowatch:user
       disabled: true
