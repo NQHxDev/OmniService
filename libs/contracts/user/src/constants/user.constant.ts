@@ -25,6 +25,15 @@ export const USER_ERROR_CODES = {
 
 export type UserErrorCode = (typeof USER_ERROR_CODES)[keyof typeof USER_ERROR_CODES];
 
+export const USER_STATUS = {
+   ACTIVE: 'ACTIVE',
+   INACTIVE: 'INACTIVE',
+   SUSPENDED: 'SUSPENDED',
+   DELETED: 'DELETED',
+} as const;
+
+export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];
+
 export const FOLLOW_STATUS = {
    PENDING: 'PENDING',
    ACCEPTED: 'ACCEPTED',

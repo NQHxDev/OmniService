@@ -87,5 +87,6 @@
       "*.js": "$(capture).js.map, $(capture).spec.js, $(capture).test.js",
       "package.json": "pnpm-lock.yaml, pnpm-workspace.yaml, .npmrc, .nvmrc, nest-cli.json, tsconfig.json, tsconfig.*.json",
       "Dockerfile": "Dockerfile*, .dockerignore, docker-compose*.yml, docker-compose*.yaml"
-   }
+   },
+   "github-actions.workflows.pinned.workflows": [".github/workflows/ci.yml"]
 }

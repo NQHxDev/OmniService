@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { DEFAULT_ROLES, JwtUtil, SERVICES } from '@common';
@@ -10,7 +9,7 @@ import { App } from 'supertest/types';
 import { of } from 'rxjs';
 
 describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
-   let app: INestApplication;
+   let app: ReturnType<TestingModule['createNestApplication']>;
    let configService: GatewayConfigService;
 
    const mockUser = {

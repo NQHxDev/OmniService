@@ -7,6 +7,7 @@ import {
    CircuitState,
    defaultIsFailure,
    NETWORK_ERROR_CODES,
+   SLIDING_WINDOW_TYPES,
    withCircuitBreaker,
 } from '@common/patterns/circuit-breaker.pattern';
 import { GrpcStatus } from '@common/exceptions/grpc.exception';
@@ -264,6 +265,86 @@ describe('CircuitBreaker Pattern', () => {
 
          breaker.reset();
          expect(breaker.isClosed()).toBe(true);
+      });
+   });
+
+   describe('Sliding Window Failure Rate', () => {
+      it('should trip OPEN when failure rate exceeds failureRateThreshold with minimumNumberOfCalls', async () => {
+         const breaker = new CircuitBreaker({
+            name: 'sliding-window-service',
+            slidingWindowType: SLIDING_WINDOW_TYPES.COUNT_BASED,
+            slidingWindowSize: 10,
+            minimumNumberOfCalls: 10,
+            failureRateThreshold: 50, // 50%
+            failureThreshold: 10, // high consecutive threshold so only rate trips
+         });
+
+         const successFn = jest.fn().mockResolvedValue('ok');
+         const failureFn = jest.fn().mockRejectedValue(new Error(PRIMARY_NETWORK_ERROR));
+
+         // 5 successes, 4 failures alternating -> 9 calls total (not enough to trip yet)
+         for (let i = 0; i < 4; i++) {
+            await breaker.execute(successFn);
+            await expect(breaker.execute(failureFn)).rejects.toThrow(PRIMARY_NETWORK_ERROR);
+         }
+         await breaker.execute(successFn);
+
+         expect(breaker.getState()).toBe(CircuitState.CLOSED);
+         let stats = breaker.getStats();
+         expect(stats.callsInWindow).toBe(9);
+         expect(stats.failuresInWindow).toBe(4);
+         expect(stats.failureRate).toBeCloseTo((4 / 9) * 100);
+
+         // 10th call: failure -> 5 failures / 10 calls = 50% >= 50% -> trips OPEN!
+         await expect(breaker.execute(failureFn)).rejects.toThrow(PRIMARY_NETWORK_ERROR);
+         expect(breaker.getState()).toBe(CircuitState.OPEN);
+         expect(breaker.isOpen()).toBe(true);
+
+         stats = breaker.getStats();
+         expect(stats.totalFailures).toBe(5);
+         expect(stats.totalSuccesses).toBe(5);
+      });
+
+      it('should not trip when total calls are below minimumNumberOfCalls', async () => {
+         const breaker = new CircuitBreaker({
+            name: 'min-calls-service',
+            slidingWindowType: SLIDING_WINDOW_TYPES.COUNT_BASED,
+            slidingWindowSize: 10,
+            minimumNumberOfCalls: 5,
+            failureRateThreshold: 50,
+            failureThreshold: 10,
+         });
+
+         const failureFn = jest.fn().mockRejectedValue(new Error(PRIMARY_NETWORK_ERROR));
+
+         // 2 calls failed out of 2 calls = 100% failure rate, but calls (2) < minCalls (5)
+         await expect(breaker.execute(failureFn)).rejects.toThrow(PRIMARY_NETWORK_ERROR);
+         await expect(breaker.execute(failureFn)).rejects.toThrow(PRIMARY_NETWORK_ERROR);
+
+         expect(breaker.getState()).toBe(CircuitState.CLOSED);
+         expect(breaker.getStats().callsInWindow).toBe(2);
+         expect(breaker.getStats().failureRate).toBe(100);
+      });
+
+      it('should purge expired calls in TIME_BASED sliding window', async () => {
+         const breaker = new CircuitBreaker({
+            name: 'time-based-service',
+            slidingWindowType: SLIDING_WINDOW_TYPES.TIME_BASED,
+            slidingWindowDurationMs: 50,
+            minimumNumberOfCalls: 2,
+            failureRateThreshold: 50,
+            failureThreshold: 10,
+         });
+
+         const successFn = jest.fn().mockResolvedValue('ok');
+         await breaker.execute(successFn);
+         expect(breaker.getStats().callsInWindow).toBe(1);
+
+         // Wait for window to expire
+         await new Promise((res) => setTimeout(res, 60));
+
+         expect(breaker.getStats().callsInWindow).toBe(0);
+         expect(breaker.getStats().failureRate).toBe(0);
       });
    });
 });

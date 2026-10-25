@@ -143,7 +143,7 @@ describe('UserGrpcController', () => {
 
          expect(commandBus.execute).toHaveBeenCalled();
          expect(result.items).toHaveLength(1);
-         expect(result.items[0].id).toBe('user-123');
+         expect(result.items[0].userId).toBe('user-123');
          expect(result.items[0].username).toBe('john_doe');
          expect(result.items[0].isFollowing).toBe(true);
          expect(result.nextCursor).toBe('next-page-token');
@@ -242,7 +242,7 @@ describe('UserGrpcController', () => {
 
          const result = await firstValueFrom(controller.getUserByAccountId({ accountId: 'acc-123' }));
 
-         expect(result.user?.id).toBe('user-123');
+         expect(result.user?.userId).toBe('user-123');
          expect(result.user?.accountId).toBe('acc-123');
       });
 
@@ -251,7 +251,7 @@ describe('UserGrpcController', () => {
 
          const result = await firstValueFrom(controller.getUserByUsername({ username: 'john_doe' }));
 
-         expect(result.user?.id).toBe('user-123');
+         expect(result.user?.userId).toBe('user-123');
          expect(result.user?.username).toBe('john_doe');
       });
 
@@ -264,7 +264,7 @@ describe('UserGrpcController', () => {
 
          const result = await firstValueFrom(controller.restoreUser({ userId: 'user-123' }, metadata));
 
-         expect(result.user?.id).toBe('user-123');
+         expect(result.user?.userId).toBe('user-123');
       });
    });
 

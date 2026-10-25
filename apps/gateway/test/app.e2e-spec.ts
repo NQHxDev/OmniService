@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { DEFAULT_DEV_EC_PRIVATE_KEY, DEFAULT_ROLES, JwtUtil, SERVICES } from '@common';
@@ -10,7 +9,7 @@ import { App } from 'supertest/types';
 import { of } from 'rxjs';
 
 describe('GatewayController (e2e)', () => {
-   let app: INestApplication;
+   let app: ReturnType<TestingModule['createNestApplication']>;
    let configService: GatewayConfigService;
 
    const mockAuthClient = {

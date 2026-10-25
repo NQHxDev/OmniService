@@ -160,7 +160,7 @@ message SearchUsersRequest {
 }
 
 message UserSearchHitProto {
-  string id = 1;
+  string userId = 1;
   optional string username = 2;
   optional string displayName = 3;
   optional string avatar = 4;

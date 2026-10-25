@@ -1,11 +1,10 @@
-import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AuthModule } from '@auth/auth.module';
 
 describe('Metrics Endpoint (e2e)', () => {
-   let app: INestApplication;
+   let app: ReturnType<TestingModule['createNestApplication']>;
 
    beforeAll(async () => {
       const moduleRef = await Test.createTestingModule({
