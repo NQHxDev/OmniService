@@ -39,8 +39,9 @@
       "codegraph:sync": "npx @colbymchenry/codegraph sync",
       "keys:generate": "ts-node scripts/generate-keys.ts",
       "prepare": "husky",
-      "build": "nest build gateway && nest build auth && nest build user && nest build notification && nest build post && nest build search && nest build media && nest build commerce && nest build supplier",
-      "typecheck": "tsc --noEmit -p tsconfig.build.json"
+      "build": "sh scripts/build-sequential.sh",
+      "typecheck": "tsc --noEmit -p tsconfig.build.json",
+      "build:sequential": "sh scripts/build-sequential.sh"
    },
    "devDependencies": {
       "@eslint/eslintrc": "^3.2.0",
