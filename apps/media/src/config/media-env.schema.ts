@@ -38,6 +38,10 @@ export const mediaEnvSchema = z.object({
    // gRPC
    GRPC_PORT: z.coerce.number().default(50055),
    GRPC_URL: z.string().default('0.0.0.0:50055'),
+
+   // Video Transcoding (FFmpeg / FFprobe)
+   FFMPEG_PATH: z.string().default('ffmpeg'),
+   FFPROBE_PATH: z.string().default('ffprobe'),
 });
 
 export const MEDIA_ENV_KEYS = {
@@ -62,6 +66,8 @@ export const MEDIA_ENV_KEYS = {
    R2_PUBLIC_URL: 'R2_PUBLIC_URL',
    GRPC_PORT: 'GRPC_PORT',
    GRPC_URL: 'GRPC_URL',
+   FFMPEG_PATH: 'FFMPEG_PATH',
+   FFPROBE_PATH: 'FFPROBE_PATH',
 } as const;
 
 export type MediaEnvKey = (typeof MEDIA_ENV_KEYS)[keyof typeof MEDIA_ENV_KEYS];

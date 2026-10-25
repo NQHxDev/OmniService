@@ -15,7 +15,8 @@ Welcome to the centralized configuration, rules, and skills hub for AI Agents (A
 │   ├── grpc-proto-versioning-guidelines.md
 │   └── swagger-openapi-guidelines.md
 ├── skills/                 # Agent skills and capability extensions
-│   └── mermaid/            # Mermaid diagram generation skill & syntax references
+│   ├── mermaid/            # Mermaid diagram generation skill & syntax references
+│   └── security-audit/     # Security guidance and vulnerability review harness (Cloudflare)
 └── scripts/                # Helper automations and agent execution scripts
 ```
 
@@ -64,6 +65,14 @@ Skills provide specialized domain capabilities and references for agents:
    - **Data Visualization**: Pie Chart, XY Chart, Sankey, Quadrant Chart, Radar Chart, Treemap
    - **Organization & Technical**: Mindmap, Kanban, Block Diagram, Packet Diagram, ZenUML
 - **Documentation & References**: Detailed syntax guides are available under `skills/mermaid/references/`.
+
+### 2. [Security Audit Skill](skills/security-audit/SKILL.md)
+
+- **Purpose**: Defensive, source-first security audit and vulnerability research harness developed by Cloudflare.
+- **Capabilities & Phases**:
+   - **Reconnaissance**: Maps architecture, trust boundaries, entry points, and coverage ledgers.
+   - **Coverage-Led Hunting**: Assigns isolated hunters across attack classes (Auth, Memory Safety, Web Protocols, LLM/AI, Cloud/IAM, Supply Chain, Client-Side, RPC/Messaging, etc.).
+   - **Validation & Reporting**: Independent verifiers to confirm/reject findings with JSON schemas (`report-schema.json`) and generate structured reports.
 
 ---
 

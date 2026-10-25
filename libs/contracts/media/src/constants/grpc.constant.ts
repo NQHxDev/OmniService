@@ -30,6 +30,8 @@ export const MEDIA_V1_GRPC_METHODS = {
    CONFIRM_UPLOAD: 'ConfirmUpload',
    GET_MEDIA_BY_ID: 'GetMediaById',
    DELETE_MEDIA: 'DeleteMedia',
+   INITIATE_MULTIPART_UPLOAD: 'InitiateMultipartUpload',
+   COMPLETE_MULTIPART_UPLOAD: 'CompleteMultipartUpload',
 } as const;
 
 export type MediaV1GrpcMethod = (typeof MEDIA_V1_GRPC_METHODS)[keyof typeof MEDIA_V1_GRPC_METHODS];

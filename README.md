@@ -252,9 +252,10 @@ http://localhost:<GATEWAY_PORT>/docs
 
 ## Contributing & Security
 
-- **Contributing Guide**: Please review [contributing.md](contributing.md) for branch naming, coding guidelines, and PR lifecycle.
-- **Security Policy**: For vulnerability disclosures, refer to [security.md](security.md).
-- **Pull Request Template**: Pre-merge checklist and change categorization are defined in [.github/pull_request_template.md](.github/pull_request_template.md).
+- **Contributing Guide**: Please review [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for branch naming, coding guidelines, and PR lifecycle.
+- **Code of Conduct**: Community standards and pledges are outlined in [.github/CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md).
+- **Security Policy**: For vulnerability disclosures, refer to [.github/SECURITY.md](.github/SECURITY.md).
+- **Pull Request Template**: Pre-merge checklist and change categorization are defined in [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md).
 
 ---
 

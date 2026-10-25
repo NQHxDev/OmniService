@@ -61,3 +61,49 @@ export interface IStorageUploadResult {
 export interface IDeleteMediaResult {
    success: boolean;
 }
+
+export interface ICompletedPart {
+   partNumber: number;
+   etag: string;
+}
+
+export interface IMultipartPartUrl {
+   partNumber: number;
+   uploadUrl: string;
+}
+
+export interface IInitiateMultipartResult {
+   mediaId: string;
+   uploadId: string;
+   key: string;
+   publicUrl: string;
+   parts: IMultipartPartUrl[];
+}
+
+export interface IVideoMetadata {
+   duration?: number;
+   thumbnailUrl?: string;
+   hlsMasterUrl?: string;
+   resolutions?: string[];
+   [key: string]: unknown;
+}
+
+export interface ITranscodeRequestedEvent {
+   mediaId: string;
+   key: string;
+   mimeType: string;
+   userId: string;
+}
+
+export interface ITranscodeCompletedEvent {
+   mediaId: string;
+   hlsMasterUrl: string;
+   thumbnailUrl: string;
+   duration: number;
+   resolutions: string[];
+}
+
+export interface ITranscodeFailedEvent {
+   mediaId: string;
+   error: string;
+}

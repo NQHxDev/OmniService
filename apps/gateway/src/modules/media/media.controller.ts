@@ -13,6 +13,9 @@ import {
    ConfirmUploadDto,
    DeleteMediaResponseDto,
    GetUploadUrlDto,
+   InitiateMultipartUploadDto,
+   InitiateMultipartUploadResponseDto,
+   CompleteMultipartUploadDto,
    MEDIA_ERROR_CODES,
    MEDIA_RESPONSE_MESSAGES,
    MediaResponseDto,
@@ -251,5 +254,127 @@ export class MediaController {
    ): Promise<DeleteMediaResponseDto> {
       const correlationId = req.headers[CORRELATION_ID_HEADER] as string | undefined;
       return this.mediaService.deleteMedia(id, user, correlationId);
+   }
+
+   @Post('videos/multipart-initiate')
+   @HttpCode(HttpStatus.OK)
+   @ApiCookieAuth()
+   @ApiBearerAuth()
+   @ApiOperation({
+      operationId: 'initiateVideoMultipartUpload',
+      summary: 'Step 1/3: Initiate Cloudflare R2 multipart upload for large video files',
+      description: `### Large Video Upload Workflow (Step 1 of 3): Multipart Upload Initiation
+#### Prerequisites
+- Authenticated user session.
+
+#### Process Flow
+- Initiates an S3-compatible Multipart Upload directly targeting **Cloudflare R2 Bucket** (Zero Egress Fees).
+- Generates presigned HTTP PUT URLs for each requested part/chunk (between 5MB and 10MB per part recommended).
+- Registers media entity in \`PENDING\` status.
+
+#### Next Step
+- **Step 2/3 (Out-of-band Client Execution)**: Upload binary chunks sequentially or concurrently to the returned part presigned URLs.
+- **Step 3/3**: Call \`POST /api/v1/media/videos/multipart-complete\` with the collected parts and ETags.`,
+   })
+   @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Multipart upload session initiated and presigned part URLs generated successfully.',
+      type: InitiateMultipartUploadResponseDto,
+      links: {
+         CompleteMultipartUpload: {
+            operationId: 'completeVideoMultipartUpload',
+            description: 'Step 3/3: Complete multipart upload after uploading all chunks to Cloudflare R2',
+            parameters: {
+               mediaId: '$response.body#/data/mediaId',
+               uploadId: '$response.body#/data/uploadId',
+            },
+         },
+      },
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Invalid upload parameters or unsupported media type',
+         errorCodes: [MEDIA_ERROR_CODES.INVALID_FILE_TYPE, MEDIA_ERROR_CODES.MULTIPART_INITIATE_FAILED],
+      },
+      {
+         status: HttpStatus.UNAUTHORIZED,
+         description: 'Unauthorized access or missing credentials',
+         errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
+      },
+   ])
+   @ResponseMessage(MEDIA_RESPONSE_MESSAGES.INITIATE_MULTIPART_SUCCESS)
+   async initiateMultipartUpload(
+      @Body() dto: InitiateMultipartUploadDto,
+      @CurrentUser() user: JwtPayload,
+      @Req() req: Request,
+   ): Promise<InitiateMultipartUploadResponseDto> {
+      const correlationId = req.headers[CORRELATION_ID_HEADER] as string | undefined;
+      return this.mediaService.initiateMultipartUpload(dto, user, correlationId);
+   }
+
+   @Post('videos/multipart-complete')
+   @HttpCode(HttpStatus.OK)
+   @ApiCookieAuth()
+   @ApiBearerAuth()
+   @ApiOperation({
+      operationId: 'completeVideoMultipartUpload',
+      summary: 'Step 3/3: Finalize multipart upload on Cloudflare R2 and trigger async HLS transcoding',
+      description: `### Large Video Upload Workflow (Step 3 of 3): Finalize & Transcode
+#### Prerequisites
+- Must have called **Step 1/3** (\`POST /api/v1/media/videos/multipart-initiate\`) and uploaded all parts to Cloudflare R2 (**Step 2/3**).
+
+#### Process Flow
+- Directs Cloudflare R2 to assemble uploaded chunks into a single raw video asset.
+- Transitions media entity status to \`PROCESSING\`.
+- Dispatches an asynchronous transcoding job via RabbitMQ to generate adaptive bitrate HLS streaming profiles (1080p, 720p, 360p, \`master.m3u8\`) and extract video thumbnail poster.
+
+#### Next Step
+- Listen for real-time notification or poll \`GET /api/v1/media/:id\` until status transitions from \`PROCESSING\` to \`READY\`.`,
+   })
+   @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Multipart upload finalized on Cloudflare R2; video is now in PROCESSING state for HLS transcoding.',
+      type: MediaResponseDto,
+      links: {
+         GetMediaById: {
+            operationId: 'getMediaById',
+            description: 'Check status and retrieve HLS streaming master playlist once transcoding is complete',
+            parameters: {
+               id: '$response.body#/data/id',
+            },
+         },
+      },
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Invalid parts payload or Cloudflare R2 assembly failure',
+         errorCodes: [MEDIA_ERROR_CODES.MULTIPART_COMPLETE_FAILED],
+      },
+      {
+         status: HttpStatus.NOT_FOUND,
+         description: 'Media entity not found',
+         errorCodes: [MEDIA_ERROR_CODES.MEDIA_NOT_FOUND],
+      },
+      {
+         status: HttpStatus.FORBIDDEN,
+         description: 'User does not have permission to finalize this media asset',
+         errorCodes: [MEDIA_ERROR_CODES.CONFIRMATION_FAILED],
+      },
+      {
+         status: HttpStatus.UNAUTHORIZED,
+         description: 'Unauthorized access',
+         errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
+      },
+   ])
+   @ResponseMessage(MEDIA_RESPONSE_MESSAGES.COMPLETE_MULTIPART_SUCCESS)
+   async completeMultipartUpload(
+      @Body() dto: CompleteMultipartUploadDto,
+      @CurrentUser() user: JwtPayload,
+      @Req() req: Request,
+   ): Promise<MediaResponseDto> {
+      const correlationId = req.headers[CORRELATION_ID_HEADER] as string | undefined;
+      return this.mediaService.completeMultipartUpload(dto, user, correlationId);
    }
 }

@@ -80,4 +80,12 @@ export class MediaConfigService {
    get grpcUrl(): string {
       return this.configService.get(MEDIA_ENV_KEYS.GRPC_URL, { infer: true }) || '0.0.0.0:50055';
    }
+
+   get ffmpegPath(): string {
+      return this.configService.get(MEDIA_ENV_KEYS.FFMPEG_PATH, { infer: true }) || 'ffmpeg';
+   }
+
+   get ffprobePath(): string {
+      return this.configService.get(MEDIA_ENV_KEYS.FFPROBE_PATH, { infer: true }) || 'ffprobe';
+   }
 }
