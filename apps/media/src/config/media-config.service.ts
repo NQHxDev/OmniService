@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { isDevelopment, isProduction } from '@common';
+import { ENV_KEYS, isDevelopment, isProduction } from '@common';
 import { MEDIA_ENV_KEYS, type MediaEnvConfig } from '@media/config/media-env.schema';
 
 @Injectable()
@@ -37,6 +37,14 @@ export class MediaConfigService {
       const db = this.configService.get(MEDIA_ENV_KEYS.POSTGRES_DB, { infer: true });
       const port = this.configService.get(MEDIA_ENV_KEYS.POSTGRES_PORT, { infer: true });
       return `postgresql://${user}:${password}@localhost:${port}/${db}`;
+   }
+
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true }) || 6432;
    }
 
    get rabbitMq() {

@@ -13,6 +13,14 @@ export class AuthConfigService extends CommonConfigService {
       return this.configService.get(ENV_KEYS.DATABASE_URL, { infer: true });
    }
 
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true });
+   }
+
    get postgresUser(): string {
       return this.configService.get(ENV_KEYS.POSTGRES_USER, { infer: true });
    }

@@ -62,6 +62,39 @@ services:
       networks:
          - omni-network
 
+   pgbouncer:
+      image: edoburu/pgbouncer:latest
+      container_name: omni-services-pgbouncer
+      restart: unless-stopped
+      ports:
+         - '${PGBOUNCER_PORT:-6432}:6432'
+      volumes:
+         - ./infra/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+         - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+      healthcheck:
+         test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-p', '6432']
+         interval: 10s
+         timeout: 5s
+         retries: 5
+      networks:
+         - omni-network
+
+   pgbouncer-exporter:
+      image: prometheuscommunity/pgbouncer-exporter:latest
+      container_name: omni-services-pgbouncer-exporter
+      restart: unless-stopped
+      environment:
+         - PGBOUNCER_EXPORTER_HOST=pgbouncer
+         - PGBOUNCER_EXPORTER_PORT=6432
+         - PGBOUNCER_EXPORTER_USER=postgres
+         - PGBOUNCER_EXPORTER_PASS=postgres
+      ports:
+         - '9127:9127'
+      depends_on:
+         - pgbouncer
+      networks:
+         - omni-network
+
 volumes:
    redis_data:
       driver: local

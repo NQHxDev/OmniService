@@ -25,6 +25,14 @@ export class SupplierConfigService extends CommonConfigService {
       return this.configService.get(SUPPLIER_ENV_KEYS.DATABASE_URL, { infer: true });
    }
 
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true });
+   }
+
    get rabbitmqUri(): string {
       return this.configService.get(ENV_KEYS.RABBITMQ_URI, { infer: true });
    }

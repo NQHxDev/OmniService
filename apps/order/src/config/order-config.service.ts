@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CommonConfigService } from '@common';
+import { CommonConfigService, ENV_KEYS } from '@common';
 import { ORDER_ENV_KEYS, type OrderEnvConfig } from '@order/config/order-env.schema';
 
 @Injectable()
@@ -23,6 +23,14 @@ export class OrderConfigService extends CommonConfigService {
 
    get databaseUrl(): string {
       return this.configService.get(ORDER_ENV_KEYS.DATABASE_URL, { infer: true });
+   }
+
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true });
    }
 
    get commerceGrpcUrl(): string {

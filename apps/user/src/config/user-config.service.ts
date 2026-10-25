@@ -25,9 +25,19 @@ export class UserConfigService extends CommonConfigService {
       return `0.0.0.0:${this.grpcPort}`;
    }
 
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true });
+   }
+
    get database() {
       return {
          url: this.databaseUrl,
+         directUrl: this.directUrl,
+         pgbouncerPort: this.pgbouncerPort,
       };
    }
 

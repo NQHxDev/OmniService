@@ -33,7 +33,13 @@ export const userEnvSchema = sharedEnvSchema.extend({
    POSTGRES_PASSWORD: z.string().default('postgres'),
    POSTGRES_DB: z.string().default('omni_service_user'),
    POSTGRES_PORT: z.coerce.number().int().positive().default(5439),
-   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5439/omni_service_user'),
+   PGBOUNCER_PORT: z.coerce.number().int().positive().default(6432),
+   DATABASE_URL: z
+      .string()
+      .default(
+         'postgresql://postgres:postgres@localhost:6432/omni_service_user?connection_limit=5&pool_timeout=10&pgbouncer=true',
+      ),
+   DIRECT_URL: z.string().optional(),
    NEBULA_GRAPHD_HOST: z.string().default('localhost'),
    NEBULA_GRAPHD_PORT: z.coerce.number().int().positive().default(9669),
    NEBULA_USERNAME: z.string().default('root'),

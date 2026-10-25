@@ -10,7 +10,13 @@ export const mediaEnvSchema = z.object({
    POSTGRES_PASSWORD: z.string().default('postgres'),
    POSTGRES_DB: z.string().default('omni_service_media'),
    POSTGRES_PORT: z.coerce.number().default(5442),
-   DATABASE_URL: z.string().optional(),
+   PGBOUNCER_PORT: z.coerce.number().int().positive().default(6432),
+   DATABASE_URL: z
+      .string()
+      .default(
+         'postgresql://postgres:postgres@localhost:6432/omni_service_media?connection_limit=5&pool_timeout=10&pgbouncer=true',
+      ),
+   DIRECT_URL: z.string().optional(),
 
    // RabbitMQ
    RABBIT_MQ_URI: z.string().default('amqp://guest:guest@localhost:5672'),

@@ -7,6 +7,7 @@
       "build": "nest build post",
       "prisma:generate": "dotenv -e .env -- prisma generate --schema=prisma/schema.prisma",
       "prisma:migrate": "dotenv -e .env -- prisma migrate dev --schema=prisma/schema.prisma",
+      "prisma:migrate:deploy": "dotenv -e .env -- prisma migrate deploy --schema=prisma/schema.prisma",
       "prisma:push": "dotenv -e .env -- prisma db push --schema=prisma/schema.prisma",
       "prisma:studio": "dotenv -e .env -- prisma studio --schema=prisma/schema.prisma",
       "lint": "eslint \"src/**/*.ts\" --fix"

@@ -27,7 +27,13 @@ export const paymentEnvSchema = sharedEnvSchema.extend({
    POSTGRES_PASSWORD: z.string().default('postgres'),
    POSTGRES_DB: z.string().default('omni_service_payment'),
    POSTGRES_PORT: z.coerce.number().int().positive().default(5446),
-   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5446/omni_service_payment'),
+   PGBOUNCER_PORT: z.coerce.number().int().positive().default(6432),
+   DATABASE_URL: z
+      .string()
+      .default(
+         'postgresql://postgres:postgres@localhost:6432/omni_service_payment?connection_limit=5&pool_timeout=10&pgbouncer=true',
+      ),
+   DIRECT_URL: z.string().optional(),
    PORT: z.coerce.number().int().positive().default(3010),
    GRPC_PORT: z.coerce.number().int().positive().default(50058),
    ORDER_GRPC_URL: z.string().default('localhost:50057'),

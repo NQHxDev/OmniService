@@ -39,6 +39,14 @@ export class NotificationConfigService extends CommonConfigService {
       return this.configService.get(ENV_KEYS.DATABASE_URL, { infer: true });
    }
 
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true }) || 6432;
+   }
+
    get postgresPort(): number {
       return this.configService.get(ENV_KEYS.POSTGRES_PORT, { infer: true });
    }

@@ -18,7 +18,13 @@ export const orderEnvSchema = sharedEnvSchema.extend({
    POSTGRES_PASSWORD: z.string().default('postgres'),
    POSTGRES_DB: z.string().default('omni_service_order'),
    POSTGRES_PORT: z.coerce.number().int().positive().default(5445),
-   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5445/omni_service_order'),
+   PGBOUNCER_PORT: z.coerce.number().int().positive().default(6432),
+   DATABASE_URL: z
+      .string()
+      .default(
+         'postgresql://postgres:postgres@localhost:6432/omni_service_order?connection_limit=5&pool_timeout=10&pgbouncer=true',
+      ),
+   DIRECT_URL: z.string().optional(),
    PORT: z.coerce.number().int().positive().default(3009),
    GRPC_PORT: z.coerce.number().int().positive().default(50057),
    COMMERCE_GRPC_URL: z.string().default('localhost:50053'),

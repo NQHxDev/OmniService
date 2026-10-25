@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+   name: pgbouncer-config
+   namespace: omni-services
+data:
+   pgbouncer.ini: |
+      [databases]
+      omni_service_auth = host=auth-postgres.omni-services.svc.cluster.local port=5433 dbname=omni_service_auth
+      omni_service_user = host=user-postgres.omni-services.svc.cluster.local port=5439 dbname=omni_service_user
+      omni_service_post = host=post-postgres.omni-services.svc.cluster.local port=5441 dbname=omni_service_post
+      omni_service_notification = host=notification-postgres.omni-services.svc.cluster.local port=5436 dbname=omni_service_notification
+      omni_service_media = host=media-postgres.omni-services.svc.cluster.local port=5442 dbname=omni_service_media
+      omni_service_commerce = host=commerce-postgres.omni-services.svc.cluster.local port=5443 dbname=omni_service_commerce
+      omni_service_supplier = host=supplier-postgres.omni-services.svc.cluster.local port=5444 dbname=omni_service_supplier
+      omni_service_order = host=order-postgres.omni-services.svc.cluster.local port=5445 dbname=omni_service_order
+      omni_service_payment = host=payment-postgres.omni-services.svc.cluster.local port=5446 dbname=omni_service_payment
+
+      [pgbouncer]
+      listen_addr = 0.0.0.0
+      listen_port = 6432
+      auth_type = plain
+      auth_file = /etc/pgbouncer/userlist.txt
+      pool_mode = transaction
+      max_client_conn = 1000
+      default_pool_size = 20
+      reserve_pool_size = 5
+      max_db_connections = 50
+      ignore_startup_parameters = extra_float_digits
+      server_reset_query = DISCARD ALL
+      log_connections = 0
+      log_disconnections = 0
+      log_pooler_errors = 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: pgbouncer
+   namespace: omni-services
+   labels:
+      app: pgbouncer
+spec:
+   replicas: 2
+   selector:
+      matchLabels:
+         app: pgbouncer
+   template:
+      metadata:
+         labels:
+            app: pgbouncer
+      spec:
+         containers:
+            - name: pgbouncer
+              image: edoburu/pgbouncer:latest
+              ports:
+                 - containerPort: 6432
+                   name: pgbouncer
+              resources:
+                 requests:
+                    cpu: 100m
+                    memory: 128Mi
+                 limits:
+                    cpu: 500m
+                    memory: 256Mi
+              volumeMounts:
+                 - name: config-volume
+                   mountPath: /etc/pgbouncer
+              livenessProbe:
+                 tcpSocket:
+                    port: 6432
+                 initialDelaySeconds: 10
+                 periodSeconds: 10
+              readinessProbe:
+                 tcpSocket:
+                    port: 6432
+                 initialDelaySeconds: 5
+                 periodSeconds: 5
+         volumes:
+            - name: config-volume
+              configMap:
+                 name: pgbouncer-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+   name: pgbouncer
+   namespace: omni-services
+spec:
+   type: ClusterIP
+   selector:
+      app: pgbouncer
+   ports:
+      - name: pgbouncer
+        port: 6432
+        targetPort: 6432

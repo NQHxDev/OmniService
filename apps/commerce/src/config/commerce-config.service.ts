@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CommonConfigService } from '@common';
+import { CommonConfigService, ENV_KEYS } from '@common';
 import { COMMERCE_ENV_KEYS, type CommerceEnvConfig } from '@commerce/config/commerce-env.schema';
 
 @Injectable()
@@ -23,6 +23,14 @@ export class CommerceConfigService extends CommonConfigService {
 
    get databaseUrl(): string {
       return this.configService.get(COMMERCE_ENV_KEYS.DATABASE_URL, { infer: true });
+   }
+
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true });
    }
 
    get supplierGrpcUrl(): string {
