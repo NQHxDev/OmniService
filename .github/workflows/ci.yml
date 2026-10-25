@@ -23,7 +23,7 @@ jobs:
       runs-on: ubuntu-latest
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
          - name: Setup Environment & Dependencies
            uses: ./.github/actions/setup-pnpm-env
@@ -42,7 +42,7 @@ jobs:
       runs-on: ubuntu-latest
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
          - name: Setup Environment & Dependencies
            uses: ./.github/actions/setup-pnpm-env
@@ -56,7 +56,7 @@ jobs:
       needs: [lint-and-typecheck, unit-tests]
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
          - name: Setup Environment & Dependencies
            uses: ./.github/actions/setup-pnpm-env
