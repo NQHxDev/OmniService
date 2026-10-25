@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ENV_KEYS, isDevelopment, isProduction } from '@common';
+import { CLOUD_TRANSCODE_PROVIDERS, type CloudTranscodeProvider } from '@contracts/media';
 import { MEDIA_ENV_KEYS, type MediaEnvConfig } from '@media/config/media-env.schema';
 
 @Injectable()
@@ -87,5 +88,52 @@ export class MediaConfigService {
 
    get ffprobePath(): string {
       return this.configService.get(MEDIA_ENV_KEYS.FFPROBE_PATH, { infer: true }) || 'ffprobe';
+   }
+
+   get mediaRole(): 'api' | 'worker' | 'all' {
+      return this.configService.get(MEDIA_ENV_KEYS.MEDIA_ROLE, { infer: true }) || 'all';
+   }
+
+   get isWorkerRole(): boolean {
+      return this.mediaRole === 'worker' || this.mediaRole === 'all';
+   }
+
+   get isApiRole(): boolean {
+      return this.mediaRole === 'api' || this.mediaRole === 'all';
+   }
+
+   get transcodePrefetchCount(): number {
+      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_PREFETCH_COUNT, { infer: true }) ?? 1;
+   }
+
+   get transcodeMinFreeDiskGb(): number {
+      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_MIN_FREE_DISK_GB, { infer: true }) ?? 10;
+   }
+
+   get transcodeMinFreeDiskBytes(): number {
+      return this.transcodeMinFreeDiskGb * 1024 * 1024 * 1024;
+   }
+
+   get transcodeOffloadMaxSizeMb(): number {
+      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_OFFLOAD_MAX_SIZE_MB, { infer: true }) ?? 1024;
+   }
+
+   get transcodeOffloadMaxSizeBytes(): number {
+      return this.transcodeOffloadMaxSizeMb * 1024 * 1024;
+   }
+
+   get transcodeOffloadMaxDurationSec(): number {
+      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_OFFLOAD_MAX_DURATION_SEC, { infer: true }) ?? 1800;
+   }
+
+   get transcodeHwaccel(): 'none' | 'auto' | 'videotoolbox' | 'nvenc' | 'vaapi' {
+      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_HWACCEL, { infer: true }) || 'none';
+   }
+
+   get cloudTranscodeProvider(): CloudTranscodeProvider {
+      return (
+         this.configService.get(MEDIA_ENV_KEYS.CLOUD_TRANSCODE_PROVIDER, { infer: true }) ||
+         CLOUD_TRANSCODE_PROVIDERS.CLOUDFLARE_STREAM
+      );
    }
 }

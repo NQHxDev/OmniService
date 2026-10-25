@@ -28,9 +28,7 @@ export class MediaEventPublisher implements IMediaEventPublisher {
 
          if (this.mediaRmqClient) {
             this.mediaRmqClient.emit(MEDIA_EVENTS.TRANSCODE_REQUESTED, event);
-         }
-
-         if (this.eventEmitter) {
+         } else if (this.eventEmitter) {
             this.eventEmitter.emit(MEDIA_EVENTS.TRANSCODE_REQUESTED, event);
          }
          return Promise.resolve();
@@ -48,9 +46,7 @@ export class MediaEventPublisher implements IMediaEventPublisher {
 
          if (this.mediaRmqClient) {
             this.mediaRmqClient.emit(MEDIA_EVENTS.TRANSCODE_COMPLETED, event);
-         }
-
-         if (this.eventEmitter) {
+         } else if (this.eventEmitter) {
             this.eventEmitter.emit(MEDIA_EVENTS.TRANSCODE_COMPLETED, event);
          }
          return Promise.resolve();
@@ -68,9 +64,7 @@ export class MediaEventPublisher implements IMediaEventPublisher {
 
          if (this.mediaRmqClient) {
             this.mediaRmqClient.emit(MEDIA_EVENTS.TRANSCODE_FAILED, event);
-         }
-
-         if (this.eventEmitter) {
+         } else if (this.eventEmitter) {
             this.eventEmitter.emit(MEDIA_EVENTS.TRANSCODE_FAILED, event);
          }
          return Promise.resolve();

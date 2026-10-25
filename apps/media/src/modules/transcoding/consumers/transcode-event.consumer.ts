@@ -1,7 +1,7 @@
 import { Controller, Inject, Logger } from '@nestjs/common';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 import { OnEvent } from '@nestjs/event-emitter';
-import { RmqService } from '@common';
+import { RmqService, SERVICES } from '@common';
 import {
    MEDIA_EVENTS,
    MEDIA_STATUSES,
@@ -15,6 +15,7 @@ import {
    type IMediaEventPublisher,
 } from '@media/modules/transcoding/publishers/media-event.publisher.interface';
 import { MEDIA_REPOSITORY, type IMediaRepository } from '@media/modules/media/repositories/media.repository.interface';
+import { DiskGuardService } from '@media/modules/transcoding/services/disk-guard.service';
 
 @Controller()
 export class TranscodeEventConsumer {
@@ -28,6 +29,7 @@ export class TranscodeEventConsumer {
       @Inject(MEDIA_REPOSITORY)
       private readonly mediaRepository: IMediaRepository,
       private readonly rmqService: RmqService,
+      private readonly diskGuardService: DiskGuardService,
    ) {}
 
    @EventPattern(MEDIA_EVENTS.TRANSCODE_REQUESTED)
@@ -35,10 +37,19 @@ export class TranscodeEventConsumer {
       @Payload() data: ITranscodeRequestedEvent,
       @Ctx() context?: RmqContext,
    ): Promise<void> {
-      if (context) {
-         this.rmqService.ack(context);
+      // 1. Backpressure Pre-flight Check: verify scratch disk headroom before picking up job
+      const hasSpace = await this.diskGuardService.hasSufficientSpace();
+      if (!hasSpace) {
+         this.logger.warn(
+            `Insufficient scratch disk space to process transcode job for media ${data.mediaId}. Requeueing back to RabbitMQ for backpressure.`,
+         );
+         if (context) {
+            this.rmqService.nack(context, true);
+         }
+         return;
       }
-      await this.processTranscodeJob(data);
+
+      await this.processTranscodeJob(data, context);
    }
 
    @OnEvent(MEDIA_EVENTS.TRANSCODE_REQUESTED)
@@ -46,9 +57,12 @@ export class TranscodeEventConsumer {
       await this.processTranscodeJob(data);
    }
 
-   private async processTranscodeJob(data: ITranscodeRequestedEvent): Promise<void> {
+   private async processTranscodeJob(data: ITranscodeRequestedEvent, context?: RmqContext): Promise<void> {
       if (this.activeTranscodeJobs.has(data.mediaId)) {
          this.logger.warn(`Transcode job for media ${data.mediaId} is already running in this worker`);
+         if (context) {
+            this.rmqService.nack(context, true);
+         }
          return;
       }
 
@@ -56,15 +70,26 @@ export class TranscodeEventConsumer {
       this.logger.log(`Worker picked up transcode job for media ${data.mediaId} (key: ${data.key})`);
 
       try {
+         // Execute transcoding pipeline
          const result = await this.videoTranscodeService.transcodeVideo(data.mediaId, data.key);
          await this.eventPublisher.publishTranscodeCompleted(result);
+
+         // Manual ACK ONLY after successful completion
+         if (context) {
+            this.rmqService.ack(context);
+         }
       } catch (error) {
          const errorMessage = error instanceof Error ? error.message : String(error);
          this.logger.error(`Worker failed transcoding for media ${data.mediaId}: ${errorMessage}`);
+
          await this.eventPublisher.publishTranscodeFailed({
             mediaId: data.mediaId,
             error: errorMessage,
          });
+
+         if (context) {
+            await this.rmqService.handleError(error, context, { queue: SERVICES.MEDIA_SERVICE });
+         }
       } finally {
          this.activeTranscodeJobs.delete(data.mediaId);
       }
@@ -75,10 +100,17 @@ export class TranscodeEventConsumer {
       @Payload() data: ITranscodeCompletedEvent,
       @Ctx() context?: RmqContext,
    ): Promise<void> {
-      if (context) {
-         this.rmqService.ack(context);
+      try {
+         await this.applyTranscodeCompleted(data);
+         if (context) {
+            this.rmqService.ack(context);
+         }
+      } catch (error) {
+         this.logger.error(`Failed to handle transcode completed event: ${(error as Error).message}`);
+         if (context) {
+            await this.rmqService.handleError(error, context, { queue: SERVICES.MEDIA_SERVICE });
+         }
       }
-      await this.applyTranscodeCompleted(data);
    }
 
    @OnEvent(MEDIA_EVENTS.TRANSCODE_COMPLETED)
@@ -114,10 +146,17 @@ export class TranscodeEventConsumer {
       @Payload() data: ITranscodeFailedEvent,
       @Ctx() context?: RmqContext,
    ): Promise<void> {
-      if (context) {
-         this.rmqService.ack(context);
+      try {
+         await this.applyTranscodeFailed(data);
+         if (context) {
+            this.rmqService.ack(context);
+         }
+      } catch (error) {
+         this.logger.error(`Failed to handle transcode failed event: ${(error as Error).message}`);
+         if (context) {
+            await this.rmqService.handleError(error, context, { queue: SERVICES.MEDIA_SERVICE });
+         }
       }
-      await this.applyTranscodeFailed(data);
    }
 
    @OnEvent(MEDIA_EVENTS.TRANSCODE_FAILED)

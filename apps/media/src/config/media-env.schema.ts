@@ -42,6 +42,15 @@ export const mediaEnvSchema = z.object({
    // Video Transcoding (FFmpeg / FFprobe)
    FFMPEG_PATH: z.string().default('ffmpeg'),
    FFPROBE_PATH: z.string().default('ffprobe'),
+
+   // High-Throughput Transcoding Pipeline & Decoupled Worker
+   MEDIA_ROLE: z.enum(['api', 'worker', 'all']).default('all'),
+   TRANSCODE_PREFETCH_COUNT: z.coerce.number().int().positive().default(1),
+   TRANSCODE_MIN_FREE_DISK_GB: z.coerce.number().positive().default(10),
+   TRANSCODE_OFFLOAD_MAX_SIZE_MB: z.coerce.number().positive().default(1024),
+   TRANSCODE_OFFLOAD_MAX_DURATION_SEC: z.coerce.number().positive().default(1800),
+   TRANSCODE_HWACCEL: z.enum(['none', 'auto', 'videotoolbox', 'nvenc', 'vaapi']).default('none'),
+   CLOUD_TRANSCODE_PROVIDER: z.enum(['CLOUDFLARE_STREAM', 'AWS_MEDIACONVERT']).default('CLOUDFLARE_STREAM'),
 });
 
 export const MEDIA_ENV_KEYS = {
@@ -68,6 +77,13 @@ export const MEDIA_ENV_KEYS = {
    GRPC_URL: 'GRPC_URL',
    FFMPEG_PATH: 'FFMPEG_PATH',
    FFPROBE_PATH: 'FFPROBE_PATH',
+   MEDIA_ROLE: 'MEDIA_ROLE',
+   TRANSCODE_PREFETCH_COUNT: 'TRANSCODE_PREFETCH_COUNT',
+   TRANSCODE_MIN_FREE_DISK_GB: 'TRANSCODE_MIN_FREE_DISK_GB',
+   TRANSCODE_OFFLOAD_MAX_SIZE_MB: 'TRANSCODE_OFFLOAD_MAX_SIZE_MB',
+   TRANSCODE_OFFLOAD_MAX_DURATION_SEC: 'TRANSCODE_OFFLOAD_MAX_DURATION_SEC',
+   TRANSCODE_HWACCEL: 'TRANSCODE_HWACCEL',
+   CLOUD_TRANSCODE_PROVIDER: 'CLOUD_TRANSCODE_PROVIDER',
 } as const;
 
 export type MediaEnvKey = (typeof MEDIA_ENV_KEYS)[keyof typeof MEDIA_ENV_KEYS];

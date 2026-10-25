@@ -45,8 +45,10 @@
       "build:sequential": "sh scripts/build-sequential.sh",
       "start:order": "nest start order -b swc --watch",
       "start:payment": "nest start payment -b swc --watch",
+      "start:media:worker": "nest start media --entryFile worker -b swc --watch",
       "start:nowatch:order": "nest start order -b swc",
-      "start:nowatch:payment": "nest start payment -b swc"
+      "start:nowatch:payment": "nest start payment -b swc",
+      "start:nowatch:media:worker": "nest start media --entryFile worker -b swc"
    },
    "devDependencies": {
       "@eslint/eslintrc": "^3.2.0",

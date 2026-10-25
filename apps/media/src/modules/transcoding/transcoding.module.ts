@@ -8,8 +8,12 @@ import { MEDIA_EVENT_PUBLISHER } from '@media/modules/transcoding/publishers/med
 import { TranscodeEventConsumer } from '@media/modules/transcoding/consumers/transcode-event.consumer';
 import { MediaRepository } from '@media/modules/media/repositories/media.repository';
 import { MEDIA_REPOSITORY } from '@media/modules/media/repositories/media.repository.interface';
-
 import { MediaConfigModule } from '@media/config';
+import { DiskGuardService } from '@media/modules/transcoding/services/disk-guard.service';
+import { DISK_GUARD_SERVICE } from '@media/modules/transcoding/services/disk-guard.service.interface';
+import { SinglePassFfmpegStrategy } from '@media/modules/transcoding/strategies/single-pass-ffmpeg.strategy';
+import { CloudManagedTranscodeAdapter } from '@media/modules/transcoding/strategies/cloud-managed-transcode.adapter';
+import { TranscodeStrategyFactory } from '@media/modules/transcoding/strategies/transcode-strategy.factory';
 
 @Module({
    imports: [
@@ -21,6 +25,14 @@ import { MediaConfigModule } from '@media/config';
    ],
    controllers: [TranscodeEventConsumer],
    providers: [
+      DiskGuardService,
+      {
+         provide: DISK_GUARD_SERVICE,
+         useClass: DiskGuardService,
+      },
+      SinglePassFfmpegStrategy,
+      CloudManagedTranscodeAdapter,
+      TranscodeStrategyFactory,
       VideoTranscodeService,
       MediaEventPublisher,
       {
@@ -33,6 +45,13 @@ import { MediaConfigModule } from '@media/config';
          useClass: MediaRepository,
       },
    ],
-   exports: [VideoTranscodeService, MediaEventPublisher, MEDIA_EVENT_PUBLISHER],
+   exports: [
+      VideoTranscodeService,
+      MediaEventPublisher,
+      MEDIA_EVENT_PUBLISHER,
+      DiskGuardService,
+      DISK_GUARD_SERVICE,
+      TranscodeStrategyFactory,
+   ],
 })
 export class TranscodingModule {}
