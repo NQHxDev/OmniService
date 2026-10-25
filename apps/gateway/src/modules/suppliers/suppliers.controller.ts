@@ -36,9 +36,17 @@ export class SuppliersController {
    @HttpCode(HttpStatus.CREATED)
    @ApiOperation({
       operationId: 'registerSupplier',
-      summary: 'Register a new supplier store or vendor',
-      description:
-         'Registers a new vendor, merchant, or supermarket as an ingredient supplier linked to the authenticated user account.',
+      summary: 'Step 2/2: Submit supplier store details and complete merchant onboarding',
+      description: `### Workflow: Supplier / Merchant Onboarding (Step 2 of 2)
+#### Prerequisites
+- Must be authenticated with an active account (role \`SUPPLIER\` or standard merchant).
+
+#### Process Flow
+- Creates store profile with brand name, contact email/phone, tax identification code, and warehouse address.
+- Automatically associates the authenticated user account as store OWNER.
+
+#### Next Step
+- Store profile created. Check onboarding verification status via \`GET /api/v1/suppliers/me\`.`,
    })
    @ApiResponse({
       status: HttpStatus.CREATED,
@@ -47,7 +55,7 @@ export class SuppliersController {
       links: {
          GetMySupplier: {
             operationId: 'getMySupplierProfile',
-            description: 'Check supplier onboarding state or retrieve store profile',
+            description: 'Check supplier onboarding verification state and retrieve store profile',
          },
       },
    })
@@ -90,13 +98,26 @@ export class SuppliersController {
    @ApiOperation({
       operationId: 'getMySupplierProfile',
       summary: 'Get supplier onboarding status and store profile for the authenticated merchant',
-      description:
-         'Returns the supplier profile and member role if the authenticated account has completed store onboarding, or hasSupplier=false if onboarding is required.',
+      description: `### Workflow: Supplier Onboarding Verification Check
+#### Prerequisites
+- Authenticated merchant session.
+
+#### Process Flow
+- Returns the supplier profile and member role if the authenticated account has completed store onboarding (\`hasSupplier: true\`), or \`hasSupplier: false\` if store registration is still required.
+
+#### Next Step
+- If verified, proceed to create product offers in catalog via \`POST /api/v1/commerce/products\`.`,
    })
    @ApiResponse({
       status: HttpStatus.OK,
       description: 'Supplier profile and onboarding status retrieved successfully.',
       type: MySupplierResponseDto,
+      links: {
+         CreateProductOffer: {
+            operationId: 'createProductOffer',
+            description: 'Create supplier product offers linking store inventory to standardized ingredients',
+         },
+      },
    })
    @ApiErrorResponses([
       {

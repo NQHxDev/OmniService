@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PrismaService } from '@user/prisma';
-import { OutboxStatus, type Prisma } from '@user/prisma-client';
+import type { Prisma } from '@user/prisma-client';
 import { OUTBOX_REPOSITORY, type IOutboxRepository } from '@user/outbox/repositories';
 
 @Injectable()
@@ -8,7 +7,6 @@ export class OutboxService {
    constructor(
       @Inject(OUTBOX_REPOSITORY)
       private readonly outboxRepository: IOutboxRepository,
-      private readonly prisma: PrismaService,
    ) {}
 
    async createOutboxEvent(
@@ -27,35 +25,5 @@ export class OutboxService {
          },
          tx,
       );
-   }
-
-   async getPendingEvents(limit = 100) {
-      return this.outboxRepository.findPending(limit);
-   }
-
-   async markAsProcessing(eventId: string) {
-      return this.outboxRepository.markAsProcessing(eventId);
-   }
-
-   async markAsPublished(eventId: string) {
-      return this.outboxRepository.markAsPublished(eventId);
-   }
-
-   async markAsFailed(eventId: string, error: string) {
-      return this.outboxRepository.markAsFailed(eventId, error);
-   }
-
-   async deletePublishedEvents(olderThanDays = 7) {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
-
-      return this.prisma.outbox.deleteMany({
-         where: {
-            status: OutboxStatus.PUBLISHED,
-            publishedAt: {
-               lt: cutoffDate,
-            },
-         },
-      });
    }
 }

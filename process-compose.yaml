@@ -9,13 +9,15 @@ processes:
 
    auth:
       command: pnpm run start:nowatch:auth
-      disabled: true
+      availability:
+         restart: on_failure
 
-   # Business Services
    user:
       command: pnpm run start:nowatch:user
-      disabled: true
+      availability:
+         restart: on_failure
 
+   # Business Services
    post:
       command: pnpm run start:nowatch:post
       disabled: true

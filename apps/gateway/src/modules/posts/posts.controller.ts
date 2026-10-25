@@ -90,9 +90,16 @@ export class PostsController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'getPostIngredients',
-      summary: 'Get dish ingredients for a video post',
-      description:
-         'Retrieves the list of ingredients selected/listed by the creator for this video dish (used for the "Xem nguyên liệu" drawer/dialog).',
+      summary: 'Get dish ingredients for a video post with e-commerce links',
+      description: `### Workflow: Recipe to E-Commerce Conversion
+#### Prerequisites
+- Valid recipe post ID.
+
+#### Process Flow
+- Retrieves standardized ingredients selected by the creator for this video dish (used in the "View Ingredients" dialog/drawer).
+
+#### Next Step
+- Call \`GET /api/v1/commerce/ingredients/:ingredientId/suppliers\` to discover merchants selling the selected ingredient.`,
    })
    @ApiParam({
       name: 'postId',
@@ -103,6 +110,15 @@ export class PostsController {
       status: HttpStatus.OK,
       description: 'Ingredients list retrieved successfully.',
       type: [PostIngredientDto],
+      links: {
+         GetSuppliersByIngredient: {
+            operationId: 'getSuppliersByIngredient',
+            description: 'View merchants and purchasing offers for the first ingredient in the recipe',
+            parameters: {
+               ingredientId: '$response.body#/data/0/ingredientId',
+            },
+         },
+      },
    })
    @ApiErrorResponses([
       {

@@ -17,6 +17,7 @@ import { SupplierConfigModule } from '@supplier/config';
 import { SupplierLoggerModule } from '@supplier/logger';
 import { PrismaModule } from '@supplier/prisma';
 import { UnitOfWorkModule } from '@supplier/unit-of-work';
+import { OutboxModule } from '@supplier/outbox';
 import {
    SUPPLIER_MEMBER_REPOSITORY,
    SUPPLIER_REPOSITORY,
@@ -40,6 +41,7 @@ import { SUPPLIER_EVENT_PUBLISHER, SupplierEventPublisher } from '@supplier/publ
       SupplierLoggerModule,
       PrismaModule,
       UnitOfWorkModule,
+      OutboxModule,
       RedisModule,
       RmqModule,
       RmqModule.register({

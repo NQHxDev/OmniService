@@ -72,15 +72,33 @@ export class UsersController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'checkUsername',
-      summary: 'Check if a username is available using fast Bloom Filter [gRPC]',
-      description:
-         'Verifies username availability via high-performance internal gRPC communication with User microservice.',
+      summary: 'Step 1/2: Check username availability using Bloom Filter [gRPC]',
+      description: `### Workflow: User Profile Onboarding (Step 1 of 2)
+#### Prerequisites
+- None (Public endpoint).
+
+#### Process Flow
+- Queries the User microservice via internal high-performance gRPC.
+- Uses a Redis Bloom Filter for instant probabilistic pre-filtering before checking database records.
+- Prevents submission of already-occupied handles before form submission.
+
+#### Next Step
+- If available (\`isAvailable: true\`), proceed to **Step 2/2**: Call \`POST /api/v1/users/profile\` with the chosen username to initialize profile.`,
    })
    @ApiQuery({ name: 'username', required: true, description: 'Username to verify availability', example: 'john_doe' })
    @ApiResponse({
       status: HttpStatus.OK,
       description: 'Username availability status returned successfully.',
       type: CheckUsernameResponseDto,
+      links: {
+         CreateProfile: {
+            operationId: 'createUserProfile',
+            description: 'Step 2/2: Create initial user profile with this available username',
+            parameters: {
+               username: '$request.query#/username',
+            },
+         },
+      },
    })
    @ApiErrorResponse({
       status: HttpStatus.BAD_REQUEST,
@@ -160,7 +178,22 @@ export class UsersController {
    @ApiBearerAuth()
    @ApiOperation({
       operationId: 'createUserProfile',
-      summary: 'Create initial user profile for the current authenticated user',
+      summary: 'Step 2/2: Create initial user profile for authenticated account',
+      description: `### Workflow: User Profile Onboarding (Step 2 of 2)
+#### Prerequisites
+- User must be authenticated (\`sub\` in JWT from registration or login).
+- Must NOT have created a profile yet.
+- Recommended to check username availability first via **Step 1/2** (\`GET /api/v1/users/check-username\`).
+
+#### Process Flow
+- Creates user profile with unique handle (username), display name, bio, date of birth, and gender.
+- Synchronizes profile record to Elasticsearch inverted index for fast autocomplete search.
+- Initializes graph entities for social following and relationships.
+
+#### Next Step
+- User profile initialized.
+- Proceed to upload an avatar via **Direct CDN Signature (Option A)**: \`GET /api/v1/users/me/avatar/signature\`.
+- Or upload an avatar via **Server Multipart Proxy (Option B)**: \`POST /api/v1/users/me/avatar\`.`,
    })
    @ApiResponse({
       status: HttpStatus.CREATED,
@@ -170,6 +203,14 @@ export class UsersController {
          GetMyProfile: {
             operationId: 'getMyUserProfile',
             description: 'Retrieve current user profile details created in this step',
+         },
+         GetAvatarSignature: {
+            operationId: 'getMyAvatarSignature',
+            description: 'Option A: Obtain signed upload signature for direct CDN avatar upload',
+         },
+         UploadAvatar: {
+            operationId: 'uploadMyAvatar',
+            description: 'Option B: Upload avatar directly through backend proxy (Multipart)',
          },
       },
    })
@@ -311,8 +352,18 @@ export class UsersController {
    @ApiOperation({
       operationId: 'updateMyUsername',
       summary: 'Update username with 30-day modification cooldown',
-      description:
-         'Updates unique handle/username for the authenticated user. Enforces a 30-day cooldown between username changes. Administrators bypass cooldown.',
+      description: `### Workflow: Username Update & Cooldown Enforcement
+#### Prerequisites
+- Authenticated user session.
+
+#### Process Flow
+- Validates username regex format and verifies uniqueness using Bloom Filter.
+- Enforces a strict 30-day cooldown policy between consecutive username updates for regular users (mitigates impersonation and handle squatting).
+- Administrators are exempt and may bypass the 30-day cooldown.
+- Synchronizes updated handle across Auth and User databases and updates Elasticsearch index.
+
+#### Next Step
+- Username handle updated. Profile discoverable under new username.`,
    })
    @ApiResponse({
       status: HttpStatus.OK,
@@ -563,7 +614,20 @@ export class UsersController {
    @ApiBearerAuth()
    @ApiOperation({
       operationId: 'uploadMyAvatar',
-      summary: 'Upload new avatar image directly to Cloudinary CDN',
+      summary: 'Upload avatar directly through backend proxy (Multipart)',
+      description: `### Workflow: Avatar Upload - Backend Proxy Multipart (Option B)
+#### Prerequisites
+- Authenticated user session.
+
+#### Process Flow
+- Intended for clients that do not integrate direct Cloudinary SDK uploads.
+- Receives \`multipart/form-data\` image payload (JPEG, PNG, WebP, GIF; maximum 5MB).
+- Validates magic bytes, file buffer, and MIME type.
+- Transcodes to Base64 and delegates upload to Cloudinary via User microservice.
+- Automatically updates user's profile avatar URL.
+
+#### Next Step
+- Avatar updated. Query updated profile via \`GET /api/v1/users/me\`.`,
    })
    @ApiConsumes('multipart/form-data')
    @ApiBody({
@@ -635,7 +699,18 @@ export class UsersController {
    @ApiBearerAuth()
    @ApiOperation({
       operationId: 'getMyAvatarSignature',
-      summary: 'Get signed upload signature for direct client-to-Cloudinary upload',
+      summary: 'Step 1/2 (Direct CDN): Get signed upload signature for Cloudinary',
+      description: `### Workflow: Avatar Upload - Direct Client-to-CDN (Option A)
+#### Prerequisites
+- Authenticated user session.
+
+#### Process Flow
+- Generates cryptographic timestamp, SHA-256 signature, API key, and upload endpoint for Cloudinary.
+- Allows client web/mobile apps to upload the binary image payload directly to Cloudinary without routing through backend Gateway bandwidth.
+
+#### Next Step
+- Client performs direct multipart POST to Cloudinary upload URL using the returned parameters.
+- Cloudinary webhook or client profile update commits the resulting asset URL.`,
    })
    @ApiResponse({
       status: HttpStatus.OK,

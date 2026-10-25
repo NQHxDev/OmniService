@@ -8,7 +8,6 @@ import { AuthRegistrationService } from '@auth/services/domain/auth-registration
 import { ACCOUNT_REPOSITORY, RBAC_REPOSITORY } from '@auth/repositories';
 import { AuthConfigService } from '@auth/config';
 import { OUTBOX_REPOSITORY } from '@auth/outbox/repositories/outbox.repository.interface';
-import { OutboxPublisherService } from '@auth/outbox';
 import { UNIT_OF_WORK } from '@auth/unit-of-work';
 import {
    AUTH_RATE_LIMITER,
@@ -54,10 +53,6 @@ describe('AuthRegistrationService', () => {
       isEmailAvailable: jest.fn().mockResolvedValue(true),
       mightContain: jest.fn().mockResolvedValue(false),
       addEmail: jest.fn().mockResolvedValue(undefined),
-   };
-
-   const mockOutboxPublisherService = {
-      triggerPublish: jest.fn(),
    };
 
    const mockOutboxRepository = {
@@ -144,10 +139,6 @@ describe('AuthRegistrationService', () => {
             {
                provide: EmailBloomFilterService,
                useValue: mockEmailBloomFilterService,
-            },
-            {
-               provide: OutboxPublisherService,
-               useValue: mockOutboxPublisherService,
             },
             {
                provide: OUTBOX_REPOSITORY,
@@ -249,7 +240,6 @@ describe('AuthRegistrationService', () => {
             undefined,
          );
          expect(mockEmailBloomFilterService.addEmail).toHaveBeenCalledWith('newuser@example.com');
-         expect(mockOutboxPublisherService.triggerPublish).toHaveBeenCalled();
          expect(mockAuditLogService.record).toHaveBeenCalled();
       });
 
@@ -340,7 +330,6 @@ describe('AuthRegistrationService', () => {
             status: USER_STATUS.REGISTRATION_ABORTED,
          });
          expect(mockAccountRepository.delete).not.toHaveBeenCalled();
-         expect(mockOutboxPublisherService.triggerPublish).not.toHaveBeenCalled();
       });
 
       it('should self-heal and allow re-registration if existing account has REGISTRATION_ABORTED status', async () => {

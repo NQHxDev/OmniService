@@ -22,3 +22,4 @@ export * from '@common/grpc-health';
 export * from '@common/tracing';
 export * from '@common/saga';
 export * from '@common/database';
+export * from '@common/events';

@@ -122,6 +122,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }
    }
 
+   async setNx(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
+      if (!this.client) return false;
+      try {
+         let result: string | null;
+         if (ttlSeconds && ttlSeconds > 0) {
+            result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+         } else {
+            result = await this.client.set(key, value, 'NX');
+         }
+         return result === 'OK';
+      } catch (err: unknown) {
+         const error = err as Error;
+         this.logger.warn(`Redis SETNX failed for key "${key}": ${error.message}`);
+         return false;
+      }
+   }
+
    async del(key: string): Promise<void> {
       if (!this.client) return;
       try {

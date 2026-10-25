@@ -207,9 +207,18 @@ export class AuthController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'checkEmail',
-      summary: 'Check if an email is available for registration using fast Bloom Filter [gRPC]',
-      description:
-         'Verifies email availability via high-performance internal gRPC communication with Auth microservice.',
+      summary: 'Pre-check: Check if an email is available for registration using fast Bloom Filter [gRPC]',
+      description: `### Workflow: User Registration (Pre-check)
+#### Prerequisites
+- None (Public endpoint).
+
+#### Process Flow
+- Queries the Auth microservice via high-performance internal gRPC communication.
+- Uses a Redis Bloom Filter for instant probabilistic pre-filtering before checking database records.
+- Prevents unnecessary OTP requests or registration payload transmission if email is already in use.
+
+#### Next Step
+- If available (\`isAvailable: true\`), proceed to **Step 1/3**: Call \`POST /api/v1/auth/register/send-otp\` to request a verification OTP code.`,
    })
    @ApiHeader({
       name: 'X-Correlation-Id',
@@ -227,6 +236,15 @@ export class AuthController {
       status: HttpStatus.OK,
       description: 'Email availability status returned.',
       type: CheckEmailResponseDto,
+      links: {
+         SendRegisterOtp: {
+            operationId: 'sendRegisterOtp',
+            description: 'Step 1/3: Send registration OTP to this email if available',
+            parameters: {
+               email: '$request.query#/email',
+            },
+         },
+      },
    })
    @ApiErrorResponse({
       status: HttpStatus.BAD_REQUEST,
@@ -252,7 +270,21 @@ export class AuthController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'sendRegisterOtp',
-      summary: 'Send 6-digit OTP verification code to email for registration (uses Bloom Filter for instant check)',
+      summary: 'Step 1/3: Send 6-digit registration OTP verification code to email',
+      description: `### Workflow: User Registration (Step 1 of 3)
+#### Prerequisites
+- Email must be valid and not already registered (can pre-check via \`GET /api/v1/auth/check-email\`).
+
+#### Process Flow
+- Verifies email uniqueness using Bloom Filter and Auth database records.
+- Generates a cryptographically secure 6-digit numeric OTP.
+- Stores the OTP in Redis cache with a 10-minute time-to-live (TTL).
+- Dispatches an asynchronous event to Notification microservice to send the OTP email.
+- Enforces a 60-second cooldown between resend requests and a maximum limit of 5 OTP attempts per day.
+
+#### Next Step
+- Check recipient email inbox for the 6-digit verification code.
+- Proceed to **Step 2/3**: Call \`POST /api/v1/auth/register/verify-otp\` with the received OTP.`,
    })
    @ApiResponse({
       status: 200,
@@ -261,7 +293,7 @@ export class AuthController {
       links: {
          VerifyOtp: {
             operationId: 'verifyRegisterOtp',
-            description: 'Verify the 6-digit OTP code received via email in the next step',
+            description: 'Step 2/3: Verify the 6-digit OTP code received via email in the next step',
             parameters: {
                email: '$request.body#/email',
             },
@@ -296,7 +328,19 @@ export class AuthController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'verifyRegisterOtp',
-      summary: 'Verify 6-digit OTP verification code and obtain a single-use verificationToken for registration',
+      summary: 'Step 2/3: Verify registration OTP and obtain single-use verificationToken',
+      description: `### Workflow: User Registration (Step 2 of 3)
+#### Prerequisites
+- MUST call **Step 1/3** (\`POST /api/v1/auth/register/send-otp\`) first to receive OTP in email.
+
+#### Process Flow
+- Validates the submitted 6-digit OTP code against the cached Redis entry.
+- Tracks failed verification attempts (maximum 5 attempts before code is invalidated).
+- Upon successful match, invalidates the OTP and generates a signed single-use \`verificationToken\` with 15-minute expiration.
+- Proves email ownership before the account entity is created.
+
+#### Next Step
+- Proceed to **Step 3/3**: Call \`POST /api/v1/auth/register\` supplying \`verificationToken\` and account password to create the user account.`,
    })
    @ApiResponse({
       status: 200,
@@ -305,7 +349,7 @@ export class AuthController {
       links: {
          RegisterAccount: {
             operationId: 'registerAccount',
-            description: 'Complete account registration using the verificationToken and email from the OTP step',
+            description: 'Step 3/3: Complete account registration using verificationToken and email',
             parameters: {
                verificationToken: '$response.body#/data/verificationToken',
                email: '$response.body#/data/email',
@@ -337,8 +381,22 @@ export class AuthController {
    @HttpCode(HttpStatus.CREATED)
    @ApiOperation({
       operationId: 'registerAccount',
-      summary:
-         'Register a new account and automatically log in. Supports verificationToken from OTP step. Returns tokens in response body and HttpOnly cookies.',
+      summary: 'Step 3/3: Create user account using verificationToken and initialize session',
+      description: `### Workflow: User Registration (Step 3 of 3)
+#### Prerequisites
+- MUST complete **Step 2/3** (\`POST /api/v1/auth/register/verify-otp\`) to obtain a valid \`verificationToken\`.
+
+#### Process Flow
+- Validates cryptographic signature and single-use status of \`verificationToken\`.
+- Hashes password using Argon2id with unique salt.
+- Persists user account and credentials in Auth database.
+- Issues JWT access token (15-minute TTL) and refresh token (7-day TTL).
+- Sets HttpOnly secure cookies and returns tokens in response payload.
+
+#### Next Step
+- User account is active and logged in.
+- Proceed to create user profile via \`POST /api/v1/users/profile\` (**User Onboarding Step 2/2**).
+- Or onboard as supplier via \`POST /api/v1/suppliers\` (**Supplier Onboarding Step 2/2**).`,
    })
    @ApiHeader({
       name: 'X-Client-Type',
@@ -413,8 +471,20 @@ export class AuthController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'loginAccount',
-      summary:
-         'User login. Returns tokens in both response body (for mobile/API clients) and HttpOnly cookies (for web browsers)',
+      summary: 'Authenticate credentials, create device session, and issue JWT tokens',
+      description: `### Workflow: User Authentication & Session Creation
+#### Prerequisites
+- User must have an active registered account.
+
+#### Process Flow
+- Validates email and verifies password hash using Argon2id.
+- Checks account lock and security thresholds (blocks temporary brute force).
+- Registers client device session (IP address, user-agent, device ID).
+- Issues JWT access token and refresh token, setting HttpOnly cookies and returning payload.
+
+#### Next Step
+- Access protected resources using Bearer token or HttpOnly cookie.
+- Query active sessions via \`GET /api/v1/auth/sessions\` to inspect logged-in devices.`,
    })
    @ApiHeader({
       name: 'X-Correlation-Id',
@@ -442,6 +512,10 @@ export class AuthController {
          GetAuthProfile: {
             operationId: 'getAuthProfile',
             description: 'Retrieve authenticated user profile and token payload after successful login',
+         },
+         GetUserSessions: {
+            operationId: 'getUserSessions',
+            description: 'List all active logged-in device sessions for this user',
          },
          RegisterSupplier: {
             operationId: 'registerSupplier',
@@ -504,8 +578,19 @@ export class AuthController {
    @Post('refresh')
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
-      summary:
-         'Rotate and refresh tokens. Accepts refresh token from cookie, X-Refresh-Token header, or request body. Returns new tokens in both response body and cookies.',
+      operationId: 'refreshToken',
+      summary: 'Rotate and refresh tokens using active refresh token',
+      description: `### Workflow: Token Refresh & Rotation
+#### Prerequisites
+- Client must hold a valid, unrevoked refresh token via HttpOnly cookie (\`refresh_token\`), \`X-Refresh-Token\` header, or request body.
+
+#### Process Flow
+- Validates cryptographic signature and expiration of refresh token.
+- Enforces strict refresh token rotation: marks used token as revoked and issues new token family pair.
+- Sets updated HttpOnly cookies and returns new tokens in response payload.
+
+#### Next Step
+- Use rotated tokens for subsequent API requests.`,
    })
    @ApiHeader({
       name: 'X-Refresh-Token',
@@ -711,13 +796,37 @@ export class AuthController {
    @ApiBearerAuth()
    @ApiOperation({
       operationId: 'getUserSessions',
-      summary:
-         'Get list of all active sessions and logged-in devices for the current user. Supports both cookie and Bearer token authentication.',
+      summary: 'List all active device sessions for current user',
+      description: `### Workflow: Session Management (List Active Sessions)
+#### Prerequisites
+- Authenticated user session (Bearer token or HttpOnly cookie).
+
+#### Process Flow
+- Retrieves all active device sessions from Redis/Auth microservice for the authenticated user ID (\`sub\`).
+- Identifies current device session via matching \`jti\` claim.
+- Returns client metadata (device type, browser, OS, IP address, last active timestamp).
+
+#### Next Step
+- Terminate a specific session via \`DELETE /api/v1/auth/sessions/:sessionId\`.
+- Or terminate all other sessions via \`POST /api/v1/auth/sessions/revoke-others\`.`,
    })
    @ApiResponse({
       status: 200,
       description: 'Active sessions and devices retrieved successfully.',
       type: [DeviceSessionResponseDto],
+      links: {
+         RevokeSession: {
+            operationId: 'revokeSession',
+            description: 'Terminate a specific device session from the list',
+            parameters: {
+               sessionId: '$response.body#/data/0/id',
+            },
+         },
+         RevokeOtherSessions: {
+            operationId: 'revokeOtherSessions',
+            description: 'Revoke all device sessions except the current active session',
+         },
+      },
    })
    @ApiErrorResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -736,8 +845,16 @@ export class AuthController {
    @ApiBearerAuth()
    @ApiOperation({
       operationId: 'revokeSession',
-      summary:
-         'Revoke and log out a specific session/device by session ID. Supports both cookie and Bearer token authentication.',
+      summary: 'Revoke and terminate a specific device session by session ID',
+      description: `### Workflow: Session Management (Terminate Single Session)
+#### Prerequisites
+- Authenticated user session.
+- Session ID obtained from \`GET /api/v1/auth/sessions\`.
+
+#### Process Flow
+- Verifies session belongs to the current user.
+- Blacklists token family and deletes session state from Redis.
+- Dispatches session revocation notification.`,
    })
    @ApiParam({ name: 'sessionId', description: 'Session UUID to revoke', type: String })
    @ApiResponse({
@@ -775,8 +892,15 @@ export class AuthController {
    @ApiBearerAuth()
    @ApiOperation({
       operationId: 'revokeOtherSessions',
-      summary:
-         'Revoke and log out all other active sessions except the current device session. Supports both cookie and Bearer token authentication.',
+      summary: 'Revoke and terminate all active sessions except current device session',
+      description: `### Workflow: Session Management (Revoke Other Sessions)
+#### Prerequisites
+- Authenticated user with an active refresh token or identifiable session \`jti\`.
+
+#### Process Flow
+- Identifies current active session \`jti\` from request cookies or tokens.
+- Revokes and removes all other device sessions in Redis for the user.
+- Keeps current device authenticated while logging out all other devices.`,
    })
    @ApiResponse({
       status: HttpStatus.OK,
@@ -814,8 +938,22 @@ export class AuthController {
    @ApiBearerAuth()
    @ApiOperation({
       operationId: 'initiateChangePassword',
-      summary:
-         'Initiate password change by validating current password and sending OTP verification code to account email.',
+      summary: 'Step 1/2: Initiate password change and send verification OTP to email',
+      description: `### Workflow: Change Password (Step 1 of 2)
+#### Prerequisites
+- User must be authenticated (Bearer token or HttpOnly cookie).
+- Must provide correct current password.
+
+#### Process Flow
+- Validates \`currentPassword\` against Argon2id hash in database.
+- Checks that \`newPassword\` differs from current password.
+- Hashes and temporarily stores \`newPassword\` and \`logoutAll\` preference in Redis cache with 10-minute TTL.
+- Generates a 6-digit numeric OTP and delivers it to user's verified email.
+- Enforces a 60-second cooldown between requests.
+
+#### Next Step
+- Check email inbox for 6-digit OTP code.
+- Call **Step 2/2**: \`POST /api/v1/auth/change-password/verify-otp\` with the OTP code to apply the new password.`,
    })
    @ApiResponse({
       status: 200,
@@ -824,7 +962,7 @@ export class AuthController {
       links: {
          VerifyChangePasswordOtp: {
             operationId: 'verifyChangePasswordOtp',
-            description: 'Verify the OTP code sent to email to finalize password change',
+            description: 'Step 2/2: Verify the OTP code sent to email to finalize password change',
          },
       },
    })
@@ -862,8 +1000,21 @@ export class AuthController {
    @ApiBearerAuth()
    @ApiOperation({
       operationId: 'verifyChangePasswordOtp',
-      summary:
-         'Verify OTP code and finalize password change, with automatic session revocation if logoutAll was selected.',
+      summary: 'Step 2/2: Verify OTP code and finalize password change',
+      description: `### Workflow: Change Password (Step 2 of 2)
+#### Prerequisites
+- MUST call **Step 1/2** (\`POST /api/v1/auth/change-password\`) first to initiate change and receive OTP.
+
+#### Process Flow
+- Verifies 6-digit OTP code against cached record in Redis.
+- Allows up to 5 attempts before the OTP is invalidated.
+- Upon successful verification, commits the cached new password hash into the database.
+- Removes OTP and pending change state from Redis.
+- If \`logoutAll\` was requested in Step 1, revokes all other active sessions across devices and clears authentication cookies.
+
+#### Next Step
+- Password change is complete.
+- If \`logoutAll\` was executed, existing tokens on other devices are invalidated; client on current device may continue or re-authenticate.`,
    })
    @ApiResponse({
       status: 200,

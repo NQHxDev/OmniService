@@ -95,10 +95,25 @@ services:
       networks:
          - omni-network
 
+   debezium:
+      image: debezium/server:2.7.3.Final
+      container_name: omni-services-debezium
+      restart: unless-stopped
+      volumes:
+         - ./infra/debezium/application.properties:/debezium/conf/application.properties:ro
+         - debezium_data:/debezium/data
+      depends_on:
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
 volumes:
    redis_data:
       driver: local
    rabbitmq_data:
+      driver: local
+   debezium_data:
       driver: local
 
 networks:

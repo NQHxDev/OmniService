@@ -6,3 +6,4 @@ export * from '@common/interceptors/grpc-metrics.interceptor';
 export * from '@common/interceptors/grpc-metrics.interface';
 export * from '@common/interceptors/grpc-interceptor.util';
 export * from '@common/interceptors/grpc-trace.storage';
+export * from '@common/interceptors/idempotent-consumer.interceptor';

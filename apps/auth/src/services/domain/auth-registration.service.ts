@@ -23,7 +23,6 @@ import { ACCOUNT_REPOSITORY, type IAccountRepository, RBAC_REPOSITORY, type IRba
 import { AuditLogBuilder } from '@auth/builders/audit-log.builder';
 import { AuthConfigService } from '@auth/config';
 import { OUTBOX_REPOSITORY, type IOutboxRepository } from '@auth/outbox/repositories/outbox.repository.interface';
-import { OutboxPublisherService } from '@auth/outbox';
 import { UNIT_OF_WORK, type IUnitOfWork } from '@auth/unit-of-work';
 import {
    AUTH_RATE_LIMITER,
@@ -83,7 +82,6 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
       @Inject(AUTH_RATE_LIMITER)
       private readonly rateLimiter: IAuthRateLimiter,
       private readonly emailBloomFilterService: EmailBloomFilterService,
-      private readonly outboxPublisherService: OutboxPublisherService,
       private readonly redisService: RedisService,
       auditLogService: AuditLogService,
       @Inject(NOTIFICATION_ADAPTER)
@@ -464,8 +462,7 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
    protected async onSuccess(context: AuthFlowContext<RegistrationFlowDto, RegisterSaga>): Promise<void> {
       const normalizedEmail = context.account.email;
       await this.emailBloomFilterService.addEmail(normalizedEmail);
-      this.logger.log(`Created account ${context.account.email} with Outbox event; triggering publisher`);
-      this.outboxPublisherService.triggerPublish();
+      this.logger.log(`Created account ${context.account.email} with transactional Outbox event; streamed via CDC`);
    }
 
    /**
