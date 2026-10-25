@@ -14,6 +14,8 @@ export const postEnvSchema = sharedEnvSchema.extend({
          'postgresql://postgres:postgres@localhost:6432/omni_service_post?connection_limit=5&pool_timeout=10&pgbouncer=true',
       ),
    DIRECT_URL: z.string().optional(),
+   PORT: z.coerce.number().int().positive().default(3009),
+   GRPC_PORT: z.coerce.number().int().positive().default(50059),
 });
 
 export type PostEnvConfig = z.infer<typeof postEnvSchema>;

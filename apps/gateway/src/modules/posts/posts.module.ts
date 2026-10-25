@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { createGrpcRetryChannelOptions, RedisModule, RmqModule, SERVICES } from '@common';
+import { createGrpcRetryChannelOptions, RedisModule } from '@common';
+import {
+   POST_V1_GRPC_CLIENT,
+   POST_V1_GRPC_PACKAGE_NAME,
+   getPostProtoLoaderOptions,
+   getPostProtoPath,
+} from '@contracts/post';
 import {
    SEARCH_V1_GRPC_CLIENT,
    SEARCH_V1_GRPC_PACKAGE_NAME,
@@ -13,11 +19,25 @@ import { PostsService } from '@/modules/posts/posts.service';
 
 @Module({
    imports: [
-      RmqModule.register({
-         name: SERVICES.POST_SERVICE,
-      }),
       RedisModule,
       ClientsModule.registerAsync([
+         {
+            name: POST_V1_GRPC_CLIENT,
+            imports: [GatewayConfigModule],
+            inject: [GatewayConfigService],
+            useFactory: (configService: GatewayConfigService) => ({
+               transport: Transport.GRPC,
+               options: {
+                  package: [POST_V1_GRPC_PACKAGE_NAME],
+                  protoPath: [getPostProtoPath()],
+                  url: configService.postGrpcUrl,
+                  loader: getPostProtoLoaderOptions(),
+                  channelOptions: createGrpcRetryChannelOptions({
+                     serviceNames: [POST_V1_GRPC_PACKAGE_NAME],
+                  }),
+               },
+            }),
+         },
          {
             name: SEARCH_V1_GRPC_CLIENT,
             imports: [GatewayConfigModule],

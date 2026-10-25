@@ -1,19 +1,22 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import type { ClientGrpc, ClientProxy } from '@nestjs/microservices';
+import type { ClientGrpc } from '@nestjs/microservices';
 import { defer, firstValueFrom } from 'rxjs';
 import {
    BulkheadRegistry,
    CircuitBreakerRegistry,
+   handleGrpcError,
    RedisService,
    RetryPolicyRegistry,
-   SERVICES,
    withGrpcRetry,
 } from '@common';
 import {
    POST_CACHE_KEYS,
    POST_CACHE_TTL,
-   POST_PATTERNS,
+   POST_V1_GRPC_CLIENT,
+   POST_V1_GRPC_SERVICE_NAME,
    type GetPostFeedDto,
+   type IPostItemProto,
+   type IPostV1GrpcService,
    type PostFeedResponseDto,
    type PostIngredientDto,
    type PostItemDto,
@@ -29,6 +32,7 @@ import {
 export class PostsService implements OnModuleInit {
    private readonly logger = new Logger(PostsService.name);
    private searchGrpcService!: ISearchV1GrpcService;
+   private postGrpcService!: IPostV1GrpcService;
 
    private readonly searchBulkhead = BulkheadRegistry.getOrCreate(SEARCH_V1_GRPC_SERVICE_NAME, {
       maxConcurrent: 50,
@@ -48,16 +52,35 @@ export class PostsService implements OnModuleInit {
       maxDelayMs: 2000,
    });
 
+   private readonly postBulkhead = BulkheadRegistry.getOrCreate(POST_V1_GRPC_SERVICE_NAME, {
+      maxConcurrent: 50,
+      maxQueueCapacity: 100,
+   });
+
+   private readonly postGrpcBreaker = CircuitBreakerRegistry.getOrCreate(POST_V1_GRPC_SERVICE_NAME, {
+      timeout: 5000,
+      failureThreshold: 5,
+      resetTimeout: 10000,
+   });
+
+   private readonly postGrpcRetryPolicy = RetryPolicyRegistry.getOrCreate(POST_V1_GRPC_SERVICE_NAME, {
+      maxAttempts: 3,
+      initialDelayMs: 100,
+      multiplier: 2,
+      maxDelayMs: 2000,
+   });
+
    constructor(
       @Inject(SEARCH_V1_GRPC_CLIENT)
       private readonly searchGrpcClient: ClientGrpc,
-      @Inject(SERVICES.POST_SERVICE)
-      private readonly postClient: ClientProxy,
+      @Inject(POST_V1_GRPC_CLIENT)
+      private readonly postGrpcClient: ClientGrpc,
       private readonly redisService: RedisService,
    ) {}
 
    onModuleInit(): void {
       this.searchGrpcService = this.searchGrpcClient.getService<ISearchV1GrpcService>(SEARCH_V1_GRPC_SERVICE_NAME);
+      this.postGrpcService = this.postGrpcClient.getService<IPostV1GrpcService>(POST_V1_GRPC_SERVICE_NAME);
    }
 
    /**
@@ -83,7 +106,7 @@ export class PostsService implements OnModuleInit {
          );
 
          return {
-            items: (res.items || []).map((hit) => this.mapProtoToPostDto(hit)),
+            items: (res.items || []).map((hit) => this.mapSearchProtoToPostDto(hit)),
             nextCursor: res.nextCursor || null,
             hasMore: res.hasMore,
          };
@@ -91,7 +114,7 @@ export class PostsService implements OnModuleInit {
          this.logger.warn(
             `Search gRPC getFeed failed or circuit open, falling back to Post microservice: ${(error as Error).message}`,
          );
-         return firstValueFrom(this.postClient.send<PostFeedResponseDto>({ cmd: POST_PATTERNS.GET_FEED }, query));
+         return this.fetchFeedFromPostService(query);
       }
    }
 
@@ -100,7 +123,7 @@ export class PostsService implements OnModuleInit {
     * Implements Read-Your-Own-Writes consistency check and Redis Read-Through caching.
     */
    async getPostById(postId: string, currentUserId?: string, bypassReadModel = false): Promise<PostItemDto> {
-      // 1. Read-Your-Own-Writes Consistency check (Task 5)
+      // 1. Read-Your-Own-Writes Consistency check
       if (bypassReadModel) {
          this.logger.debug(`Bypassing Read Model for post ${postId} due to explicit bypass flag`);
          return this.fetchFromPostMaster(postId);
@@ -120,7 +143,6 @@ export class PostsService implements OnModuleInit {
       const cacheKey = POST_CACHE_KEYS.detail(postId);
       const cached = await this.redisService.getJson<PostItemDto>(cacheKey);
       if (cached) {
-         // Restore Date instances from serialized JSON
          return {
             ...cached,
             createdAt: new Date(cached.createdAt),
@@ -140,7 +162,7 @@ export class PostsService implements OnModuleInit {
             ),
          );
 
-         const dto = this.mapProtoToPostDto(res.post);
+         const dto = this.mapSearchProtoToPostDto(res.post);
 
          // Write-Through to Redis Cache
          await this.redisService.setJson(cacheKey, dto, POST_CACHE_TTL.DETAIL_SECONDS);
@@ -155,9 +177,29 @@ export class PostsService implements OnModuleInit {
    }
 
    async getIngredients(postId: string): Promise<PostIngredientDto[]> {
-      return firstValueFrom(
-         this.postClient.send<PostIngredientDto[]>({ cmd: POST_PATTERNS.GET_INGREDIENTS }, { postId }),
-      );
+      try {
+         const res = await this.postBulkhead.execute(() =>
+            this.postGrpcBreaker.execute(() =>
+               firstValueFrom(
+                  defer(() => this.postGrpcService.getIngredientsByPostId({ postId })).pipe(
+                     withGrpcRetry(this.postGrpcRetryPolicy),
+                  ),
+               ),
+            ),
+         );
+
+         return (res.items || []).map((ing) => ({
+            ingredientId: ing.ingredientId,
+            name: ing.name,
+            amount: ing.amount !== undefined ? ing.amount : null,
+            unit: ing.unit || null,
+            group: ing.group || null,
+            sortOrder: ing.sortOrder,
+            catalogIngredientId: ing.catalogIngredientId || null,
+         }));
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
    }
 
    /**
@@ -175,11 +217,88 @@ export class PostsService implements OnModuleInit {
       }
    }
 
-   private async fetchFromPostMaster(postId: string): Promise<PostItemDto> {
-      return firstValueFrom(this.postClient.send<PostItemDto>({ cmd: POST_PATTERNS.GET_BY_ID }, { postId }));
+   private async fetchFeedFromPostService(query: GetPostFeedDto): Promise<PostFeedResponseDto> {
+      try {
+         const res = await this.postBulkhead.execute(() =>
+            this.postGrpcBreaker.execute(() =>
+               firstValueFrom(
+                  defer(() =>
+                     this.postGrpcService.getFeed({
+                        limit: query.limit ? Number(query.limit) : undefined,
+                        cursor: query.cursor,
+                        userId: query.userId,
+                        tag: query.tag,
+                        category: query.category,
+                     }),
+                  ).pipe(withGrpcRetry(this.postGrpcRetryPolicy)),
+               ),
+            ),
+         );
+
+         return {
+            items: (res.items || []).map((item) => this.mapPostProtoToDto(item)),
+            nextCursor: res.nextCursor || null,
+            hasMore: res.hasMore,
+         };
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
    }
 
-   private mapProtoToPostDto(hit: IPostSearchHitProto): PostItemDto {
+   private async fetchFromPostMaster(postId: string): Promise<PostItemDto> {
+      try {
+         const res = await this.postBulkhead.execute(() =>
+            this.postGrpcBreaker.execute(() =>
+               firstValueFrom(
+                  defer(() => this.postGrpcService.getPostById({ postId })).pipe(
+                     withGrpcRetry(this.postGrpcRetryPolicy),
+                  ),
+               ),
+            ),
+         );
+
+         return this.mapPostProtoToDto(res.post);
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   private mapPostProtoToDto(item: IPostItemProto): PostItemDto {
+      return {
+         postId: item.postId,
+         userId: item.userId,
+         title: item.title,
+         caption: item.caption || null,
+         mediaId: item.mediaId || null,
+         videoUrl: item.videoUrl,
+         playbackUrl: item.playbackUrl || null,
+         thumbnailUrl: item.thumbnailUrl,
+         blurHash: item.blurHash || null,
+         duration: item.duration,
+         videoWidth: item.videoWidth || null,
+         videoHeight: item.videoHeight || null,
+         viewCount: item.viewCount,
+         likeCount: item.likeCount,
+         commentCount: item.commentCount,
+         shareCount: item.shareCount,
+         saveCount: item.saveCount,
+         allowComments: item.allowComments,
+         allowDuet: item.allowDuet,
+         createdAt: new Date(item.createdAt),
+         updatedAt: new Date(item.updatedAt),
+         ingredients: (item.ingredients || []).map((ing) => ({
+            ingredientId: ing.ingredientId,
+            name: ing.name,
+            amount: ing.amount !== undefined ? ing.amount : null,
+            unit: ing.unit || null,
+            group: ing.group || null,
+            sortOrder: ing.sortOrder,
+            catalogIngredientId: ing.catalogIngredientId || null,
+         })),
+      };
+   }
+
+   private mapSearchProtoToPostDto(hit: IPostSearchHitProto): PostItemDto {
       return {
          postId: hit.postId,
          userId: hit.userId,

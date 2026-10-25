@@ -2,7 +2,7 @@ import '@commerce/tracing';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { AllRpcExceptionsFilter, RmqService, SERVICES, TracingInterceptor } from '@common';
+import { AllRpcExceptionsFilter, TracingInterceptor } from '@common';
 import {
    COMMERCE_V1_GRPC_PACKAGE_NAME,
    getCommerceProtoLoaderOptions,
@@ -17,18 +17,12 @@ async function bootstrap() {
       bufferLogs: true,
    });
    const logger = app.get(Logger);
-   const rmqService = app.get(RmqService);
    const configService = app.get(CommerceConfigService);
 
    app.useLogger(logger);
 
    app.useGlobalFilters(new AllRpcExceptionsFilter());
    app.useGlobalInterceptors(new TracingInterceptor());
-
-   // Connect RabbitMQ microservice
-   app.connectMicroservice(rmqService.getOptions(SERVICES.COMMERCE_SERVICE), {
-      inheritAppConfig: true,
-   });
 
    // Connect gRPC microservice
    app.connectMicroservice<MicroserviceOptions>(
@@ -51,7 +45,6 @@ async function bootstrap() {
    const port = configService.port;
    await app.listen(port);
 
-   logger.log(`Commerce Microservice is listening on RabbitMQ queue: ${SERVICES.COMMERCE_SERVICE}`);
    logger.log(`Commerce gRPC Microservice is listening on ${configService.grpcUrl}`);
    logger.log(`Commerce HTTP server is listening on port ${port} (metrics: http://localhost:${port}/metrics)`);
 }

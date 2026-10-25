@@ -45,7 +45,7 @@ export class PostsController {
       return this.postsService.getFeed(query, user?.sub);
    }
 
-   @Get(':id')
+   @Get(':postId')
    @Public()
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
@@ -54,7 +54,7 @@ export class PostsController {
       description: 'Retrieves single post metadata by its unique UUID.',
    })
    @ApiParam({
-      name: 'id',
+      name: 'postId',
       description: 'Unique UUID identifier of the post',
       example: '0192e21b-0002-7000-8000-000000000001',
    })
@@ -78,14 +78,14 @@ export class PostsController {
    ])
    @ResponseMessage(POST_RESPONSE_MESSAGES.GET_POST_SUCCESS)
    async getPostById(
-      @Param('id') id: string,
+      @Param('postId') postId: string,
       @CurrentUser() user?: JwtPayload | null,
       @Query('bypassReadModel') bypassReadModel?: string,
    ): Promise<PostItemDto> {
-      return this.postsService.getPostById(id, user?.sub, bypassReadModel === 'true' || bypassReadModel === '1');
+      return this.postsService.getPostById(postId, user?.sub, bypassReadModel === 'true' || bypassReadModel === '1');
    }
 
-   @Get(':id/ingredients')
+   @Get(':postId/ingredients')
    @Public()
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
@@ -95,7 +95,7 @@ export class PostsController {
          'Retrieves the list of ingredients selected/listed by the creator for this video dish (used for the "Xem nguyên liệu" drawer/dialog).',
    })
    @ApiParam({
-      name: 'id',
+      name: 'postId',
       description: 'Unique UUID identifier of the post',
       example: '0192e21b-0002-7000-8000-000000000001',
    })
@@ -112,7 +112,7 @@ export class PostsController {
       },
    ])
    @ResponseMessage(POST_RESPONSE_MESSAGES.GET_INGREDIENTS_SUCCESS)
-   async getIngredients(@Param('id') id: string): Promise<PostIngredientDto[]> {
-      return this.postsService.getIngredients(id);
+   async getIngredients(@Param('postId') postId: string): Promise<PostIngredientDto[]> {
+      return this.postsService.getIngredients(postId);
    }
 }

@@ -36,4 +36,16 @@ export class PostConfigService extends CommonConfigService {
    get postgresPort(): number {
       return this.configService.get(ENV_KEYS.POSTGRES_PORT, { infer: true });
    }
+
+   get port(): number {
+      return this.configService.get('PORT' as keyof PostEnvConfig, { infer: true });
+   }
+
+   get grpcPort(): number {
+      return this.configService.get('GRPC_PORT' as keyof PostEnvConfig, { infer: true });
+   }
+
+   get grpcUrl(): string {
+      return `0.0.0.0:${this.grpcPort}`;
+   }
 }
