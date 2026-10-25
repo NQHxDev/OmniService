@@ -1,0 +1,55 @@
+version: 2
+updates:
+   # Weekly updates for Node.js / pnpm dependencies
+   - package-ecosystem: 'npm'
+     directory: '/'
+     schedule:
+        interval: 'weekly'
+        day: 'monday'
+        time: '03:00'
+        timezone: 'Asia/Ho_Chi_Minh'
+     open-pull-requests-limit: 10
+     commit-message:
+        prefix: 'chore(deps)'
+     labels:
+        - 'dependencies'
+        - 'chore'
+     groups:
+        nestjs:
+           patterns:
+              - '@nestjs/*'
+        typescript-eslint:
+           patterns:
+              - '@typescript-eslint/*'
+              - 'eslint*'
+              - 'prettier*'
+
+   # Weekly updates for GitHub Actions workflows
+   - package-ecosystem: 'github-actions'
+     directory: '/'
+     schedule:
+        interval: 'weekly'
+        day: 'monday'
+        time: '03:00'
+        timezone: 'Asia/Ho_Chi_Minh'
+     open-pull-requests-limit: 5
+     commit-message:
+        prefix: 'chore(ci)'
+     labels:
+        - 'ci'
+        - 'dependencies'
+
+   # Weekly updates for Docker Compose services
+   - package-ecosystem: 'docker-compose'
+     directory: '/'
+     schedule:
+        interval: 'weekly'
+        day: 'monday'
+        time: '03:00'
+        timezone: 'Asia/Ho_Chi_Minh'
+     open-pull-requests-limit: 5
+     commit-message:
+        prefix: 'chore(docker)'
+     labels:
+        - 'docker'
+        - 'dependencies'

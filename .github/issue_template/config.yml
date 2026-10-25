@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+   - name: Community Discussions & Questions
+     url: https://github.com/NQHxDev/OmniService/discussions
+     about: Ask questions, get community support, or discuss ideas before opening an issue.
+   - name: Architecture & Development Guidelines
+     url: https://github.com/NQHxDev/OmniService#readme
+     about: Review our coding standards, gRPC proto versioning, and project conventions.
+   - name: Security Vulnerability Reporting
+     url: https://github.com/NQHxDev/OmniService/security/advisories/new
+     about: Privately report sensitive security vulnerabilities to maintainers.

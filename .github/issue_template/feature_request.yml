@@ -1,0 +1,111 @@
+name: '🚀 Feature Request'
+description: 'Suggest an idea, architectural improvement, or new capability for OmniServices'
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+   - type: markdown
+     attributes:
+        value: |
+           Thank you for proposing an enhancement! Please provide thorough details to help the team evaluate and prioritize your feature request.
+
+   - type: dropdown
+     id: service
+     attributes:
+        label: Target Service / Module
+        description: Which microservice(s) or shared library will this feature impact?
+        multiple: true
+        options:
+           - API Gateway (apps/gateway)
+           - Auth Service (apps/auth)
+           - User Service (apps/user)
+           - Notification Service (apps/notification)
+           - Post Service (apps/post)
+           - Search Service (apps/search)
+           - Media Service (apps/media)
+           - Commerce Service (apps/commerce)
+           - Supplier Service (apps/supplier)
+           - Common Library (libs/common)
+           - Contracts / Proto (libs/contracts)
+           - CI / CD / Infrastructure (.github, Docker, scripts)
+           - Other
+     validations:
+        required: true
+
+   - type: dropdown
+     id: category
+     attributes:
+        label: Feature Category
+        description: What type of improvement is being requested?
+        options:
+           - New Business Capability / Domain Service
+           - API Endpoint (REST / GraphQL / gRPC)
+           - Shared Library / Utility (`@common`, `@contracts`)
+           - Performance Optimization & Caching (Redis, DB indexes)
+           - Database Schema & Migrations (Prisma)
+           - Observability & Logging (OpenTelemetry, Pino)
+           - CI / CD / Tooling / Developer Experience
+           - Other
+     validations:
+        required: true
+
+   - type: textarea
+     id: problem
+     attributes:
+        label: Problem Statement / Motivation
+        description: What problem or limitation does this feature solve?
+        placeholder: Describe the current limitation, user friction, or technical bottleneck...
+     validations:
+        required: true
+
+   - type: textarea
+     id: solution
+     attributes:
+        label: Proposed Solution & Implementation Design
+        description: Describe your proposed architecture, API endpoints, schema changes, or workflow.
+        placeholder: |
+           - Proposed endpoints or gRPC methods
+           - Data flow and service interaction
+           - Schema / DTO specifications
+     validations:
+        required: true
+
+   - type: textarea
+     id: alternatives
+     attributes:
+        label: Alternatives Considered
+        description: Any alternative designs, workarounds, or existing tools you have evaluated.
+        placeholder: Describe alternatives and why they were not selected...
+     validations:
+        required: false
+
+   - type: dropdown
+     id: breaking
+     attributes:
+        label: Breaking Change Assessment
+        description: Will this change introduce breaking changes to existing APIs, database schemas, or gRPC contracts?
+        options:
+           - No - Fully backwards compatible
+           - Yes - Requires proto version bump (e.g. v1 -> v2) or database migration
+           - Unsure - Needs architectural review
+     validations:
+        required: true
+
+   - type: textarea
+     id: additional-context
+     attributes:
+        label: Additional Context
+        description: Add any architecture diagrams, mockups, RFC links, or references.
+     validations:
+        required: false
+
+   - type: checkboxes
+     id: checklist
+     attributes:
+        label: Pre-Submission Checklist
+        options:
+           - label: I have verified this is not a duplicate of an existing feature request.
+             required: true
+           - label: I have considered backwards compatibility and architectural consistency.
+             required: true
+           - label: This proposal aligns with OmniServices development and proto versioning rules.
+             required: true
