@@ -177,9 +177,9 @@ CURRENT=1
 START_ALL=$(get_ms)
 
 printf "\n"
-printf "${CYAN}╭────────────────────────────────────────────────╮${RESET}\n"
-printf "${CYAN}│${RESET}  ${BOLD}⚡ OmniServices • Targeted Unit Tests Check${RESET}   ${CYAN}│${RESET}\n"
-printf "${CYAN}╰────────────────────────────────────────────────╯${RESET}\n"
+printf "${CYAN}╭───────────────────────────────────────────────╮${RESET}\n"
+printf "${CYAN}│${RESET}  ${BOLD}⚡ OmniServices • Targeted Unit Tests Check${RESET}  ${CYAN}│${RESET}\n"
+printf "${CYAN}╰───────────────────────────────────────────────╯${RESET}\n"
 printf "  ${DIM}Affected Targets (%s):${RESET} %s\n\n" "$TOTAL" "$TARGETS"
 
 for target in $TARGETS; do
