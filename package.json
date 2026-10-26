@@ -49,7 +49,9 @@
       "start:media:worker": "nest start media --entryFile worker -b swc --watch",
       "start:nowatch:order": "nest start order -b swc",
       "start:nowatch:payment": "nest start payment -b swc",
-      "start:nowatch:media:worker": "nest start media --entryFile worker -b swc"
+      "start:nowatch:media:worker": "nest start media --entryFile worker -b swc",
+      "start:product": "nest start product -b swc --watch",
+      "start:nowatch:product": "nest start product -b swc"
    },
    "devDependencies": {
       "@eslint/eslintrc": "^3.2.0",
@@ -131,7 +133,8 @@
          "^@contracts/([^/]+)/(.*)$": "<rootDir>/libs/contracts/$1/src/$2",
          "^@contracts/([^/]+)$": "<rootDir>/libs/contracts/$1/src",
          "^@order/(.*)$": "<rootDir>/apps/order/src/$1",
-         "^@payment/(.*)$": "<rootDir>/apps/payment/src/$1"
+         "^@payment/(.*)$": "<rootDir>/apps/payment/src/$1",
+         "^@product/(.*)$": "<rootDir>/apps/product/src/$1"
       }
    },
    "lint-staged": {

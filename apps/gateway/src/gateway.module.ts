@@ -14,6 +14,7 @@ import { CommerceModule } from '@/modules/commerce/commerce.module';
 import { SuppliersModule } from '@/modules/suppliers/suppliers.module';
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { PaymentsModule } from '@/modules/payments/payments.module';
+import { ProductsModule } from '@/modules/products/products.module';
 
 @Module({
    imports: [
@@ -51,6 +52,7 @@ import { PaymentsModule } from '@/modules/payments/payments.module';
       SuppliersModule,
       OrdersModule,
       PaymentsModule,
+      ProductsModule,
    ],
    controllers: [],
    providers: [

@@ -327,6 +327,36 @@
                }
             ]
          }
+      },
+      "product": {
+         "type": "application",
+         "root": "apps/product",
+         "entryFile": "main",
+         "sourceRoot": "apps/product/src",
+         "compilerOptions": {
+            "tsConfigPath": "apps/product/tsconfig.app.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
+      },
+      "contracts-product": {
+         "type": "library",
+         "root": "libs/contracts/product",
+         "entryFile": "index",
+         "sourceRoot": "libs/contracts/product/src",
+         "compilerOptions": {
+            "tsConfigPath": "libs/contracts/product/tsconfig.lib.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
       }
    }
 }

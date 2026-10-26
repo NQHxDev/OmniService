@@ -113,6 +113,7 @@ OmniServices/
 │   ├── media/           # [apps/media/README.md](apps/media/README.md) - Asset uploads, object storage, and media transformations
 │   ├── commerce/        # [apps/commerce/README.md](apps/commerce/README.md) - Product catalog, carts, and checkout initiation
 │   ├── supplier/        # [apps/supplier/README.md](apps/supplier/README.md) - Merchant onboarding, supplier inventory, vendor feeds
+│   ├── product/         # [apps/product/README.md](apps/product/README.md) - Raw ingredient culinary catalog (WHO 8 groups), variant stock management & moderation
 │   ├── order/           # [apps/order/README.md](apps/order/README.md) - Order lifecycle management, CQRS, and outbox choreography
 │   └── payment/         # [apps/payment/README.md](apps/payment/README.md) - Multi-gateway payments (COD, Cards, VNPay, Momo) & IPN webhooks
 ├── libs/
@@ -209,6 +210,7 @@ Run specific microservices individually:
 | Media Service        | `make start-media`        |               [Media](apps/media/README.md) |
 | Commerce Service     | `make start-commerce`     |         [Commerce](apps/commerce/README.md) |
 | Supplier Service     | `make start-supplier`     |         [Supplier](apps/supplier/README.md) |
+| Product Service      | `make start-product`      |           [Product](apps/product/README.md) |
 | Order Service        | `make start-order`        |               [Order](apps/order/README.md) |
 | Payment Service      | `make start-payment`      |           [Payment](apps/payment/README.md) |
 

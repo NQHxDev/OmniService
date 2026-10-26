@@ -116,4 +116,8 @@ export class GatewayConfigService extends CommonConfigService {
    get postGrpcUrl(): string {
       return this.configService.get(ENV_KEYS.POST_GRPC_URL, { infer: true }) || 'localhost:50059';
    }
+
+   get productGrpcUrl(): string {
+      return this.configService.get('PRODUCT_GRPC_URL' as keyof GatewayEnvConfig, { infer: true }) || 'localhost:50060';
+   }
 }

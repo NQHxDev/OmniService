@@ -37,7 +37,7 @@ fi
 if [ "$#" -gt 0 ]; then
   SERVICES="$*"
 else
-  SERVICES="gateway auth user notification post search media commerce supplier order payment"
+  SERVICES="gateway auth user notification post search media commerce supplier order payment product"
 fi
 
 get_ms() {

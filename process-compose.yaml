@@ -3,9 +3,9 @@ version: '0.5'
 processes:
    # Core Shared Infrastructure (Redis, RabbitMQ, Jaeger, PgBouncer)
    infra:
-      command: docker compose up -d --wait redis rabbitmq jaeger pgbouncer && exec docker compose logs -f redis rabbitmq jaeger pgbouncer
+      command: docker compose --profile infra up -d --wait && exec docker compose logs -f redis rabbitmq jaeger pgbouncer
       shutdown:
-         command: docker compose stop redis rabbitmq jaeger pgbouncer
+         command: docker compose --profile infra stop
 
    # Core Services
    gateway:
@@ -19,8 +19,6 @@ processes:
    # Business Services
    auth:
       command: docker compose --profile auth up -d --wait && pnpm --filter @omni/auth run prisma:push && pnpm --filter @omni/auth run prisma:seed && exec pnpm run start:nowatch:auth
-      shutdown:
-         command: docker compose --profile auth stop
       availability:
          restart: on_failure
       depends_on:
@@ -30,8 +28,6 @@ processes:
 
    user:
       command: docker compose --profile user up -d --wait && pnpm --filter @omni/user run prisma:push && exec pnpm run start:nowatch:user
-      shutdown:
-         command: docker compose --profile user stop
       availability:
          restart: on_failure
       depends_on:
@@ -41,8 +37,6 @@ processes:
 
    post:
       command: docker compose --profile post up -d --wait && pnpm --filter @omni/post run prisma:push && exec pnpm run start:nowatch:post
-      shutdown:
-         command: docker compose --profile post stop
       availability:
          restart: on_failure
       depends_on:
@@ -52,8 +46,6 @@ processes:
 
    notification:
       command: docker compose --profile notification up -d --wait && pnpm --filter @omni/notification run prisma:push && exec pnpm run start:nowatch:notification
-      shutdown:
-         command: docker compose --profile notification stop
       availability:
          restart: on_failure
       depends_on:
@@ -63,8 +55,6 @@ processes:
 
    search:
       command: docker compose --profile search up -d --wait && exec pnpm run start:nowatch:search
-      shutdown:
-         command: docker compose --profile search stop
       availability:
          restart: on_failure
       depends_on:
@@ -74,8 +64,6 @@ processes:
 
    media:
       command: docker compose --profile media up -d --wait && pnpm --filter @omni/media run prisma:push && exec pnpm run start:nowatch:media
-      shutdown:
-         command: docker compose --profile media stop
       availability:
          restart: on_failure
       depends_on:
@@ -85,8 +73,15 @@ processes:
 
    commerce:
       command: docker compose --profile commerce up -d --wait && pnpm --filter @omni/commerce run prisma:push && exec pnpm run start:nowatch:commerce
-      shutdown:
-         command: docker compose --profile commerce stop
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
+      disabled: true
+
+   product:
+      command: docker compose --profile product up -d --wait && pnpm --filter @omni/product run prisma:push && exec pnpm run start:nowatch:product
       availability:
          restart: on_failure
       depends_on:
@@ -96,8 +91,6 @@ processes:
 
    supplier:
       command: docker compose --profile supplier up -d --wait && pnpm --filter @omni/supplier run prisma:push && exec pnpm run start:nowatch:supplier
-      shutdown:
-         command: docker compose --profile supplier stop
       availability:
          restart: on_failure
       depends_on:
@@ -107,8 +100,6 @@ processes:
 
    order:
       command: docker compose --profile order up -d --wait && pnpm --filter @omni/order run prisma:push && exec pnpm run start:nowatch:order
-      shutdown:
-         command: docker compose --profile order stop
       availability:
          restart: on_failure
       depends_on:
@@ -118,8 +109,6 @@ processes:
 
    payment:
       command: docker compose --profile payment up -d --wait && pnpm --filter @omni/payment run prisma:push && exec pnpm run start:nowatch:payment
-      shutdown:
-         command: docker compose --profile payment stop
       availability:
          restart: on_failure
       depends_on:

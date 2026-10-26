@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package product.v1;
+
+import "messages/product_messages.proto";
+
+service ProductService {
+  rpc GetProductById (GetProductByIdRequest) returns (GetProductByIdResponse);
+  rpc GetProductsByIds (GetProductsByIdsRequest) returns (GetProductsByIdsResponse);
+  rpc ListProducts (ListProductsRequest) returns (ListProductsResponse);
+  rpc CreateProduct (CreateProductRequest) returns (CreateProductResponse);
+  rpc UpdateProduct (UpdateProductRequest) returns (UpdateProductResponse);
+  rpc ModerateProduct (ModerateProductRequest) returns (ModerateProductResponse);
+  rpc UpdateProductStatus (UpdateProductStatusRequest) returns (UpdateProductStatusResponse);
+  rpc CheckAndReserveStock (CheckAndReserveStockRequest) returns (CheckAndReserveStockResponse);
+  rpc ReleaseStock (ReleaseStockRequest) returns (ReleaseStockResponse);
+  rpc AdjustStock (AdjustStockRequest) returns (AdjustStockResponse);
+  rpc ListWhoCategories (ListWhoCategoriesRequest) returns (ListWhoCategoriesResponse);
+}

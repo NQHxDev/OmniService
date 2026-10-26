@@ -11,9 +11,12 @@ include:
    - apps/supplier/docker-compose.yml
    - apps/order/docker-compose.yml
    - apps/payment/docker-compose.yml
+   - apps/product/docker-compose.yml
 
 services:
    redis:
+      profiles:
+         - infra
       image: redis/redis-stack-server:latest
       container_name: omni-services-redis
       restart: unless-stopped
@@ -30,6 +33,8 @@ services:
          - omni-network
 
    rabbitmq:
+      profiles:
+         - infra
       image: rabbitmq:4-management-alpine
       container_name: omni-services-rabbitmq
       restart: unless-stopped
@@ -51,6 +56,8 @@ services:
          - omni-network
 
    jaeger:
+      profiles:
+         - infra
       image: jaegertracing/jaeger:latest
       container_name: omni-services-jaeger
       restart: unless-stopped
@@ -62,6 +69,8 @@ services:
          - omni-network
 
    pgbouncer:
+      profiles:
+         - infra
       image: edoburu/pgbouncer:latest
       container_name: omni-services-pgbouncer
       restart: unless-stopped
@@ -79,6 +88,8 @@ services:
          - omni-network
 
    pgbouncer-exporter:
+      profiles:
+         - infra
       image: prometheuscommunity/pgbouncer-exporter:latest
       container_name: omni-services-pgbouncer-exporter
       restart: unless-stopped

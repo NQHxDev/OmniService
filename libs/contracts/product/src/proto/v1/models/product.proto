@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package product.v1;
+
+message ProductVariantProto {
+  string variant_id = 1;
+  string product_id = 2;
+  string sku = 3;
+  string variant_name = 4;
+  string unit = 5;
+  string pack_size = 6;
+  double price = 7;
+  double original_price = 8;
+  string currency = 9;
+  int32 stock_quantity = 10;
+  int32 reserved_quantity = 11;
+  int32 low_stock_threshold = 12;
+  bool is_default = 13;
+  string status = 14;
+}
+
+message ProductProto {
+  string product_id = 1;
+  string supplier_id = 2;
+  string who_category_code = 3;
+  string product_name = 4;
+  string product_slug = 5;
+  string description = 6;
+  string origin = 7;
+  string storage_condition = 8;
+  int32 shelf_life_days = 9;
+  repeated string images = 10;
+  string status = 11;
+  string moderation_status = 12;
+  string rejection_reason = 13;
+  repeated ProductVariantProto variants = 14;
+  int32 version = 15;
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+message WhoCategoryProto {
+  string code = 1;
+  string name = 2;
+  string description = 3;
+  string examples = 4;
+  int32 order = 5;
+}
