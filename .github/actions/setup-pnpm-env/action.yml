@@ -30,15 +30,16 @@ runs:
         with:
            node-version: ${{ inputs.node-version }}
            cache: 'pnpm'
+           cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install Dependencies
         if: inputs.install-deps == 'true'
         shell: bash
         run: |
            if [ "${{ inputs.frozen-lockfile }}" = "true" ]; then
-             pnpm install --frozen-lockfile
+             pnpm install --frozen-lockfile --prefer-offline
            else
-             pnpm install
+             pnpm install --prefer-offline
            fi
 
       - name: Run Prisma Generate
