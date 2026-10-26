@@ -42,6 +42,7 @@
       "keys:generate": "ts-node scripts/generate-keys.ts",
       "prepare": "husky",
       "build": "sh scripts/build-sequential.sh",
+      "test:affected": "sh scripts/test-affected.sh",
       "typecheck": "tsc --noEmit -p tsconfig.build.json",
       "build:sequential": "sh scripts/build-sequential.sh",
       "start:order": "nest start order -b swc --watch",

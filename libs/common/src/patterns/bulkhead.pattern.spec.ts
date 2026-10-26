@@ -80,9 +80,9 @@ describe('Bulkhead Pattern', () => {
 
          const hangingPromise = new Promise<never>(() => {});
          // Slot 1 (active)
-         void bulkhead.execute(() => hangingPromise);
+         void bulkhead.execute(() => hangingPromise).catch(() => {});
          // Slot 2 (queued)
-         void bulkhead.execute(() => hangingPromise);
+         void bulkhead.execute(() => hangingPromise).catch(() => {});
 
          expect(bulkhead.getStats().activeCount).toBe(1);
          expect(bulkhead.getStats().queueCount).toBe(1);
@@ -91,6 +91,8 @@ describe('Bulkhead Pattern', () => {
          await expect(bulkhead.execute(() => Promise.resolve('rejected'))).rejects.toThrow(BulkheadRejectedException);
          expect(onRejected).toHaveBeenCalledWith('full-bulkhead', BULKHEAD_REJECTION_REASONS.QUEUE_FULL);
          expect(bulkhead.getStats().totalRejected).toBe(1);
+
+         bulkhead.reset();
       });
 
       it('should invoke fallback when queue is full if fallback is provided', async () => {
@@ -101,7 +103,7 @@ describe('Bulkhead Pattern', () => {
          });
 
          const hangingPromise = new Promise<never>(() => {});
-         void bulkhead.execute(() => hangingPromise);
+         void bulkhead.execute(() => hangingPromise).catch(() => {});
 
          const fallbackFn = jest.fn().mockResolvedValue('degraded-fallback');
          const result = await bulkhead.execute(() => Promise.resolve('ok'), fallbackFn);
@@ -109,6 +111,8 @@ describe('Bulkhead Pattern', () => {
          expect(result).toBe('degraded-fallback');
          expect(fallbackFn).toHaveBeenCalled();
          expect(bulkhead.getStats().totalRejected).toBe(1);
+
+         bulkhead.reset();
       });
    });
 
@@ -124,7 +128,7 @@ describe('Bulkhead Pattern', () => {
          });
 
          const hangingPromise = new Promise<never>(() => {});
-         void bulkhead.execute(() => hangingPromise);
+         void bulkhead.execute(() => hangingPromise).catch(() => {});
 
          // Queued item
          const queuedCall = bulkhead.execute(() => Promise.resolve('done'));
@@ -134,6 +138,8 @@ describe('Bulkhead Pattern', () => {
          const stats = bulkhead.getStats();
          expect(stats.totalQueueTimeouts).toBe(1);
          expect(stats.queueCount).toBe(0);
+
+         bulkhead.reset();
       });
    });
 
