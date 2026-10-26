@@ -45,7 +45,8 @@ export class MediaConfigService {
    }
 
    get pgbouncerPort(): number {
-      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true }) || 6432;
+      const val = this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 6432;
    }
 
    get rabbitMq() {
@@ -75,7 +76,8 @@ export class MediaConfigService {
    }
 
    get grpcPort(): number {
-      return this.configService.get(MEDIA_ENV_KEYS.GRPC_PORT, { infer: true }) || 50055;
+      const val = this.configService.get(MEDIA_ENV_KEYS.GRPC_PORT, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 50055;
    }
 
    get grpcUrl(): string {
@@ -103,11 +105,13 @@ export class MediaConfigService {
    }
 
    get transcodePrefetchCount(): number {
-      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_PREFETCH_COUNT, { infer: true }) ?? 1;
+      const val = this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_PREFETCH_COUNT, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 1;
    }
 
    get transcodeMinFreeDiskGb(): number {
-      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_MIN_FREE_DISK_GB, { infer: true }) ?? 10;
+      const val = this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_MIN_FREE_DISK_GB, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 10;
    }
 
    get transcodeMinFreeDiskBytes(): number {
@@ -115,7 +119,8 @@ export class MediaConfigService {
    }
 
    get transcodeOffloadMaxSizeMb(): number {
-      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_OFFLOAD_MAX_SIZE_MB, { infer: true }) ?? 1024;
+      const val = this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_OFFLOAD_MAX_SIZE_MB, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 1024;
    }
 
    get transcodeOffloadMaxSizeBytes(): number {
@@ -123,7 +128,8 @@ export class MediaConfigService {
    }
 
    get transcodeOffloadMaxDurationSec(): number {
-      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_OFFLOAD_MAX_DURATION_SEC, { infer: true }) ?? 1800;
+      const val = this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_OFFLOAD_MAX_DURATION_SEC, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 1800;
    }
 
    get transcodeHwaccel(): 'none' | 'auto' | 'videotoolbox' | 'nvenc' | 'vaapi' {

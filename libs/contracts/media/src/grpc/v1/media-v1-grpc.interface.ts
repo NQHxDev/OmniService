@@ -57,7 +57,6 @@ export interface IUploadFileResponse {
 export interface IConfirmUploadRequest {
    mediaId: string;
    size?: number;
-   key?: string;
    width?: number;
    height?: number;
    duration?: number;

@@ -12,7 +12,7 @@ import {
    type UploadUrlResponseDto,
 } from '@contracts/media';
 import { UserEntity, UserStatus } from '@user/entities';
-import { USER_DOMAIN_EVENTS } from '@user/domain';
+import { USER_DOMAIN_EVENTS } from '@user/domain/events';
 
 describe('ProfileAvatarService (Domain)', () => {
    let service: ProfileAvatarService;

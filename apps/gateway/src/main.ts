@@ -29,18 +29,24 @@ async function bootstrap() {
    const globalPrefix = config.globalPrefix;
    const allowedOrigins = config.corsOrigins;
 
+   const isDev = !config.isProduction;
+
    // Security headers
    app.use(
       helmet({
          crossOriginEmbedderPolicy: false,
-         contentSecurityPolicy: {
-            directives: {
-               defaultSrc: [`'self'`],
-               styleSrc: [`'self'`, `'unsafe-inline'`],
-               imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
-               scriptSrc: [`'self'`, `https: 'unsafe-inline'`],
-            },
-         },
+         crossOriginResourcePolicy: { policy: 'cross-origin' },
+         hsts: isDev ? false : { maxAge: 31536000, includeSubDomains: true },
+         contentSecurityPolicy: isDev
+            ? false
+            : {
+                 directives: {
+                    defaultSrc: [`'self'`],
+                    styleSrc: [`'self'`, `'unsafe-inline'`],
+                    imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
+                    scriptSrc: [`'self'`, `'unsafe-inline'`, `'unsafe-eval'`],
+                 },
+              },
       }),
    );
 
@@ -58,10 +64,13 @@ async function bootstrap() {
             return callback(null, true);
          }
 
-         // In development mode, fallback to localhost regex if CORS_ORIGINS is not set
-         if (!config.isProduction && allowedOrigins.length === 0) {
-            const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-            if (isLocalhost) {
+         // In development mode, allow localhost and private LAN IP networks (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+         if (isDev) {
+            const isLocalOrLan =
+               /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(
+                  origin,
+               );
+            if (isLocalOrLan) {
                return callback(null, true);
             }
          }

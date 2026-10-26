@@ -4,7 +4,7 @@ import { UserEntity } from '@user/entities';
 import { USER_ERROR_CODES, UserDateOfBirthResponseDto } from '@contracts/user';
 import { UserResolverService } from '@user/services/infrastructure/user-resolver.service';
 import { USER_PROFILE_REPOSITORY, type IUserProfileRepository } from '@user/repositories';
-import { DateOfBirth } from '@user/domain';
+import { DateOfBirth } from '@user/domain/value-objects';
 
 /**
  * ProfileQueryService handles read-only queries and data retrieval for user profiles.

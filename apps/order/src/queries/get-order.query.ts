@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { status as GrpcStatus } from '@grpc/grpc-js';
 import { RpcException } from '@nestjs/microservices';
 import { PrismaService } from '@order/prisma/prisma.service';
 import type { IGetOrderByIdRequest, IGetOrdersByUserIdRequest } from '@contracts/order';
+import { ORDER_ERROR_CODES } from '@contracts/order';
 import type { OrderWithItems } from '@order/entities';
+import { assertOrderOwnershipOrAdmin, validateOrderUserId } from '@order/utils';
 
 @Injectable()
 export class GetOrderByIdQueryHandler {
@@ -10,7 +13,9 @@ export class GetOrderByIdQueryHandler {
 
    constructor(private readonly prisma: PrismaService) {}
 
-   async execute(dto: IGetOrderByIdRequest): Promise<OrderWithItems> {
+   async execute(dto: IGetOrderByIdRequest, contextOrMetadata?: unknown): Promise<OrderWithItems> {
+      validateOrderUserId(dto.userId);
+
       const order = await this.prisma.order.findUnique({
          where: { orderId: dto.orderId },
          include: { items: true },
@@ -18,17 +23,12 @@ export class GetOrderByIdQueryHandler {
 
       if (!order) {
          throw new RpcException({
-            code: 5, // NOT_FOUND
-            message: 'ORDER.NOT_FOUND',
+            code: GrpcStatus.NOT_FOUND, // 5
+            message: ORDER_ERROR_CODES.NOT_FOUND,
          });
       }
 
-      if (dto.userId && order.userId !== dto.userId) {
-         throw new RpcException({
-            code: 7, // PERMISSION_DENIED
-            message: 'ORDER.UNAUTHORIZED_ACCESS',
-         });
-      }
+      assertOrderOwnershipOrAdmin(order.userId, dto.userId, contextOrMetadata);
 
       return order;
    }
@@ -40,12 +40,17 @@ export class GetOrdersByUserIdQueryHandler {
 
    constructor(private readonly prisma: PrismaService) {}
 
-   async execute(dto: IGetOrdersByUserIdRequest): Promise<{
+   async execute(
+      dto: IGetOrdersByUserIdRequest,
+      _contextOrMetadata?: unknown,
+   ): Promise<{
       orders: OrderWithItems[];
       total: number;
       page: number;
       limit: number;
    }> {
+      validateOrderUserId(dto.userId);
+
       const page = Math.max(1, Number(dto.page) || 1);
       const limit = Math.max(1, Math.min(100, Number(dto.limit) || 20));
       const skip = (page - 1) * limit;

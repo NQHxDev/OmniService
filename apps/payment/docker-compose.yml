@@ -2,6 +2,8 @@ name: omni-services
 
 services:
    payment-postgres:
+      profiles:
+         - payment
       image: postgres:17-alpine
       container_name: omni-services-payment
       command: ['postgres', '-p', '5446']

@@ -3,8 +3,8 @@ import { RpcException } from '@nestjs/microservices';
 import { ORDER_UNIT_OF_WORK, type IOrderUnitOfWork } from '@order/unit-of-work';
 import { PrismaService } from '@order/prisma/prisma.service';
 import type { IUpdateOrderStatusRequest } from '@contracts/order';
+import { ORDER_EVENTS, ORDER_ERROR_CODES } from '@contracts/order';
 import type { OrderWithItems } from '@order/entities';
-import { ORDER_EVENTS } from '@contracts/order';
 import type { OrderStatusEnum } from '@order/prisma-client';
 import { OrderMetricsService } from '@order/services/order-metrics.service';
 
@@ -27,7 +27,7 @@ export class UpdateOrderStatusCommandHandler {
       if (!existing) {
          throw new RpcException({
             code: 5,
-            message: 'ORDER.NOT_FOUND',
+            message: ORDER_ERROR_CODES.NOT_FOUND,
          });
       }
 

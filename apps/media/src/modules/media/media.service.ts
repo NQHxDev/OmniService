@@ -132,7 +132,6 @@ export class MediaService {
       const updated = await this.mediaRepository.update(dto.mediaId, {
          status: MEDIA_STATUSES.READY,
          size: dto.size ?? media.size,
-         key: dto.key ?? media.key,
          metadata: {
             ...existingMetadata,
             ...(dto.width !== undefined && { width: dto.width }),

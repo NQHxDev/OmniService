@@ -55,6 +55,7 @@ describe('SuppliersService', () => {
          registerSupplier: jest.fn(),
          getMySupplier: jest.fn(),
          updateSupplier: jest.fn(),
+         updateSupplierStatus: jest.fn(),
          verifySupplier: jest.fn(),
       };
 
@@ -229,5 +230,30 @@ describe('SuppliersService', () => {
          expect.any(Object),
       );
       expect(result.isVerified).toBe(true);
+   });
+
+   it('should call supplier gRPC updateSupplierStatus and map response', async () => {
+      mockGrpcService.updateSupplierStatus.mockReturnValue(
+         of({
+            supplier: {
+               ...mockSupplierProto,
+               supplierStatus: SUPPLIER_STATUS.SUSPENDED,
+            },
+         }),
+      );
+
+      const result = await service.updateSupplierStatus(mockSupplier.supplierId, SUPPLIER_STATUS.SUSPENDED, {
+         correlationId: 'req-123',
+         roles: [DEFAULT_ROLES.ADMIN],
+      });
+
+      expect(mockGrpcService.updateSupplierStatus).toHaveBeenCalledWith(
+         {
+            supplierId: mockSupplier.supplierId,
+            status: SUPPLIER_STATUS.SUSPENDED,
+         },
+         expect.any(Object),
+      );
+      expect(result.supplierStatus).toBe(SUPPLIER_STATUS.SUSPENDED);
    });
 });

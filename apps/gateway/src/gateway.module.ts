@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, Reflector } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { CustomThrottlerGuard, JwtAuthGuard, RedisModule } from '@common';
+import { CustomThrottlerGuard, JwtAuthGuard, PermissionsGuard, RedisModule, RolesGuard } from '@common';
 import { GatewayConfigModule, GatewayConfigService } from '@/config';
 import { GatewayLoggerModule } from '@/logger';
 import { AuditLogsModule } from '@/modules/audit-logs/audit-logs.module';
@@ -54,6 +54,7 @@ import { PaymentsModule } from '@/modules/payments/payments.module';
    ],
    controllers: [],
    providers: [
+      Reflector,
       {
          provide: APP_GUARD,
          useClass: CustomThrottlerGuard,
@@ -61,6 +62,14 @@ import { PaymentsModule } from '@/modules/payments/payments.module';
       {
          provide: APP_GUARD,
          useClass: JwtAuthGuard,
+      },
+      {
+         provide: APP_GUARD,
+         useClass: RolesGuard,
+      },
+      {
+         provide: APP_GUARD,
+         useClass: PermissionsGuard,
       },
    ],
 })

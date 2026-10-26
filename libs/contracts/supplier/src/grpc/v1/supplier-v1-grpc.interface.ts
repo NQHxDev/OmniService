@@ -15,6 +15,8 @@ import type {
    IUpdateSupplierResponse,
    IVerifySupplierRequest,
    IVerifySupplierResponse,
+   IUpdateSupplierStatusRequest,
+   IUpdateSupplierStatusResponse,
 } from '@contracts/supplier/grpc/v1/messages';
 
 export interface ISupplierV1GrpcService {
@@ -31,6 +33,11 @@ export interface ISupplierV1GrpcService {
    updateSupplier(request: IUpdateSupplierRequest, metadata?: Metadata): Observable<IUpdateSupplierResponse>;
 
    verifySupplier(request: IVerifySupplierRequest, metadata?: Metadata): Observable<IVerifySupplierResponse>;
+
+   updateSupplierStatus(
+      request: IUpdateSupplierStatusRequest,
+      metadata?: Metadata,
+   ): Observable<IUpdateSupplierStatusResponse>;
 }
 
 export type ISupplierGrpcService = ISupplierV1GrpcService;

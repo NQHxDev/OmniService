@@ -6,8 +6,10 @@ import {
    COMMON_ERROR_CODES,
    CORRELATION_ID_HEADER,
    CurrentUser,
+   DEFAULT_ROLES,
    type JwtPayload,
    Public,
+   RequireRoles,
    ResponseMessage,
 } from '@common';
 import {
@@ -86,14 +88,20 @@ export class PaymentsController {
          description: 'Authentication token is missing or expired',
          errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
       },
+      {
+         status: HttpStatus.FORBIDDEN,
+         description: 'Access denied: user is neither transaction owner nor administrator',
+         errorCodes: [COMMON_ERROR_CODES.NOT_OWNER_OR_ADMIN, COMMON_ERROR_CODES.FORBIDDEN],
+      },
    ])
    @ResponseMessage(PAYMENT_RESPONSE_MESSAGES.GET_PAYMENT_SUCCESS)
    async getPaymentById(
       @Param('id') transactionId: string,
+      @CurrentUser() user: JwtPayload,
       @Req() req: Request,
    ): Promise<PaymentTransactionResponseDto> {
       const correlationId = req.headers[CORRELATION_ID_HEADER] as string | undefined;
-      return this.paymentsService.getPaymentById(transactionId, correlationId);
+      return this.paymentsService.getPaymentById(transactionId, user, correlationId);
    }
 
    @Get('order/:orderId')
@@ -115,22 +123,35 @@ export class PaymentsController {
          description: 'Payment transaction for order not found',
          errorCodes: [COMMON_ERROR_CODES.RESOURCE_NOT_FOUND],
       },
+      {
+         status: HttpStatus.UNAUTHORIZED,
+         description: 'Authentication token is missing or expired',
+         errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
+      },
+      {
+         status: HttpStatus.FORBIDDEN,
+         description: 'Access denied: user is neither transaction owner nor administrator',
+         errorCodes: [COMMON_ERROR_CODES.NOT_OWNER_OR_ADMIN, COMMON_ERROR_CODES.FORBIDDEN],
+      },
    ])
    @ResponseMessage(PAYMENT_RESPONSE_MESSAGES.GET_PAYMENT_SUCCESS)
    async getPaymentByOrderId(
       @Param('orderId') orderId: string,
+      @CurrentUser() user: JwtPayload,
       @Req() req: Request,
    ): Promise<PaymentTransactionResponseDto> {
       const correlationId = req.headers[CORRELATION_ID_HEADER] as string | undefined;
-      return this.paymentsService.getPaymentByOrderId(orderId, correlationId);
+      return this.paymentsService.getPaymentByOrderId(orderId, user, correlationId);
    }
 
    @Post('refund')
+   @RequireRoles(DEFAULT_ROLES.ADMIN)
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'refundPayment',
-      summary: 'Refund a completed payment',
-      description: 'Initiates a refund request to the original payment gateway provider.',
+      summary: 'Refund a completed payment (Admin only)',
+      description:
+         'Initiates a refund request to the original payment gateway provider. Restricted to platform administrators.',
    })
    @ApiResponse({
       status: HttpStatus.OK,
@@ -143,15 +164,25 @@ export class PaymentsController {
          errorCodes: [COMMON_ERROR_CODES.INVALID_REQUEST],
       },
       {
+         status: HttpStatus.UNAUTHORIZED,
+         description: 'Authentication token is missing, expired, or invalid',
+         errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
+      },
+      {
+         status: HttpStatus.FORBIDDEN,
+         description: 'Caller does not possess administrator privileges',
+         errorCodes: [COMMON_ERROR_CODES.FORBIDDEN],
+      },
+      {
          status: HttpStatus.NOT_FOUND,
          description: 'Transaction not found',
          errorCodes: [COMMON_ERROR_CODES.RESOURCE_NOT_FOUND],
       },
    ])
    @ResponseMessage(PAYMENT_RESPONSE_MESSAGES.REFUND_PAYMENT_SUCCESS)
-   async refundPayment(@Body() dto: RefundPaymentDto, @Req() req: Request) {
+   async refundPayment(@Body() dto: RefundPaymentDto, @Req() req: Request, @CurrentUser() user: JwtPayload) {
       const correlationId = req.headers[CORRELATION_ID_HEADER] as string | undefined;
-      return this.paymentsService.refundPayment(dto, correlationId);
+      return this.paymentsService.refundPayment(dto, correlationId, user);
    }
 
    @Post('webhooks/:provider')

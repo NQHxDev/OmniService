@@ -2,7 +2,13 @@ import { Controller, UseFilters, UseInterceptors } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import type { Metadata } from '@grpc/grpc-js';
 import { from, Observable } from 'rxjs';
-import { GrpcExceptionFilter, GrpcLoggingInterceptor, GrpcMetricsInterceptor } from '@common';
+import {
+   checkRoles,
+   DEFAULT_ROLES,
+   GrpcExceptionFilter,
+   GrpcLoggingInterceptor,
+   GrpcMetricsInterceptor,
+} from '@common';
 import {
    PAYMENT_V1_GRPC_SERVICE_NAME,
    PAYMENT_V1_GRPC_METHODS,
@@ -31,18 +37,18 @@ export class PaymentGrpcController implements IPaymentV1GrpcService {
    }
 
    @GrpcMethod(PAYMENT_V1_GRPC_SERVICE_NAME, PAYMENT_V1_GRPC_METHODS.GET_PAYMENT_BY_ID)
-   getPaymentById(request: IGetPaymentByIdRequest, _metadata?: Metadata): Observable<IGetPaymentResponse> {
+   getPaymentById(request: IGetPaymentByIdRequest, metadata?: Metadata): Observable<IGetPaymentResponse> {
       return from(
-         this.paymentService.getPaymentById(request.transactionId).then((transaction) => ({
+         this.paymentService.getPaymentById(request.transactionId, metadata).then((transaction) => ({
             transaction,
          })),
       );
    }
 
    @GrpcMethod(PAYMENT_V1_GRPC_SERVICE_NAME, PAYMENT_V1_GRPC_METHODS.GET_PAYMENT_BY_ORDER_ID)
-   getPaymentByOrderId(request: IGetPaymentByOrderIdRequest, _metadata?: Metadata): Observable<IGetPaymentResponse> {
+   getPaymentByOrderId(request: IGetPaymentByOrderIdRequest, metadata?: Metadata): Observable<IGetPaymentResponse> {
       return from(
-         this.paymentService.getPaymentByOrderId(request.orderId).then((transaction) => ({
+         this.paymentService.getPaymentByOrderId(request.orderId, metadata).then((transaction) => ({
             transaction,
          })),
       );
@@ -54,7 +60,8 @@ export class PaymentGrpcController implements IPaymentV1GrpcService {
    }
 
    @GrpcMethod(PAYMENT_V1_GRPC_SERVICE_NAME, PAYMENT_V1_GRPC_METHODS.REFUND_PAYMENT)
-   refundPayment(request: IRefundPaymentRequest, _metadata?: Metadata): Observable<IRefundPaymentResponse> {
-      return from(this.paymentService.refundPayment(request));
+   refundPayment(request: IRefundPaymentRequest, metadata?: Metadata): Observable<IRefundPaymentResponse> {
+      checkRoles(metadata, [DEFAULT_ROLES.ADMIN]);
+      return from(this.paymentService.refundPayment(request, metadata));
    }
 }

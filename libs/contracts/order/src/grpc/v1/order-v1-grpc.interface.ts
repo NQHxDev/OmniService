@@ -53,7 +53,7 @@ export interface ICreateOrderResponse {
 
 export interface IGetOrderByIdRequest {
    orderId: string;
-   userId?: string;
+   userId: string;
 }
 
 export interface IGetOrderByIdResponse {

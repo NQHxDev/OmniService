@@ -32,46 +32,67 @@ start:
 
 .PHONY: start-gateway
 start-gateway:
+	docker compose up -d redis rabbitmq jaeger pgbouncer
 	pnpm run start:gateway
 
 .PHONY: start-auth
 start-auth:
+	docker compose --profile auth up -d --wait
+	pnpm --filter @omni/auth run prisma:push
+	pnpm --filter @omni/auth run prisma:seed
 	pnpm run start:auth
 
 .PHONY: start-user
 start-user:
+	docker compose --profile user up -d --wait
+	pnpm --filter @omni/user run prisma:push
 	pnpm run start:user
 
 .PHONY: start-notification
 start-notification:
+	docker compose --profile notification up -d --wait
+	pnpm --filter @omni/notification run prisma:push
 	pnpm run start:notification
 
 .PHONY: start-post
 start-post:
+	docker compose --profile post up -d --wait
+	pnpm --filter @omni/post run prisma:push
 	pnpm run start:post
 
 .PHONY: start-search
 start-search:
+	docker compose --profile search up -d --wait
 	pnpm run start:search
 
 .PHONY: start-media
 start-media:
+	docker compose --profile media up -d --wait
+	pnpm --filter @omni/media run prisma:push
 	pnpm run start:media
 
 .PHONY: start-commerce
 start-commerce:
+	docker compose --profile commerce up -d --wait
+	pnpm --filter @omni/commerce run prisma:push
 	pnpm run start:commerce
 
 .PHONY: start-supplier
 start-supplier:
+	docker compose --profile supplier up -d --wait
+	pnpm --filter @omni/supplier run prisma:push
 	pnpm run start:supplier
 
 .PHONY: start-order
 start-order:
+	docker compose --profile order up -d --wait
+	pnpm --filter @omni/order run prisma:push
 	pnpm run start:order
 
 .PHONY: start-payment
 start-payment:
+	docker compose --profile payment up -d --wait
+	pnpm --filter @omni/payment run prisma:push
 	pnpm run start:payment
 
 .PHONY: build
@@ -106,9 +127,17 @@ clean:
 docker-up:
 	docker compose up -d
 
+.PHONY: docker-up-all
+docker-up-all:
+	docker compose --profile "*" up -d
+
+.PHONY: docker-down
+docker-down:
+	docker compose --profile "*" down
+
 .PHONY: docker-clean
 docker-clean:
-	docker compose down -v --remove-orphans
+	docker compose --profile "*" down -v --remove-orphans
 
 .PHONY: codegraph-sync
 codegraph-sync:

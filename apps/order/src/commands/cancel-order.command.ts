@@ -1,11 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { status as GrpcStatus } from '@grpc/grpc-js';
 import { RpcException } from '@nestjs/microservices';
 import { ORDER_UNIT_OF_WORK, type IOrderUnitOfWork } from '@order/unit-of-work';
 import { PrismaService } from '@order/prisma/prisma.service';
 import type { ICancelOrderRequest } from '@contracts/order';
+import { ORDER_EVENTS, ORDER_ERROR_CODES } from '@contracts/order';
 import type { OrderWithItems } from '@order/entities';
-import { ORDER_EVENTS } from '@contracts/order';
 import { OrderMetricsService } from '@order/services/order-metrics.service';
+import { assertOrderOwnershipOrAdmin, validateOrderUserId } from '@order/utils';
 
 @Injectable()
 export class CancelOrderCommandHandler {
@@ -17,7 +19,9 @@ export class CancelOrderCommandHandler {
       private readonly metricsService: OrderMetricsService,
    ) {}
 
-   async execute(dto: ICancelOrderRequest): Promise<OrderWithItems> {
+   async execute(dto: ICancelOrderRequest, contextOrMetadata?: unknown): Promise<OrderWithItems> {
+      validateOrderUserId(dto.userId);
+
       const existing = await this.prisma.order.findUnique({
          where: { orderId: dto.orderId },
          include: { items: true },
@@ -25,22 +29,17 @@ export class CancelOrderCommandHandler {
 
       if (!existing) {
          throw new RpcException({
-            code: 5, // NOT_FOUND
-            message: 'ORDER.NOT_FOUND',
+            code: GrpcStatus.NOT_FOUND, // 5
+            message: ORDER_ERROR_CODES.NOT_FOUND,
          });
       }
 
-      if (dto.userId && existing.userId !== dto.userId) {
-         throw new RpcException({
-            code: 7, // PERMISSION_DENIED
-            message: 'ORDER.UNAUTHORIZED_ACCESS',
-         });
-      }
+      assertOrderOwnershipOrAdmin(existing.userId, dto.userId, contextOrMetadata);
 
       if (['SHIPPING', 'DELIVERED', 'COMPLETED', 'CANCELLED'].includes(existing.orderStatus)) {
          throw new RpcException({
-            code: 9, // FAILED_PRECONDITION
-            message: 'ORDER.CANNOT_CANCEL_IN_CURRENT_STATE',
+            code: GrpcStatus.FAILED_PRECONDITION, // 9
+            message: ORDER_ERROR_CODES.CANNOT_CANCEL_IN_CURRENT_STATE,
          });
       }
 

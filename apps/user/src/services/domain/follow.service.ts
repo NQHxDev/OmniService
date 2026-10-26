@@ -14,7 +14,8 @@ import {
 } from '@user/repositories';
 import { UserResolverService } from '@user/services/infrastructure/user-resolver.service';
 import { UNIT_OF_WORK, type IUnitOfWork } from '@user/unit-of-work';
-import { CannotFollowSelfSpecification, FollowRequestPendingSpecification, USER_DOMAIN_EVENTS } from '@user/domain';
+import { CannotFollowSelfSpecification, FollowRequestPendingSpecification } from '@user/domain/specifications';
+import { USER_DOMAIN_EVENTS } from '@user/domain/events';
 import {
    FollowUserSaga,
    UnfollowUserSaga,

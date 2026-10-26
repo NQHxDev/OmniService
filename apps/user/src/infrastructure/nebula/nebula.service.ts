@@ -33,8 +33,8 @@ export class NebulaService implements OnModuleInit, OnModuleDestroy {
 
    private async bootstrap(): Promise<void> {
       const server = `${this.config.graphAddress}:${this.config.graphPort}`;
-      const adminUsername = this.config.adminUsername || this.config.username;
-      const adminPassword = this.config.adminPassword || this.config.password;
+      const adminUsername = this.config.adminUsername || 'root';
+      const adminPassword = this.config.adminPassword || 'nebula';
       const storagedHost = this.config.storagedHost || 'nebula-storaged';
       const storagedPort = this.config.storagedPort || 9779;
 
@@ -47,8 +47,10 @@ export class NebulaService implements OnModuleInit, OnModuleDestroy {
          executeTimeout: 10000,
       });
 
-      adminClient.on('error', () => {
-         // Silently suppress bootstrap admin client connection retry logs
+      adminClient.on('error', (event: unknown) => {
+         const error = typeof event === 'object' && event !== null && 'error' in event ? event.error : event;
+         const rawMsg = error instanceof Error ? error.message : String(error);
+         this.logger.debug(`NebulaGraph bootstrap admin client: ${rawMsg}`);
       });
 
       try {
@@ -59,6 +61,40 @@ export class NebulaService implements OnModuleInit, OnModuleDestroy {
             // Host might already be registered
          }
 
+         // Wait for storage host to report ONLINE in metad
+         const hostStart = Date.now();
+         let hostOnline = false;
+         while (!hostOnline && Date.now() - hostStart < 30000) {
+            try {
+               const hostsRes = (await adminClient.execute('SHOW HOSTS;')) as NebulaRawResponse;
+               const hostRows = this.transformToRows(hostsRes.data);
+               if (hostRows.some((row) => row.Status === 'ONLINE')) {
+                  hostOnline = true;
+                  break;
+               }
+               const hostExists = hostRows.some((row) => {
+                  const h = typeof row.Host === 'string' ? row.Host : '';
+                  return h === storagedHost || h === `"${storagedHost}"`;
+               });
+               if (!hostExists) {
+                  try {
+                     await adminClient.execute(`ADD HOSTS "${storagedHost}":${storagedPort};`);
+                  } catch {
+                     // Host might already be registered
+                  }
+               }
+            } catch {
+               // Storage host or graphd might still be initializing
+            }
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+         }
+
+         if (!hostOnline) {
+            this.logger.warn(
+               `NebulaGraph storage host ${storagedHost}:${storagedPort} was not ONLINE within 30 seconds`,
+            );
+         }
+
          // 2. Ensure target space exists
          const spacesRes = (await adminClient.execute('SHOW SPACES;')) as NebulaRawResponse;
          const rows = this.transformToRows(spacesRes.data);
@@ -66,9 +102,30 @@ export class NebulaService implements OnModuleInit, OnModuleDestroy {
 
          if (!hasSpace) {
             this.logger.log(`Creating NebulaGraph space: ${this.config.space}`);
-            await adminClient.execute(
-               `CREATE SPACE IF NOT EXISTS ${this.config.space}(partition_num=10, replica_factor=1, vid_type=FIXED_STRING(64));`,
-            );
+            const createStart = Date.now();
+            let spaceCreated = false;
+            let lastCreateError: Error | null = null;
+            while (!spaceCreated && Date.now() - createStart < 30000) {
+               try {
+                  const createRes = (await adminClient.execute(
+                     `CREATE SPACE IF NOT EXISTS ${this.config.space}(partition_num=10, replica_factor=1, vid_type=FIXED_STRING(64));`,
+                  )) as NebulaRawResponse;
+                  if (createRes.error_code === 0) {
+                     spaceCreated = true;
+                     break;
+                  }
+               } catch (err) {
+                  lastCreateError = err instanceof Error ? err : new Error(String(err));
+                  if (!lastCreateError.message.includes('Host not enough')) {
+                     throw lastCreateError;
+                  }
+               }
+               await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+
+            if (!spaceCreated && lastCreateError) {
+               throw lastCreateError;
+            }
          }
 
          // 3. Ensure target space is fully ready across graphd and storaged
@@ -89,7 +146,7 @@ export class NebulaService implements OnModuleInit, OnModuleDestroy {
             }
 
             if (!spaceReady) {
-               this.logger.warn(`NebulaGraph space ${this.config.space} was not ready within 30 seconds`);
+               throw new Error(`NebulaGraph space ${this.config.space} was not ready within 30 seconds`);
             }
          }
 
@@ -103,13 +160,20 @@ export class NebulaService implements OnModuleInit, OnModuleDestroy {
                // User might already exist
             }
             try {
+               await adminClient.execute(`ALTER USER ${this.config.username} WITH PASSWORD '${this.config.password}';`);
+            } catch {
+               // Alter might fail if already matching
+            }
+            try {
                await adminClient.execute(`GRANT ROLE DBA ON ${this.config.space} TO ${this.config.username};`);
             } catch {
                // Role might already be granted
             }
          }
       } catch (error) {
-         this.logger.warn(`NebulaGraph bootstrap notice: ${error instanceof Error ? error.message : String(error)}`);
+         const errorMessage = error instanceof Error ? error.message : String(error);
+         this.logger.error(`NebulaGraph bootstrap failed: ${errorMessage}`);
+         throw error;
       } finally {
          try {
             await adminClient.close();
@@ -138,7 +202,9 @@ export class NebulaService implements OnModuleInit, OnModuleDestroy {
             executeTimeout: 15000,
          });
 
-         this.client.on('error', ({ error }: { error?: unknown }) => {
+         this.client.on('error', (event: unknown) => {
+            const error = typeof event === 'object' && event !== null && 'error' in event ? event.error : event;
+
             const rawMsg =
                error instanceof Error
                   ? error.message
@@ -152,7 +218,8 @@ export class NebulaService implements OnModuleInit, OnModuleDestroy {
                return;
             }
 
-            this.logger.error('NebulaGraph client error', error);
+            const errorDetails = error instanceof Error ? error.stack || error.message : rawMsg;
+            this.logger.error(`NebulaGraph client error: ${errorDetails}`);
          });
 
          this.logger.log('Connected to NebulaGraph successfully');

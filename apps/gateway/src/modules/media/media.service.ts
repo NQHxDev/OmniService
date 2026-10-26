@@ -166,7 +166,6 @@ export class MediaService implements OnModuleInit {
                      {
                         mediaId: dto.mediaId,
                         size: dto.size,
-                        key: dto.key,
                         width: dto.width,
                         height: dto.height,
                         duration: dto.duration,

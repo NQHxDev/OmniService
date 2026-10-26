@@ -2,6 +2,8 @@ name: omni-services
 
 services:
    commerce-postgres:
+      profiles:
+         - commerce
       image: postgres:17-alpine
       container_name: omni-services-commerce
       command:

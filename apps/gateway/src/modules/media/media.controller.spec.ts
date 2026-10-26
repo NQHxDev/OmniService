@@ -96,4 +96,35 @@ describe('Gateway MediaController', () => {
          expect(result.status).toBe('PROCESSING');
       });
    });
+
+   describe('confirmUpload', () => {
+      it('should delegate confirmUpload to mediaService with correlationId', async () => {
+         const dto = {
+            mediaId: 'media-789',
+            size: 102400,
+            width: 1920,
+            height: 1080,
+         };
+
+         mockMediaService.confirmUpload.mockResolvedValueOnce({
+            id: 'media-789',
+            userId: 'user-123',
+            provider: 'CLOUDFLARE_R2' as never,
+            type: 'IMAGE' as never,
+            url: 'https://pub-test.r2.dev/omni/images/banner.jpg',
+            key: 'omni/images/banner.jpg',
+            mimeType: 'image/jpeg',
+            size: 102400,
+            status: 'READY' as never,
+            metadata: { width: 1920, height: 1080 },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+         });
+
+         const result = await controller.confirmUpload(dto, mockUser, mockReq);
+
+         expect(mockMediaService.confirmUpload).toHaveBeenCalledWith(dto, mockUser, 'req-corr-123');
+         expect(result.status).toBe('READY');
+      });
+   });
 });

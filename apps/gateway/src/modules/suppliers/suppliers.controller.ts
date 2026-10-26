@@ -21,6 +21,7 @@ import {
    SUPPLIER_RESPONSE_MESSAGES,
    SupplierItemDto,
    UpdateSupplierDto,
+   UpdateSupplierStatusDto,
    VerifySupplierDto,
 } from '@contracts/supplier';
 import { SuppliersService } from '@/modules/suppliers/suppliers.service';
@@ -227,7 +228,7 @@ export class SuppliersController {
       operationId: 'updateSupplier',
       summary: 'Update supplier store profile',
       description:
-         'Updates supplier contact details, name, address, or operational status. Restricted to the store owner or platform admin.',
+         'Updates supplier contact details, name, address, or brand logo. Restricted to the store owner or platform admin.',
    })
    @ApiParam({
       name: 'supplierId',
@@ -266,6 +267,67 @@ export class SuppliersController {
       const correlationId = (req.headers[CORRELATION_ID_HEADER] as string) || undefined;
 
       return this.suppliersService.updateSupplier(supplierId, dto, {
+         correlationId,
+         accountId: user?.sub,
+         roles: user?.roles,
+         permissions: user?.permissions,
+         email: user?.email,
+      });
+   }
+
+   @Patch(':supplierId/status')
+   @ApiCookieAuth()
+   @ApiBearerAuth()
+   @RequireRoles(DEFAULT_ROLES.ADMIN)
+   @HttpCode(HttpStatus.OK)
+   @ApiOperation({
+      operationId: 'updateSupplierStatus',
+      summary: 'Update supplier operational status (Admin only)',
+      description:
+         'Updates the operational status of a supplier merchant store (ACTIVE, PENDING, SUSPENDED). Restricted exclusively to platform administrators.',
+   })
+   @ApiParam({
+      name: 'supplierId',
+      description: 'Supplier unique identifier UUID',
+      example: '0192e21b-0001-7000-8000-000000000001',
+   })
+   @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Supplier operational status updated successfully.',
+      type: SupplierItemDto,
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Invalid input or status parameter provided',
+         errorCodes: [COMMON_ERROR_CODES.INVALID_REQUEST, SUPPLIER_ERROR_CODES.INVALID_STATUS],
+      },
+      {
+         status: HttpStatus.UNAUTHORIZED,
+         description: 'Authentication token is missing, expired, or invalid',
+         errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
+      },
+      {
+         status: HttpStatus.FORBIDDEN,
+         description: 'Caller does not possess ADMIN role',
+         errorCodes: [COMMON_ERROR_CODES.INSUFFICIENT_ROLES, COMMON_ERROR_CODES.FORBIDDEN],
+      },
+      {
+         status: HttpStatus.NOT_FOUND,
+         description: 'Supplier not found',
+         errorCodes: [SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND],
+      },
+   ])
+   @ResponseMessage(SUPPLIER_RESPONSE_MESSAGES.UPDATE_SUPPLIER_STATUS_SUCCESS)
+   async updateSupplierStatus(
+      @Param('supplierId') supplierId: string,
+      @Body() dto: UpdateSupplierStatusDto,
+      @Req() req: Request,
+      @CurrentUser() user?: JwtPayload,
+   ): Promise<SupplierItemDto> {
+      const correlationId = (req.headers[CORRELATION_ID_HEADER] as string) || undefined;
+
+      return this.suppliersService.updateSupplierStatus(supplierId, dto.status, {
          correlationId,
          accountId: user?.sub,
          roles: user?.roles,

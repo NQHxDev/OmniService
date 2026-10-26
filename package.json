@@ -5,6 +5,7 @@
    "author": "",
    "private": true,
    "license": "UNLICENSED",
+   "packageManager": "pnpm@9.15.9",
    "scripts": {
       "start:gateway": "nest start gateway -b swc --watch",
       "start:auth": "nest start auth -b swc --watch",
@@ -24,8 +25,8 @@
       "start:nowatch:media": "nest start media -b swc",
       "start:nowatch:commerce": "nest start commerce -b swc",
       "start:nowatch:supplier": "nest start supplier -b swc",
-      "pc:start": "process-compose up",
-      "pc:down": "process-compose down",
+      "pc:start": "process-compose -p 9999 up",
+      "pc:down": "process-compose -p 9999 down",
       "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
       "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
       "prisma:generate": "pnpm -r run prisma:generate",

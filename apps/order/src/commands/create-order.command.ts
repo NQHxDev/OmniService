@@ -3,10 +3,11 @@ import { RpcException } from '@nestjs/microservices';
 import { ORDER_UNIT_OF_WORK, type IOrderUnitOfWork } from '@order/unit-of-work';
 import { PrismaService } from '@order/prisma/prisma.service';
 import type { ICreateOrderRequest } from '@contracts/order';
+import { ORDER_EVENTS, ORDER_ERROR_CODES } from '@contracts/order';
 import type { OrderWithItems } from '@order/entities';
-import { ORDER_EVENTS } from '@contracts/order';
 import { OrderMetricsService } from '@order/services/order-metrics.service';
 import type { OrderStatusEnum, PaymentMethodEnum, PaymentStatusEnum } from '@order/prisma-client';
+import { validateOrderUserId } from '@order/utils';
 
 @Injectable()
 export class CreateOrderCommandHandler {
@@ -19,10 +20,12 @@ export class CreateOrderCommandHandler {
    ) {}
 
    async execute(dto: ICreateOrderRequest): Promise<OrderWithItems> {
+      validateOrderUserId(dto.userId);
+
       if (!dto.items || dto.items.length === 0) {
          throw new RpcException({
             code: 3, // INVALID_ARGUMENT
-            message: 'ORDER.ITEMS_REQUIRED',
+            message: ORDER_ERROR_CODES.ITEMS_REQUIRED,
          });
       }
 

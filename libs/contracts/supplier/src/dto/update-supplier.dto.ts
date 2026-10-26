@@ -1,6 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
-import { SUPPLIER_STATUS, type SupplierStatusType } from '@contracts/supplier/constants/status.constant';
+import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateSupplierDto {
    @ApiPropertyOptional({
@@ -52,13 +51,4 @@ export class UpdateSupplierDto {
    @IsOptional()
    @IsString()
    supplierLogoUrl?: string;
-
-   @ApiPropertyOptional({
-      description: 'Operational status of the supplier',
-      enum: SUPPLIER_STATUS,
-      example: SUPPLIER_STATUS.ACTIVE,
-   })
-   @IsOptional()
-   @IsEnum(SUPPLIER_STATUS)
-   supplierStatus?: SupplierStatusType;
 }

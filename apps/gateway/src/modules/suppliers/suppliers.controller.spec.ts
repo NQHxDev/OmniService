@@ -31,6 +31,7 @@ describe('SuppliersController', () => {
          listSuppliers: jest.fn(),
          getSupplierById: jest.fn(),
          updateSupplier: jest.fn(),
+         updateSupplierStatus: jest.fn(),
          verifySupplier: jest.fn(),
       } as unknown as jest.Mocked<SuppliersService>;
 
@@ -211,5 +212,38 @@ describe('SuppliersController', () => {
          }),
       );
       expect(result).toEqual(verifiedSupplier);
+   });
+
+   it('should delegate updateSupplierStatus to SuppliersService with supplierId and status', async () => {
+      const statusUpdatedSupplier = { ...mockSupplier, supplierStatus: SUPPLIER_STATUS.SUSPENDED };
+      mockSuppliersService.updateSupplierStatus.mockResolvedValue(statusUpdatedSupplier);
+
+      const mockRequest = {
+         headers: {
+            [CORRELATION_ID_HEADER]: 'corr-456',
+         },
+      } as unknown as Request;
+
+      const mockUser = {
+         sub: 'admin-1',
+         roles: [DEFAULT_ROLES.ADMIN],
+      } as never;
+
+      const result = await controller.updateSupplierStatus(
+         mockSupplier.supplierId,
+         { status: SUPPLIER_STATUS.SUSPENDED },
+         mockRequest,
+         mockUser,
+      );
+
+      expect(mockSuppliersService.updateSupplierStatus).toHaveBeenCalledWith(
+         mockSupplier.supplierId,
+         SUPPLIER_STATUS.SUSPENDED,
+         expect.objectContaining({
+            correlationId: 'corr-456',
+            accountId: 'admin-1',
+         }),
+      );
+      expect(result).toEqual(statusUpdatedSupplier);
    });
 });

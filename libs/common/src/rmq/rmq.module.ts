@@ -1,10 +1,12 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientsModule } from '@nestjs/microservices';
 import { AppConfigModule, AppConfigService } from '@common/config';
 import { RmqService } from '@common/rmq/rmq.service';
+import { IRmqQueueOptions } from '@common/rmq/rmq.types';
 
-interface RmqModuleOptions {
+export interface RmqModuleOptions {
    name: string;
+   options?: IRmqQueueOptions;
 }
 
 @Module({
@@ -13,7 +15,7 @@ interface RmqModuleOptions {
    exports: [RmqService],
 })
 export class RmqModule {
-   static register({ name }: RmqModuleOptions): DynamicModule {
+   static register({ name, options }: RmqModuleOptions): DynamicModule {
       return {
          module: RmqModule,
          imports: [
@@ -22,20 +24,8 @@ export class RmqModule {
                   name,
                   imports: [AppConfigModule],
                   useFactory: (config: AppConfigService) => {
-                     const urls = [config.rabbitMq.uri];
-                     const queue = config.rabbitMq.getQueue(name);
-
-                     return {
-                        transport: Transport.RMQ,
-                        options: {
-                           urls,
-                           queue,
-                           persistent: true,
-                           queueOptions: {
-                              durable: true,
-                           },
-                        },
-                     };
+                     const rmqService = new RmqService(config);
+                     return rmqService.getOptions(name, options);
                   },
                   inject: [AppConfigService],
                },

@@ -2,6 +2,8 @@ name: omni-services
 
 services:
    auth-postgres:
+      profiles:
+         - auth
       image: postgres:17-alpine
       container_name: omni-services-auth
       command:

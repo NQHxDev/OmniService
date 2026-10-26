@@ -50,8 +50,8 @@ export class UserConfigService extends CommonConfigService {
          username,
          password,
          space: this.configService.get(USER_ENV_KEYS.NEBULA_SPACE, { infer: true }) || 'social_graph',
-         adminUsername: this.configService.get(USER_ENV_KEYS.NEBULA_ADMIN_USERNAME, { infer: true }) || username,
-         adminPassword: this.configService.get(USER_ENV_KEYS.NEBULA_ADMIN_PASSWORD, { infer: true }) || password,
+         adminUsername: this.configService.get(USER_ENV_KEYS.NEBULA_ADMIN_USERNAME, { infer: true }) || 'root',
+         adminPassword: this.configService.get(USER_ENV_KEYS.NEBULA_ADMIN_PASSWORD, { infer: true }) || 'nebula',
          storagedHost: this.configService.get(USER_ENV_KEYS.NEBULA_STORAGED_HOST, { infer: true }) || 'nebula-storaged',
          storagedPort: Number(this.configService.get(USER_ENV_KEYS.NEBULA_STORAGED_PORT, { infer: true }) || 9779),
       };

@@ -81,7 +81,7 @@ export class OrdersService implements OnModuleInit {
       }
    }
 
-   async getOrderById(orderId: string, userId?: string, correlationId?: string): Promise<OrderResponseDto> {
+   async getOrderById(orderId: string, userId: string, correlationId?: string): Promise<OrderResponseDto> {
       try {
          const metadata = createGrpcMetadata({ correlationId, userId });
          const response = await this.bulkhead.execute(() =>

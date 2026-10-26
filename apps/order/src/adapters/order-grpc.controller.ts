@@ -22,6 +22,7 @@ import {
 import type { OrderWithItems } from '@order/entities';
 import { CancelOrderCommandHandler, CreateOrderCommandHandler, UpdateOrderStatusCommandHandler } from '@order/commands';
 import { GetOrderByIdQueryHandler, GetOrdersByUserIdQueryHandler } from '@order/queries';
+import { validateOrderUserId } from '@order/utils';
 
 function mapOrderToProto(order: OrderWithItems): IOrderProto {
    return {
@@ -65,6 +66,7 @@ export class OrderGrpcController implements IOrderV1GrpcService {
 
    @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.CREATE_ORDER)
    createOrder(request: ICreateOrderRequest, _metadata?: Metadata): Observable<ICreateOrderResponse> {
+      validateOrderUserId(request.userId);
       return from(
          this.createOrderHandler.execute(request).then((order) => ({
             order: mapOrderToProto(order),
@@ -73,18 +75,20 @@ export class OrderGrpcController implements IOrderV1GrpcService {
    }
 
    @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.GET_ORDER_BY_ID)
-   getOrderById(request: IGetOrderByIdRequest, _metadata?: Metadata): Observable<IGetOrderByIdResponse> {
+   getOrderById(request: IGetOrderByIdRequest, metadata?: Metadata): Observable<IGetOrderByIdResponse> {
+      validateOrderUserId(request.userId);
       return from(
-         this.getOrderByIdHandler.execute(request).then((order) => ({
+         this.getOrderByIdHandler.execute(request, metadata).then((order) => ({
             order: mapOrderToProto(order),
          })),
       );
    }
 
    @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.GET_ORDERS_BY_USER_ID)
-   getOrdersByUserId(request: IGetOrdersByUserIdRequest, _metadata?: Metadata): Observable<IGetOrdersByUserIdResponse> {
+   getOrdersByUserId(request: IGetOrdersByUserIdRequest, metadata?: Metadata): Observable<IGetOrdersByUserIdResponse> {
+      validateOrderUserId(request.userId);
       return from(
-         this.getOrdersByUserIdHandler.execute(request).then((result) => ({
+         this.getOrdersByUserIdHandler.execute(request, metadata).then((result) => ({
             orders: result.orders.map(mapOrderToProto),
             total: result.total,
             page: result.page,
@@ -94,9 +98,10 @@ export class OrderGrpcController implements IOrderV1GrpcService {
    }
 
    @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.CANCEL_ORDER)
-   cancelOrder(request: ICancelOrderRequest, _metadata?: Metadata): Observable<ICancelOrderResponse> {
+   cancelOrder(request: ICancelOrderRequest, metadata?: Metadata): Observable<ICancelOrderResponse> {
+      validateOrderUserId(request.userId);
       return from(
-         this.cancelOrderHandler.execute(request).then((order) => ({
+         this.cancelOrderHandler.execute(request, metadata).then((order) => ({
             order: mapOrderToProto(order),
          })),
       );

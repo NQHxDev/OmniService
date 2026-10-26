@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { SERVICES } from '@common';
+import { checkOwnershipOrAdmin, checkRoles, DEFAULT_ROLES, SERVICES } from '@common';
 import { PAYMENT_EVENTS } from '@contracts/payment';
 import type {
    IInitiatePaymentRequest,
@@ -129,7 +129,7 @@ export class PaymentService {
       };
    }
 
-   async getPaymentById(transactionId: string): Promise<IPaymentTransactionProto> {
+   async getPaymentById(transactionId: string, metadata?: unknown): Promise<IPaymentTransactionProto> {
       const transaction = await this.paymentRepository.findById(transactionId);
       if (!transaction) {
          throw new RpcException({
@@ -137,10 +137,11 @@ export class PaymentService {
             message: 'PAYMENT.TRANSACTION_NOT_FOUND',
          });
       }
+      checkOwnershipOrAdmin(metadata, transaction.userId);
       return mapTransactionToProto(transaction);
    }
 
-   async getPaymentByOrderId(orderId: string): Promise<IPaymentTransactionProto> {
+   async getPaymentByOrderId(orderId: string, metadata?: unknown): Promise<IPaymentTransactionProto> {
       const transaction = await this.paymentRepository.findByOrderId(orderId);
       if (!transaction) {
          throw new RpcException({
@@ -148,6 +149,7 @@ export class PaymentService {
             message: 'PAYMENT.TRANSACTION_NOT_FOUND_FOR_ORDER',
          });
       }
+      checkOwnershipOrAdmin(metadata, transaction.userId);
       return mapTransactionToProto(transaction);
    }
 
@@ -269,7 +271,9 @@ export class PaymentService {
       };
    }
 
-   async refundPayment(dto: IRefundPaymentRequest): Promise<IRefundPaymentResponse> {
+   async refundPayment(dto: IRefundPaymentRequest, metadata?: unknown): Promise<IRefundPaymentResponse> {
+      checkRoles(metadata, [DEFAULT_ROLES.ADMIN]);
+
       const transaction = await this.paymentRepository.findById(dto.transactionId);
       if (!transaction) {
          throw new RpcException({

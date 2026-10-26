@@ -6,7 +6,9 @@ import {
    CircuitBreakerRegistry,
    createGrpcMetadata,
    handleGrpcError,
+   type JwtPayload,
    RetryPolicyRegistry,
+   SERVICE_NAMES,
    withGrpcRetry,
 } from '@common';
 import {
@@ -96,9 +98,21 @@ export class PaymentsService implements OnModuleInit {
       }
    }
 
-   async getPaymentById(transactionId: string, correlationId?: string): Promise<PaymentTransactionResponseDto> {
+   async getPaymentById(
+      transactionId: string,
+      user?: JwtPayload,
+      correlationId?: string,
+   ): Promise<PaymentTransactionResponseDto> {
       try {
-         const metadata = createGrpcMetadata({ correlationId });
+         const metadata = createGrpcMetadata({
+            correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: user?.sub,
+            accountId: user?.sub,
+            roles: user?.roles,
+            permissions: user?.permissions,
+            email: user?.email,
+         });
          const response = await this.bulkhead.execute(() =>
             this.circuitBreaker.execute(() =>
                firstValueFrom(
@@ -115,9 +129,21 @@ export class PaymentsService implements OnModuleInit {
       }
    }
 
-   async getPaymentByOrderId(orderId: string, correlationId?: string): Promise<PaymentTransactionResponseDto> {
+   async getPaymentByOrderId(
+      orderId: string,
+      user?: JwtPayload,
+      correlationId?: string,
+   ): Promise<PaymentTransactionResponseDto> {
       try {
-         const metadata = createGrpcMetadata({ correlationId });
+         const metadata = createGrpcMetadata({
+            correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: user?.sub,
+            accountId: user?.sub,
+            roles: user?.roles,
+            permissions: user?.permissions,
+            email: user?.email,
+         });
          const response = await this.bulkhead.execute(() =>
             this.circuitBreaker.execute(() =>
                firstValueFrom(
@@ -170,9 +196,18 @@ export class PaymentsService implements OnModuleInit {
    async refundPayment(
       dto: RefundPaymentDto,
       correlationId?: string,
+      user?: JwtPayload,
    ): Promise<{ success: boolean; message: string; refundId: string }> {
       try {
-         const metadata = createGrpcMetadata({ correlationId });
+         const metadata = createGrpcMetadata({
+            correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: user?.sub,
+            accountId: user?.sub,
+            roles: user?.roles,
+            permissions: user?.permissions,
+            email: user?.email,
+         });
          const response = await this.bulkhead.execute(() =>
             this.circuitBreaker.execute(() =>
                firstValueFrom(

@@ -153,4 +153,73 @@ describe('MediaService', () => {
          ).rejects.toThrow();
       });
    });
+
+   describe('confirmUpload', () => {
+      const mockPendingMedia = {
+         id: 'media-123',
+         userId: 'user-456',
+         provider: MEDIA_PROVIDERS.CLOUDFLARE_R2,
+         type: MEDIA_TYPES.IMAGE,
+         url: 'https://pub-test.r2.dev/omni/images/avatar.jpg',
+         key: 'omni/images/avatar.jpg',
+         mimeType: 'image/jpeg',
+         size: 10240,
+         status: MEDIA_STATUSES.PENDING,
+         metadata: { initial: true },
+         createdAt: new Date(),
+         updatedAt: new Date(),
+      };
+
+      it('should transition status to READY and update metadata without mutating media.key', async () => {
+         mockRepository.findById.mockResolvedValueOnce(mockPendingMedia);
+         mockRepository.update.mockResolvedValueOnce({
+            ...mockPendingMedia,
+            status: MEDIA_STATUSES.READY,
+            size: 20480,
+            metadata: { initial: true, width: 800, height: 600 },
+         });
+
+         const result = await service.confirmUpload('user-456', {
+            mediaId: 'media-123',
+            size: 20480,
+            width: 800,
+            height: 600,
+         });
+
+         expect(result.status).toBe(MEDIA_STATUSES.READY);
+         expect(result.key).toBe('omni/images/avatar.jpg');
+         expect(mockRepository.update).toHaveBeenCalledWith('media-123', {
+            status: MEDIA_STATUSES.READY,
+            size: 20480,
+            metadata: { initial: true, width: 800, height: 600 },
+         });
+         expect(mockRepository.update).not.toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ key: expect.anything() }),
+         );
+      });
+
+      it('should throw NotFoundException if media record does not exist', async () => {
+         mockRepository.findById.mockResolvedValueOnce(null);
+
+         await expect(
+            service.confirmUpload('user-456', {
+               mediaId: 'non-existent-media',
+            }),
+         ).rejects.toThrow();
+      });
+
+      it('should throw ForbiddenException if user does not own media entity', async () => {
+         mockRepository.findById.mockResolvedValueOnce({
+            ...mockPendingMedia,
+            userId: 'different-user',
+         });
+
+         await expect(
+            service.confirmUpload('user-456', {
+               mediaId: 'media-123',
+            }),
+         ).rejects.toThrow();
+      });
+   });
 });

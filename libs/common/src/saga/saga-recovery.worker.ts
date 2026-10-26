@@ -1,13 +1,8 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SAGA_ERROR_CODES, SAGA_EVENTS, SAGA_RECOVERY_OUTCOMES, SAGA_STATUS } from '@common/saga/saga-state.enum';
-import {
-   SAGA_REPOSITORY,
-   type ISagaInstance,
-   type ISagaRecoverer,
-   type ISagaRepository,
-   type ISagaStep,
-} from '@common/saga/saga.interface';
+import { PersistentSagaCoordinator } from '@common/saga/persistent-saga-coordinator';
+import { SAGA_REPOSITORY, type ISagaInstance, type ISagaRepository, type ISagaStep } from '@common/saga/saga.interface';
 
 export interface RecoveryWorkerOptions {
    pollIntervalMs?: number;
@@ -30,7 +25,7 @@ export class SagaRecoveryWorker<TContext extends object = Record<string, unknown
    constructor(
       @Inject(SAGA_REPOSITORY)
       private readonly sagaRepository: ISagaRepository,
-      private readonly coordinator: ISagaRecoverer<TContext>,
+      private readonly coordinator: PersistentSagaCoordinator<TContext>,
       @Optional()
       private readonly eventEmitter?: EventEmitter2,
       @Optional()

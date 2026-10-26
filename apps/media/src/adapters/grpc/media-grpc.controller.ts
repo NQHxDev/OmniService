@@ -131,7 +131,6 @@ export class MediaGrpcController implements IMediaV1GrpcService {
             .confirmUpload(user.userId, {
                mediaId: data.mediaId,
                size: data.size,
-               key: data.key,
                width: data.width,
                height: data.height,
                duration: data.duration,

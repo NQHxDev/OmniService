@@ -2,6 +2,8 @@ name: omni-services
 
 services:
    media-postgres:
+      profiles:
+         - media
       image: postgres:17-alpine
       container_name: omni-services-media
       command: ['postgres', '-p', '5442']

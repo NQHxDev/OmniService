@@ -47,6 +47,9 @@ For complete architectural details and reference catalogs, refer to [.agents/REA
          | Find tests affected by modified files         | `codegraph affected [files...]` | _CLI only_          |
    - **Mandatory Blast Radius Check Before Refactoring**:
       - Before modifying any shared library (`libs/*`), contract (`libs/contracts/*`), DTO, entity, or public service method, agents **MUST run `codegraph impact <symbol>`** (or `codegraph_impact`) to verify all upstream callers and downstream dependents across microservices.
+   - **Mandatory Graph Synchronization (`make codegraph-sync`)**:
+      - After creating, moving, renaming, deleting files, or making significant code modifications, agents **MUST run `make codegraph-sync`** (or `pnpm run codegraph:sync` / `codegraph sync`) to synchronize and refresh the local knowledge graph.
+      - Always ensure the graph is synchronized before performing blast-radius impact analysis or handing over completed tasks.
    - **Strictly Prohibited Anti-Patterns**:
       - **DO NOT** run recursive `grep -rn`, `find .`, or sequentially read dozens of files across `apps/*` and `libs/*` without querying CodeGraph first.
       - Grep/read_file should ONLY be used as a secondary fallback for non-code assets (e.g., `.env`, `.yaml`, raw configs) or when CodeGraph specifically returns no matches.

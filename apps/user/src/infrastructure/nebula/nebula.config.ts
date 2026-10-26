@@ -6,8 +6,8 @@ export const nebulaEnvSchema = z.object({
    NEBULA_USERNAME: z.string().default('root'),
    NEBULA_PASSWORD: z.string().default('nebula'),
    NEBULA_SPACE: z.string().default('social_graph'),
-   NEBULA_ADMIN_USERNAME: z.string().optional(),
-   NEBULA_ADMIN_PASSWORD: z.string().optional(),
+   NEBULA_ADMIN_USERNAME: z.string().default('root'),
+   NEBULA_ADMIN_PASSWORD: z.string().default('nebula'),
    NEBULA_STORAGED_HOST: z.string().default('nebula-storaged'),
    NEBULA_STORAGED_PORT: z.coerce.number().int().positive().default(9779),
 });
@@ -38,8 +38,8 @@ export const validateNebulaConfig = (rawEnv: Record<string, unknown> = process.e
       username: parsed.NEBULA_USERNAME,
       password: parsed.NEBULA_PASSWORD,
       space: parsed.NEBULA_SPACE,
-      adminUsername: parsed.NEBULA_ADMIN_USERNAME || parsed.NEBULA_USERNAME,
-      adminPassword: parsed.NEBULA_ADMIN_PASSWORD || parsed.NEBULA_PASSWORD,
+      adminUsername: parsed.NEBULA_ADMIN_USERNAME || 'root',
+      adminPassword: parsed.NEBULA_ADMIN_PASSWORD || 'nebula',
       storagedHost: parsed.NEBULA_STORAGED_HOST,
       storagedPort: parsed.NEBULA_STORAGED_PORT,
    };
