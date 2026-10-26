@@ -18,8 +18,8 @@ env:
    DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/omni_ci?schema=public'
 
 jobs:
-   lint-and-typecheck:
-      name: Code Quality & Type Check
+   code-quality:
+      name: Code Style & Lint
       runs-on: ubuntu-latest
       steps:
          - name: Checkout Code
@@ -33,6 +33,16 @@ jobs:
 
          - name: Run ESLint
            run: pnpm exec eslint "{src,apps,libs,test}/**/*.ts" --max-warnings=0
+
+   typecheck:
+      name: TypeScript Type Check
+      runs-on: ubuntu-latest
+      steps:
+         - name: Checkout Code
+           uses: actions/checkout@v7
+
+         - name: Setup Environment & Dependencies
+           uses: ./.github/actions/setup-pnpm-env
 
          - name: Run TypeScript Type Check
            run: pnpm run typecheck
@@ -55,9 +65,19 @@ jobs:
            run: pnpm exec jest --passWithNoTests --runInBand --shard=${{ matrix.shard }}/4
 
    build-all:
-      name: Build All Microservices
+      name: Build Services [Group ${{ matrix.group }}]
       runs-on: ubuntu-latest
-      needs: [lint-and-typecheck, unit-tests]
+      needs: [code-quality, typecheck, unit-tests]
+      strategy:
+         fail-fast: false
+         matrix:
+            include:
+               - group: '1 (Core)'
+                 services: 'gateway auth user notification'
+               - group: '2 (Content & Media)'
+                 services: 'post search media commerce'
+               - group: '3 (Business & Order)'
+                 services: 'supplier order payment product'
       steps:
          - name: Checkout Code
            uses: actions/checkout@v7
@@ -65,5 +85,5 @@ jobs:
          - name: Setup Environment & Dependencies
            uses: ./.github/actions/setup-pnpm-env
 
-         - name: Build All Services
-           run: pnpm run build
+         - name: Build Microservices
+           run: sh scripts/build-sequential.sh "${{ matrix.services }}"
