@@ -38,8 +38,12 @@ jobs:
            run: pnpm run typecheck
 
    unit-tests:
-      name: Run Unit Tests
+      name: Run Unit Tests [Shard ${{ matrix.shard }}/4]
       runs-on: ubuntu-latest
+      strategy:
+         fail-fast: false
+         matrix:
+            shard: [1, 2, 3, 4]
       steps:
          - name: Checkout Code
            uses: actions/checkout@v7
@@ -48,7 +52,7 @@ jobs:
            uses: ./.github/actions/setup-pnpm-env
 
          - name: Execute Tests
-           run: pnpm exec jest --passWithNoTests --runInBand
+           run: pnpm exec jest --passWithNoTests --runInBand --shard=${{ matrix.shard }}/4
 
    build-all:
       name: Build All Microservices
