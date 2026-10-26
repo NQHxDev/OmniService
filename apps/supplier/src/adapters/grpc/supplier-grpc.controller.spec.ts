@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CommandBus, createGrpcMetadata, UnauthorizedException } from '@common';
+import { CommandBus, createGrpcMetadata, DEFAULT_ROLES, ForbiddenException, UnauthorizedException } from '@common';
 import { SUPPLIER_MEMBER_STATUS, SUPPLIER_ROLES, SUPPLIER_STATUS, type SupplierItemDto } from '@contracts/supplier';
 import { SupplierGrpcController } from '@supplier/adapters/grpc/supplier-grpc.controller';
 import { SUPPLIER_MEMBER_REPOSITORY } from '@supplier/repositories';
@@ -127,5 +127,87 @@ describe('SupplierGrpcController', () => {
    it('should throw UnauthorizedException when calling getMySupplier without accountId or metadata', () => {
       const request = {};
       expect(() => controller.getMySupplier(request)).toThrow(UnauthorizedException);
+   });
+
+   describe('updateSupplier', () => {
+      it('should execute UpdateSupplierCommand without supplierStatus for member', async () => {
+         mockCommandBus.execute.mockResolvedValue(mockSupplier);
+
+         const mockMetadata = createGrpcMetadata({
+            userId: 'member-1',
+            roles: [DEFAULT_ROLES.USER],
+         });
+
+         const mockMemberRepo = (controller as unknown as { supplierMemberRepository: { findByAccountId: jest.Mock } })
+            .supplierMemberRepository;
+         mockMemberRepo.findByAccountId = jest.fn().mockResolvedValue({
+            supplierId: mockSupplier.supplierId,
+            memberStatus: SUPPLIER_MEMBER_STATUS.ACTIVE,
+         });
+
+         const request = {
+            supplierId: mockSupplier.supplierId,
+            supplierName: 'New Name',
+         };
+
+         const response$ = controller.updateSupplier(request, mockMetadata);
+         const result = await firstValueFrom(response$);
+
+         expect(mockCommandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+               supplierId: mockSupplier.supplierId,
+               dto: {
+                  supplierName: 'New Name',
+                  contactEmail: undefined,
+                  contactPhone: undefined,
+                  address: undefined,
+                  city: undefined,
+                  supplierLogoUrl: undefined,
+               },
+            }),
+         );
+         expect(result.supplier.supplierId).toBe(mockSupplier.supplierId);
+      });
+   });
+
+   describe('updateSupplierStatus', () => {
+      it('should throw ForbiddenException if caller is not ADMIN', () => {
+         const mockMetadata = createGrpcMetadata({
+            userId: 'user-1',
+            roles: [DEFAULT_ROLES.USER],
+         });
+
+         const request = {
+            supplierId: mockSupplier.supplierId,
+            status: SUPPLIER_STATUS.ACTIVE,
+         };
+
+         expect(() => controller.updateSupplierStatus(request, mockMetadata)).toThrow(ForbiddenException);
+      });
+
+      it('should execute UpdateSupplierStatusCommand when caller is ADMIN', async () => {
+         mockCommandBus.execute.mockResolvedValue(mockSupplier);
+
+         const mockMetadata = createGrpcMetadata({
+            userId: 'admin-1',
+            roles: [DEFAULT_ROLES.ADMIN],
+         });
+
+         const request = {
+            supplierId: mockSupplier.supplierId,
+            status: SUPPLIER_STATUS.ACTIVE,
+         };
+
+         const response$ = controller.updateSupplierStatus(request, mockMetadata);
+         const result = await firstValueFrom(response$);
+
+         expect(mockCommandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({
+               supplierId: mockSupplier.supplierId,
+               status: SUPPLIER_STATUS.ACTIVE,
+            }),
+         );
+         expect(result.supplier.supplierId).toBe(mockSupplier.supplierId);
+      });
    });
 });

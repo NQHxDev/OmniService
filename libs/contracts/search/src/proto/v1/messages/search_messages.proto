@@ -4,6 +4,7 @@ package search.v1;
 
 import "models/user_search.proto";
 import "models/ingredient_search.proto";
+import "models/post_search.proto";
 
 message SearchUsersRequest {
   string query = 1;
@@ -43,3 +44,27 @@ message GlobalSearchResponse {
   repeated IngredientSearchHitProto ingredients = 2;
   int32 total = 3;
 }
+
+message GetPostFeedRequest {
+  optional int32 limit = 1;
+  optional string cursor = 2;
+  optional string userId = 3;
+  optional string tag = 4;
+  optional string category = 5;
+}
+
+message GetPostFeedResponse {
+  repeated PostSearchHitProto items = 1;
+  optional string nextCursor = 2;
+  bool hasMore = 3;
+  int32 total = 4;
+}
+
+message GetPostDetailRequest {
+  string postId = 1;
+}
+
+message GetPostDetailResponse {
+  PostSearchHitProto post = 1;
+}
+

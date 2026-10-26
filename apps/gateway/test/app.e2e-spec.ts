@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
-import { DEFAULT_DEV_EC_PRIVATE_KEY, DEFAULT_ROLES, JwtUtil, SERVICES } from '@common';
+import { AllExceptionsFilter, DEFAULT_DEV_EC_PRIVATE_KEY, DEFAULT_ROLES, JwtUtil, SERVICES } from '@common';
 import { AUTH_PATTERNS, DEFAULT_JWT_ALGORITHM, DEFAULT_JWT_KEY_ID } from '@contracts/auth';
 import { GatewayConfigService } from '@/config';
 import { GatewayModule } from '@/gateway.module';
@@ -10,7 +9,7 @@ import { App } from 'supertest/types';
 import { of } from 'rxjs';
 
 describe('GatewayController (e2e)', () => {
-   let app: INestApplication;
+   let app: ReturnType<TestingModule['createNestApplication']>;
    let configService: GatewayConfigService;
 
    const mockAuthClient = {
@@ -67,6 +66,7 @@ describe('GatewayController (e2e)', () => {
 
       app = moduleFixture.createNestApplication();
       app.use(cookieParser());
+      app.useGlobalFilters(new AllExceptionsFilter());
       await app.init();
       configService = app.get(GatewayConfigService);
    });
@@ -265,5 +265,23 @@ describe('GatewayController (e2e)', () => {
       const body = res.body as { sub: string; email: string };
       expect(body.sub).toBe('usr_mobile_456');
       expect(body.email).toBe('mobile@example.com');
+   });
+
+   describe('Global RolesGuard and PermissionsGuard enforcement', () => {
+      it('/users (GET) - should reject authenticated user without ADMIN role (403 Forbidden)', async () => {
+         const privateKey = JwtUtil.readKeyFile('apps/auth/keys/private.key') || DEFAULT_DEV_EC_PRIVATE_KEY;
+
+         const token = JwtUtil.sign(
+            { sub: 'usr_normal_user', email: 'user@example.com', roles: [DEFAULT_ROLES.USER], tokenType: 'access' },
+            privateKey,
+            3600,
+            { keyid: configService.jwtKeyId },
+         );
+
+         await request(app.getHttpServer() as App)
+            .get('/users')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(403);
+      });
    });
 });

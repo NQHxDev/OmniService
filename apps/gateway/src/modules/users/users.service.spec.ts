@@ -14,6 +14,7 @@ import {
    GenderDto,
    USER_ERROR_CODES,
    USER_ERROR_REASONS,
+   USER_STATUS,
    USER_V1_GRPC_CLIENT,
    USER_V1_GRPC_SERVICE_NAME,
 } from '@contracts/user';
@@ -209,7 +210,7 @@ describe('UsersService', () => {
       const mockGrpcRes = {
          items: [
             {
-               id: 'u-1',
+               userId: 'u-1',
                username: 'alex',
                displayName: 'Alex Doe',
                avatar: 'https://example.com/a.jpg',
@@ -294,7 +295,7 @@ describe('UsersService', () => {
    });
 
    it('should getUserByAccountId via gRPC client', async () => {
-      const mockUserRes = { id: 'u-1', accountId: 'acc-1', username: 'acc_user' };
+      const mockUserRes = { userId: 'u-1', accountId: 'acc-1', username: 'acc_user' };
       mockUserGrpcService.getUserByAccountId.mockReturnValue(of({ user: mockUserRes }));
 
       const result = await service.getUserByAccountId('acc-1', mockUser);
@@ -315,5 +316,46 @@ describe('UsersService', () => {
       const result = await service.getUserStats('u-1', mockUser);
       expect(mockUserGrpcService.getUserStats).toHaveBeenCalledWith({ userId: 'u-1' }, expect.anything());
       expect(result).toEqual(mockStats);
+   });
+
+   it('should fallback to degraded snapshot profile when getMyProfile downstream fails', async () => {
+      mockUserGrpcService.getMyProfile.mockReturnValue(
+         throwError(() => ({ code: GrpcStatus.UNAVAILABLE, message: 'service unavailable' })),
+      );
+
+      const result = await service.getMyProfile(mockUser);
+      expect(result).toMatchObject({
+         userId: mockUser.sub,
+         accountId: mockUser.sub,
+         username: 'user',
+         displayName: 'user',
+         status: USER_STATUS.ACTIVE,
+      });
+   });
+
+   it('should fallback to empty items and meta when searchUsers downstream fails', async () => {
+      mockUserGrpcService.searchUsers.mockReturnValue(
+         throwError(() => ({ code: GrpcStatus.UNAVAILABLE, message: 'downstream error' })),
+      );
+
+      const result = await service.searchUsers('query-123', 10);
+      expect(result).toEqual({
+         items: [],
+         meta: {
+            nextCursor: null,
+            hasMore: false,
+            limit: 10,
+            total: 0,
+         },
+      });
+   });
+
+   it('should fallback to empty array when getFollowSuggestions downstream fails', async () => {
+      mockUserGrpcService.getFollowSuggestions.mockReturnValue(
+         throwError(() => ({ code: GrpcStatus.UNAVAILABLE, message: 'downstream error' })),
+      );
+
+      const result = await service.getFollowSuggestions(5, mockUser);
+      expect(result).toEqual([]);
    });
 });

@@ -5,6 +5,7 @@ import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter } from 'prom-client';
 import { BULK_OPERATIONS } from '@contracts/search';
 import { ElasticsearchService } from '@search/core/elasticsearch';
+import { METRIC_STATUS } from '@search/core/metrics';
 import { BulkOperation } from '@search/core/queue/bulk-operation.interface';
 import { SEARCH_INDEXING_QUEUE } from '@search/core/queue/queue.constants';
 
@@ -124,7 +125,7 @@ export class BulkIndexProcessor extends WorkerHost implements OnModuleDestroy {
                      this.indexingCounter?.inc({
                         index: currentOp.index,
                         operation: currentOp.operation,
-                        status: 'error',
+                        status: METRIC_STATUS.ERROR,
                      });
                   }
                   itemsToFlush[index]?.reject(new Error(`Bulk error: ${JSON.stringify(itemError)}`));
@@ -133,7 +134,7 @@ export class BulkIndexProcessor extends WorkerHost implements OnModuleDestroy {
                      this.indexingCounter?.inc({
                         index: currentOp.index,
                         operation: currentOp.operation,
-                        status: 'success',
+                        status: METRIC_STATUS.SUCCESS,
                      });
                   }
                   itemsToFlush[index]?.resolve();
@@ -146,7 +147,7 @@ export class BulkIndexProcessor extends WorkerHost implements OnModuleDestroy {
                this.indexingCounter?.inc({
                   index: item.op.index,
                   operation: item.op.operation,
-                  status: 'success',
+                  status: METRIC_STATUS.SUCCESS,
                });
                item.resolve();
             }
@@ -157,7 +158,7 @@ export class BulkIndexProcessor extends WorkerHost implements OnModuleDestroy {
             this.indexingCounter?.inc({
                index: item.op.index,
                operation: item.op.operation,
-               status: 'error',
+               status: METRIC_STATUS.ERROR,
             });
             item.reject(error);
          }

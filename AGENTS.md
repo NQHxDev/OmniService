@@ -28,10 +28,32 @@ For complete architectural details and reference catalogs, refer to [.agents/REA
    - **Type-Safe Constants**: Error codes must be defined as `as const` objects with exported union types.
    - For detailed specifications and examples, see [api-response-and-error-handling.md](.agents/rules/api-response-and-error-handling.md).
 
-5. **Code Intelligence with CodeGraph**:
-   - OmniServices uses **CodeGraph** (`@colbymchenry/codegraph`) to provide semantic code intelligence and knowledge graph querying for AI agents.
-   - Rather than crawling and reading dozens of files one-by-one, agents use CodeGraph's local MCP tools (`codegraph_explore`, `codegraph_search`, `codegraph_impact`) to retrieve exact definitions, caller/callee graphs, and impact radiuses in single calls.
-   - For detailed setup, MCP tools, and workflow instructions, see [codegraph-guidelines.md](.agents/rules/codegraph-guidelines.md).
+5. **Code Intelligence with CodeGraph (MANDATORY FIRST STEP for Exploration & Refactoring)**:
+   - **Mandatory First-Action Policy**:
+      - OmniServices indexes the entire monorepo (1,400+ files, 33,000+ relationships) using **CodeGraph** (`@colbymchenry/codegraph`).
+      - Whenever investigating architecture, locating symbols, understanding call flows, or planning refactors, **CodeGraph is the MANDATORY FIRST tool AI agents MUST use**.
+   - **Dual Interface Protocol (MCP & CLI)**:
+      - **If MCP tools are active**: Invoke MCP tools directly (`codegraph_explore`, `codegraph_search`, `codegraph_node`, `codegraph_impact`, `codegraph_callers`, `codegraph_callees`).
+      - **If MCP tools are NOT available in your toolset**: **YOU MUST EXECUTE `codegraph` CLI COMMANDS IN TERMINAL/SHELL**:
+         | Intent                                        | CLI Command                     | MCP Tool Equivalent |
+         | :-------------------------------------------- | :------------------------------ | :------------------ |
+         | Search any symbol (class, method, interface)  | `codegraph query <symbol>`      | `codegraph_search`  |
+         | Build task context & relevant code blocks     | `codegraph context "<task>"`    | _CLI only_          |
+         | Deep explore symbols & call paths in one call | `codegraph explore "<query>"`   | `codegraph_explore` |
+         | Inspect symbol source & callers/callees       | `codegraph node <symbol>`       | `codegraph_node`    |
+         | Upstream callers of a symbol                  | `codegraph callers <symbol>`    | `codegraph_callers` |
+         | Downstream functions called by a symbol       | `codegraph callees <symbol>`    | `codegraph_callees` |
+         | Blast radius before editing shared code       | `codegraph impact <symbol>`     | `codegraph_impact`  |
+         | Find tests affected by modified files         | `codegraph affected [files...]` | _CLI only_          |
+   - **Mandatory Blast Radius Check Before Refactoring**:
+      - Before modifying any shared library (`libs/*`), contract (`libs/contracts/*`), DTO, entity, or public service method, agents **MUST run `codegraph impact <symbol>`** (or `codegraph_impact`) to verify all upstream callers and downstream dependents across microservices.
+   - **Mandatory Graph Synchronization (`make codegraph-sync`)**:
+      - After creating, moving, renaming, deleting files, or making significant code modifications, agents **MUST run `make codegraph-sync`** (or `pnpm run codegraph:sync` / `codegraph sync`) to synchronize and refresh the local knowledge graph.
+      - Always ensure the graph is synchronized before performing blast-radius impact analysis or handing over completed tasks.
+   - **Strictly Prohibited Anti-Patterns**:
+      - **DO NOT** run recursive `grep -rn`, `find .`, or sequentially read dozens of files across `apps/*` and `libs/*` without querying CodeGraph first.
+      - Grep/read_file should ONLY be used as a secondary fallback for non-code assets (e.g., `.env`, `.yaml`, raw configs) or when CodeGraph specifically returns no matches.
+   - For detailed setup, CLI commands, and workflows, see [.agents/rules/codegraph-guidelines.md](.agents/rules/codegraph-guidelines.md).
 
 6. **Swagger & OpenAPI 3.0 Documentation Standards**:
    - All Swagger annotations and descriptions **MUST be 100% in professional English**.
@@ -57,3 +79,8 @@ Agents should leverage installed skills in `.agents/skills/` when executing doma
 - **Mermaid Diagram Generator** ([.agents/skills/mermaid](.agents/skills/mermaid/SKILL.md)):
    - Generates verified, high-quality Mermaid diagrams across 23+ diagram types (Architecture, Sequence, C4, Flowchart, ER, Class, Gantt, State, etc.).
    - Whenever designing or explaining architecture, data models, or service interactions, agents should reference the syntax specs in `.agents/skills/mermaid/references/` to produce accurate visual diagrams.
+
+- **Security Audit** ([.agents/skills/security-audit](.agents/skills/security-audit/SKILL.md)):
+   - Defensive, source-first security audit harness developed by Cloudflare.
+   - Orchestrates reconnaissance, coverage-led vulnerability hunting, candidate validation, structured output (`findings.json`), and target-neutral reporting.
+   - Use for security questions, focused vulnerability reviews, security audits, or penetration testing requests.

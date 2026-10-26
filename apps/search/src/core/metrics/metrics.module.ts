@@ -5,6 +5,13 @@ export const SEARCH_INDEXING_COUNTER = 'search_indexing_total';
 export const SEARCH_QUERY_COUNTER = 'search_query_total';
 export const SEARCH_QUERY_DURATION = 'search_query_duration_seconds';
 
+export const METRIC_STATUS = {
+   SUCCESS: 'success',
+   ERROR: 'error',
+} as const;
+
+export type MetricStatus = (typeof METRIC_STATUS)[keyof typeof METRIC_STATUS];
+
 @Module({
    imports: [
       PrometheusModule.register({

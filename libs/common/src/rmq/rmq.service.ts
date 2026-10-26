@@ -60,8 +60,10 @@ export class RmqService {
             urls,
             queue: resolvedQueue,
             noAck: isNoAck,
-            persistent: true,
-            prefetchCount: queueOptions.prefetchCount,
+            prefetchCount:
+               queueOptions.prefetchCount !== undefined && queueOptions.prefetchCount !== null
+                  ? Number(queueOptions.prefetchCount)
+                  : undefined,
             isGlobalPrefetchCount: queueOptions.isGlobalPrefetchCount,
             queueOptions: {
                durable: queueOptions.durable ?? true,

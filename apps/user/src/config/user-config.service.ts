@@ -25,9 +25,19 @@ export class UserConfigService extends CommonConfigService {
       return `0.0.0.0:${this.grpcPort}`;
    }
 
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      return this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true });
+   }
+
    get database() {
       return {
          url: this.databaseUrl,
+         directUrl: this.directUrl,
+         pgbouncerPort: this.pgbouncerPort,
       };
    }
 
@@ -40,8 +50,8 @@ export class UserConfigService extends CommonConfigService {
          username,
          password,
          space: this.configService.get(USER_ENV_KEYS.NEBULA_SPACE, { infer: true }) || 'social_graph',
-         adminUsername: this.configService.get(USER_ENV_KEYS.NEBULA_ADMIN_USERNAME, { infer: true }) || username,
-         adminPassword: this.configService.get(USER_ENV_KEYS.NEBULA_ADMIN_PASSWORD, { infer: true }) || password,
+         adminUsername: this.configService.get(USER_ENV_KEYS.NEBULA_ADMIN_USERNAME, { infer: true }) || 'root',
+         adminPassword: this.configService.get(USER_ENV_KEYS.NEBULA_ADMIN_PASSWORD, { infer: true }) || 'nebula',
          storagedHost: this.configService.get(USER_ENV_KEYS.NEBULA_STORAGED_HOST, { infer: true }) || 'nebula-storaged',
          storagedPort: Number(this.configService.get(USER_ENV_KEYS.NEBULA_STORAGED_PORT, { infer: true }) || 9779),
       };

@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
+   MEDIA_PROVIDERS,
    MEDIA_TYPES,
    type MediaType,
    MEDIA_STATUSES,
@@ -9,11 +10,16 @@ import {
    type ConfirmUploadDto,
    type MediaResponseDto,
    type UploadUrlResponseDto,
+   type InitiateMultipartUploadDto,
+   type InitiateMultipartUploadResponseDto,
+   type CompleteMultipartUploadDto,
 } from '@contracts/media';
 import { NotFoundException, ForbiddenException, checkOwnershipOrAdmin, type IServiceMessage } from '@common';
 import type { Media } from '@media/prisma-client';
 import { StorageStrategyFactory } from '@media/storage';
+import { CloudflareR2Provider } from '@media/storage/providers/r2.provider';
 import { MEDIA_REPOSITORY, type IMediaRepository } from '@media/modules/media/repositories/media.repository.interface';
+import { MEDIA_EVENT_PUBLISHER, type IMediaEventPublisher } from '@media/modules/transcoding';
 import { generateUniqueFileName } from '@media/utils';
 
 @Injectable()
@@ -24,6 +30,9 @@ export class MediaService {
       @Inject(MEDIA_REPOSITORY)
       private readonly mediaRepository: IMediaRepository,
       private readonly storageStrategyFactory: StorageStrategyFactory,
+      private readonly r2Provider: CloudflareR2Provider,
+      @Inject(MEDIA_EVENT_PUBLISHER)
+      private readonly mediaEventPublisher: IMediaEventPublisher,
    ) {}
 
    async getUploadUrl(userId: string, dto: GetUploadUrlDto): Promise<UploadUrlResponseDto> {
@@ -123,7 +132,6 @@ export class MediaService {
       const updated = await this.mediaRepository.update(dto.mediaId, {
          status: MEDIA_STATUSES.READY,
          size: dto.size ?? media.size,
-         key: dto.key ?? media.key,
          metadata: {
             ...existingMetadata,
             ...(dto.width !== undefined && { width: dto.width }),
@@ -134,6 +142,85 @@ export class MediaService {
       });
 
       this.logger.log(`Confirmed media upload ${updated.id} status to READY`);
+      return this.mapToResponse(updated);
+   }
+
+   async initiateMultipartUpload(
+      userId: string,
+      dto: InitiateMultipartUploadDto,
+   ): Promise<InitiateMultipartUploadResponseDto> {
+      const type = this.inferMediaType(dto.mimeType);
+      const uniqueFileName = generateUniqueFileName(dto.fileName);
+      const folder = dto.folder || 'omni/videos/raw';
+      const fullKey = `${folder}/${uniqueFileName}`;
+
+      const uploadId = await this.r2Provider.initiateMultipartUpload(fullKey, dto.mimeType);
+      const parts = await this.r2Provider.generatePartUploadUrls(fullKey, uploadId, dto.partsCount);
+      const publicUrl = this.r2Provider.getPublicUrl(fullKey);
+
+      const media = await this.mediaRepository.create({
+         userId,
+         provider: MEDIA_PROVIDERS.CLOUDFLARE_R2,
+         type,
+         url: publicUrl,
+         key: fullKey,
+         mimeType: dto.mimeType,
+         size: dto.fileSize || 0,
+         status: MEDIA_STATUSES.PENDING,
+         metadata: {
+            uploadId,
+            partsCount: dto.partsCount,
+         },
+      });
+
+      this.logger.log(`Initiated multipart upload for media ${media.id}, user ${userId}, uploadId ${uploadId}`);
+
+      return {
+         mediaId: media.id,
+         uploadId,
+         key: fullKey,
+         publicUrl,
+         parts,
+      };
+   }
+
+   async completeMultipartUpload(userId: string, dto: CompleteMultipartUploadDto): Promise<MediaResponseDto> {
+      const media = await this.mediaRepository.findById(dto.mediaId);
+      if (!media) {
+         throw new NotFoundException(MEDIA_ERROR_CODES.MEDIA_NOT_FOUND, {
+            params: { mediaId: dto.mediaId },
+         });
+      }
+
+      if (media.userId !== userId) {
+         throw new ForbiddenException(MEDIA_ERROR_CODES.CONFIRMATION_FAILED);
+      }
+
+      // Finalize multipart assembly on Cloudflare R2
+      const publicRawUrl = await this.r2Provider.completeMultipartUpload(media.key, dto.uploadId, dto.parts);
+
+      // Transition entity to PROCESSING state while FFmpeg transcodes
+      const existingMetadata = (media.metadata as Record<string, unknown>) || {};
+      const updated = await this.mediaRepository.update(dto.mediaId, {
+         status: MEDIA_STATUSES.PROCESSING,
+         url: publicRawUrl,
+         metadata: {
+            ...existingMetadata,
+            rawUrl: publicRawUrl,
+            completedAt: new Date().toISOString(),
+         },
+      });
+
+      this.logger.log(`Multipart upload finalized for media ${updated.id}. Publishing transcode requested event.`);
+
+      // Dispatch async transcoding job via RabbitMQ
+      await this.mediaEventPublisher.publishTranscodeRequested({
+         mediaId: updated.id,
+         key: updated.key,
+         mimeType: updated.mimeType,
+         userId,
+      });
+
       return this.mapToResponse(updated);
    }
 

@@ -1,10 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { BadRequestException, COMMON_ERROR_CODES } from '@common';
 import { PROFILE_OPERATION_TYPES, type ProfileOperationType } from '@user/constants';
 import { USER_PROFILE_REPOSITORY, type IUserProfileRepository } from '@user/repositories';
 import { ProfileQueryService } from '@user/services/domain/profile-query.service';
 import { ProfileSyncService } from '@user/services/infrastructure/profile-sync.service';
-import { ProfileValidationPipeline } from '@user/chains/profile-validation';
+import { ProfileValidationPipeline } from '@user/chains/profile-validation/profile-validation.pipeline';
 import {
    CreateProfileOperation,
    UpdateProfileOperation,
@@ -23,8 +23,10 @@ export class ProfileOperationFactory implements IProfileOperationFactory {
    constructor(
       @Inject(USER_PROFILE_REPOSITORY)
       private readonly userProfileRepository: IUserProfileRepository,
+      @Inject(forwardRef(() => ProfileQueryService))
       private readonly profileQueryService: ProfileQueryService,
       private readonly profileSyncService: ProfileSyncService,
+      @Inject(forwardRef(() => ProfileValidationPipeline))
       private readonly profileValidationPipeline: ProfileValidationPipeline,
    ) {}
 

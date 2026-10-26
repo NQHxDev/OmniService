@@ -7,9 +7,10 @@ import { UsernameBloomFilterService } from '@user/services/infrastructure/userna
 import { UserGraphSyncService } from '@user/services/infrastructure/user-graph-sync.service';
 import { SEARCH_ADAPTER, type ISearchAdapter } from '@user/adapters/search';
 import { USER_AGGREGATES, USER_EVENTS, USER_OUTBOX_EVENTS, USER_RETRY_QUEUES } from '@contracts/user';
-import { USER_DOMAIN_EVENTS } from '@user/domain';
+import { USER_DOMAIN_EVENTS } from '@user/domain/events';
 import { USER_DOMAIN_EVENT_FACTORY, USER_PROFILE_SYNC_FIELDS, PROFILE_METADATA_FIELDS } from '@user/constants';
-import { UserDomainEventFactory, type IUserDomainEventFactory } from '@user/factories';
+import { UserDomainEventFactory } from '@user/factories/user-domain-event.factory';
+import type { IUserDomainEventFactory } from '@user/factories/user-domain-event.factory.interface';
 import type { UpdateUserData } from '@user/repositories/user-profile.repository';
 
 /**

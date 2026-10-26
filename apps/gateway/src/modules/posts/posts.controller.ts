@@ -1,6 +1,6 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ApiErrorResponses, COMMON_ERROR_CODES, Public, ResponseMessage } from '@common';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiErrorResponses, COMMON_ERROR_CODES, CurrentUser, type JwtPayload, Public, ResponseMessage } from '@common';
 import {
    GetPostFeedDto,
    POST_ERROR_CODES,
@@ -38,11 +38,14 @@ export class PostsController {
       },
    ])
    @ResponseMessage(POST_RESPONSE_MESSAGES.GET_FEED_SUCCESS)
-   async getFeed(@Query() query: GetPostFeedDto): Promise<PostFeedResponseDto> {
-      return this.postsService.getFeed(query);
+   async getFeed(
+      @Query() query: GetPostFeedDto,
+      @CurrentUser() user?: JwtPayload | null,
+   ): Promise<PostFeedResponseDto> {
+      return this.postsService.getFeed(query, user?.sub);
    }
 
-   @Get(':id')
+   @Get(':postId')
    @Public()
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
@@ -51,9 +54,15 @@ export class PostsController {
       description: 'Retrieves single post metadata by its unique UUID.',
    })
    @ApiParam({
-      name: 'id',
+      name: 'postId',
       description: 'Unique UUID identifier of the post',
       example: '0192e21b-0002-7000-8000-000000000001',
+   })
+   @ApiQuery({
+      name: 'bypassReadModel',
+      required: false,
+      description: 'Flag to bypass CQRS Read-Model and read directly from Master DB (Read-Your-Own-Writes)',
+      type: Boolean,
    })
    @ApiResponse({
       status: HttpStatus.OK,
@@ -68,21 +77,32 @@ export class PostsController {
       },
    ])
    @ResponseMessage(POST_RESPONSE_MESSAGES.GET_POST_SUCCESS)
-   async getPostById(@Param('id') id: string): Promise<PostItemDto> {
-      return this.postsService.getPostById(id);
+   async getPostById(
+      @Param('postId') postId: string,
+      @CurrentUser() user?: JwtPayload | null,
+      @Query('bypassReadModel') bypassReadModel?: string,
+   ): Promise<PostItemDto> {
+      return this.postsService.getPostById(postId, user?.sub, bypassReadModel === 'true' || bypassReadModel === '1');
    }
 
-   @Get(':id/ingredients')
+   @Get(':postId/ingredients')
    @Public()
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'getPostIngredients',
-      summary: 'Get dish ingredients for a video post',
-      description:
-         'Retrieves the list of ingredients selected/listed by the creator for this video dish (used for the "Xem nguyên liệu" drawer/dialog).',
+      summary: 'Get dish ingredients for a video post with e-commerce links',
+      description: `### Workflow: Recipe to E-Commerce Conversion
+#### Prerequisites
+- Valid recipe post ID.
+
+#### Process Flow
+- Retrieves standardized ingredients selected by the creator for this video dish (used in the "View Ingredients" dialog/drawer).
+
+#### Next Step
+- Call \`GET /api/v1/commerce/ingredients/:ingredientId/suppliers\` to discover merchants selling the selected ingredient.`,
    })
    @ApiParam({
-      name: 'id',
+      name: 'postId',
       description: 'Unique UUID identifier of the post',
       example: '0192e21b-0002-7000-8000-000000000001',
    })
@@ -90,6 +110,15 @@ export class PostsController {
       status: HttpStatus.OK,
       description: 'Ingredients list retrieved successfully.',
       type: [PostIngredientDto],
+      links: {
+         GetSuppliersByIngredient: {
+            operationId: 'getSuppliersByIngredient',
+            description: 'View merchants and purchasing offers for the first ingredient in the recipe',
+            parameters: {
+               ingredientId: '$response.body#/data/0/ingredientId',
+            },
+         },
+      },
    })
    @ApiErrorResponses([
       {
@@ -99,7 +128,7 @@ export class PostsController {
       },
    ])
    @ResponseMessage(POST_RESPONSE_MESSAGES.GET_INGREDIENTS_SUCCESS)
-   async getIngredients(@Param('id') id: string): Promise<PostIngredientDto[]> {
-      return this.postsService.getIngredients(id);
+   async getIngredients(@Param('postId') postId: string): Promise<PostIngredientDto[]> {
+      return this.postsService.getIngredients(postId);
    }
 }

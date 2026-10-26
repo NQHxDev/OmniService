@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package search.v1;
+
+message PostAuthorProto {
+  string userId = 1;
+  optional string displayName = 2;
+  optional string avatarUrl = 3;
+  bool isVerified = 4;
+  int32 followerCount = 5;
+}
+
+message PostShopProto {
+  string shopId = 1;
+  optional string shopName = 2;
+  optional string logoUrl = 3;
+}
+
+message PostSearchIngredientProto {
+  string ingredientId = 1;
+  string name = 2;
+  double amount = 3;
+  string unit = 4;
+  optional string group = 5;
+  int32 sortOrder = 6;
+}
+
+message PostSearchHitProto {
+  string postId = 1;
+  string userId = 2;
+  string title = 3;
+  optional string caption = 4;
+  optional string mediaId = 5;
+  string videoUrl = 6;
+  optional string playbackUrl = 7;
+  string thumbnailUrl = 8;
+  optional string blurHash = 9;
+  int32 duration = 10;
+  optional int32 videoWidth = 11;
+  optional int32 videoHeight = 12;
+  int32 viewCount = 13;
+  int32 likeCount = 14;
+  int32 commentCount = 15;
+  int32 shareCount = 16;
+  int32 saveCount = 17;
+  bool allowComments = 18;
+  bool allowDuet = 19;
+  string createdAt = 20;
+  string updatedAt = 21;
+  PostAuthorProto author = 22;
+  optional PostShopProto shop = 23;
+  repeated PostSearchIngredientProto ingredients = 24;
+  repeated string tags = 25;
+  optional string category = 26;
+}

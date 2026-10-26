@@ -16,7 +16,13 @@ export const supplierEnvSchema = sharedEnvSchema.extend({
    POSTGRES_PASSWORD: z.string().default('postgres'),
    POSTGRES_DB: z.string().default('omni_service_supplier'),
    POSTGRES_PORT: z.coerce.number().int().positive().default(5444),
-   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5444/omni_service_supplier'),
+   PGBOUNCER_PORT: z.coerce.number().int().positive().default(6432),
+   DATABASE_URL: z
+      .string()
+      .default(
+         'postgresql://postgres:postgres@localhost:6432/omni_service_supplier?connection_limit=5&pool_timeout=10&pgbouncer=true',
+      ),
+   DIRECT_URL: z.string().optional(),
    PORT: z.coerce.number().int().positive().default(3008),
    GRPC_PORT: z.coerce.number().int().positive().default(50054),
 });

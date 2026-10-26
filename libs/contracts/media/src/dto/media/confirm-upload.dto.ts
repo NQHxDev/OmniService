@@ -11,14 +11,6 @@ export class ConfirmUploadDto {
    mediaId!: string;
 
    @ApiPropertyOptional({
-      description: 'Cloudinary public ID or Cloudflare R2 object key if modified on upload',
-      example: 'omni/users/avatars/avatar_123',
-   })
-   @IsOptional()
-   @IsString()
-   key?: string;
-
-   @ApiPropertyOptional({
       description: 'Verified file size in bytes after client upload completion',
       example: 204850,
    })

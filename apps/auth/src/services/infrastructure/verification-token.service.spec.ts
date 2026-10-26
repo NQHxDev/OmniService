@@ -13,6 +13,7 @@ describe('VerificationTokenService', () => {
       get: jest.fn(),
       set: jest.fn(),
       del: jest.fn(),
+      getdel: jest.fn(),
    };
 
    beforeEach(async () => {
@@ -77,23 +78,43 @@ describe('VerificationTokenService', () => {
    });
 
    describe('consume', () => {
-      it('should return email and delete key when token is valid', async () => {
+      it('should atomically retrieve and delete verification token via getdel', async () => {
          const token = `${VERIFICATION_TOKEN_PREFIX}valid`;
-         mockRedisService.get.mockResolvedValue('user@example.com');
-         mockRedisService.del.mockResolvedValue(1);
+         mockRedisService.getdel.mockResolvedValue('user@example.com');
 
          const result = await service.consume(token);
          expect(result).toBe('user@example.com');
-         expect(mockRedisService.del).toHaveBeenCalledWith(AuthRedisKeys.verificationToken(token));
+         expect(mockRedisService.getdel).toHaveBeenCalledWith(AuthRedisKeys.verificationToken(token));
       });
 
-      it('should return null and not delete key when token does not exist', async () => {
+      it('should return null when token does not exist or has already been consumed', async () => {
          const token = `${VERIFICATION_TOKEN_PREFIX}nonexistent`;
-         mockRedisService.get.mockResolvedValue(null);
+         mockRedisService.getdel.mockResolvedValue(null);
 
          const result = await service.consume(token);
          expect(result).toBeNull();
-         expect(mockRedisService.del).not.toHaveBeenCalled();
+         expect(mockRedisService.getdel).toHaveBeenCalledWith(AuthRedisKeys.verificationToken(token));
+      });
+
+      it('should prevent replay attacks by returning null on subsequent consume calls', async () => {
+         const token = `${VERIFICATION_TOKEN_PREFIX}single_use`;
+         mockRedisService.getdel.mockResolvedValueOnce('user@example.com').mockResolvedValueOnce(null);
+
+         const firstConsume = await service.consume(token);
+         const secondConsume = await service.consume(token);
+
+         expect(firstConsume).toBe('user@example.com');
+         expect(secondConsume).toBeNull();
+         expect(mockRedisService.getdel).toHaveBeenCalledTimes(2);
+      });
+
+      it('should delegate consumeVerificationToken to consume', async () => {
+         const token = `${VERIFICATION_TOKEN_PREFIX}alias`;
+         mockRedisService.getdel.mockResolvedValue('user@example.com');
+
+         const result = await service.consumeVerificationToken(token);
+         expect(result).toBe('user@example.com');
+         expect(mockRedisService.getdel).toHaveBeenCalledWith(AuthRedisKeys.verificationToken(token));
       });
    });
 });

@@ -1,7 +1,8 @@
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { defer, firstValueFrom } from 'rxjs';
 import {
+   BulkheadRegistry,
    CircuitBreakerRegistry,
    createGrpcMetadata,
    handleGrpcError,
@@ -30,8 +31,17 @@ import type { ISupplierProto, SupplierItemDto, SupplierStatusType } from '@contr
 
 @Injectable()
 export class CommerceService implements OnModuleInit {
+   private readonly logger = new Logger(CommerceService.name);
    private commerceGrpcService!: ICommerceV1GrpcService;
    private searchGrpcService!: ISearchV1GrpcService;
+   private readonly commerceBulkhead = BulkheadRegistry.getOrCreate(COMMERCE_V1_GRPC_SERVICE_NAME, {
+      maxConcurrent: 50,
+      maxQueueCapacity: 100,
+   });
+   private readonly searchBulkhead = BulkheadRegistry.getOrCreate(SEARCH_V1_GRPC_SERVICE_NAME, {
+      maxConcurrent: 50,
+      maxQueueCapacity: 100,
+   });
    private readonly commerceGrpcBreaker = CircuitBreakerRegistry.getOrCreate(COMMERCE_V1_GRPC_SERVICE_NAME, {
       timeout: 3000,
       failureThreshold: 5,
@@ -85,17 +95,39 @@ export class CommerceService implements OnModuleInit {
 
    async searchIngredients(dto: SearchIngredientsDto): Promise<SearchIngredientsResponseDto> {
       try {
-         const res = await this.searchGrpcBreaker.execute(() =>
-            firstValueFrom(
-               defer(() =>
-                  this.searchGrpcService.searchIngredients({
-                     query: dto.query,
-                     categoryId: dto.categoryId,
-                     limit: dto.limit,
-                     offset: dto.offset,
-                  }),
-               ).pipe(withGrpcRetry(this.searchGrpcRetryPolicy)),
-            ),
+         const res = await this.searchBulkhead.execute(
+            () =>
+               this.searchGrpcBreaker.execute(
+                  () =>
+                     firstValueFrom(
+                        defer(() =>
+                           this.searchGrpcService.searchIngredients({
+                              query: dto.query,
+                              categoryId: dto.categoryId,
+                              limit: dto.limit,
+                              offset: dto.offset,
+                           }),
+                        ).pipe(withGrpcRetry(this.searchGrpcRetryPolicy)),
+                     ),
+                  (err) => {
+                     this.logger.warn(`Search ingredients degraded fallback triggered: ${err.message}`);
+                     return {
+                        items: [],
+                        total: 0,
+                        limit: dto.limit ?? 20,
+                        offset: dto.offset ?? 0,
+                     };
+                  },
+               ),
+            (err) => {
+               this.logger.warn(`Search ingredients bulkhead overflow fallback triggered: ${err.message}`);
+               return {
+                  items: [],
+                  total: 0,
+                  limit: dto.limit ?? 20,
+                  offset: dto.offset ?? 0,
+               };
+            },
          );
 
          return {
@@ -194,36 +226,61 @@ export class CommerceService implements OnModuleInit {
             callerService: SERVICE_NAMES.GATEWAY,
          });
 
-         return await this.commerceGrpcBreaker.execute(async () => {
-            const res = await firstValueFrom(
-               defer(() =>
-                  this.commerceGrpcService.getSuppliersByIngredient({ ingredientId, inStockOnly }, metadata),
-               ).pipe(withGrpcRetry(this.commerceGrpcRetryPolicy)),
-            );
+         return await this.commerceBulkhead.execute(
+            () =>
+               this.commerceGrpcBreaker.execute(
+                  async () => {
+                     const res = await firstValueFrom(
+                        defer(() =>
+                           this.commerceGrpcService.getSuppliersByIngredient({ ingredientId, inStockOnly }, metadata),
+                        ).pipe(withGrpcRetry(this.commerceGrpcRetryPolicy)),
+                     );
 
-            return {
-               ingredientId: res.ingredientId,
-               ingredientName: res.ingredientName,
-               offers: res.offers.map((offer) => ({
-                  productId: offer.productId,
-                  supplierId: offer.supplierId,
-                  ingredientId: offer.ingredientId,
-                  productSku: offer.productSku,
-                  productTitle: offer.productTitle,
-                  price: offer.price,
-                  currency: offer.currency,
-                  originalPrice: offer.originalPrice || undefined,
-                  packageSize: offer.packageSize || undefined,
-                  stockQuantity: offer.stockQuantity,
-                  inStock: offer.inStock,
-                  productUrl: offer.productUrl || undefined,
-                  productImageUrl: offer.productImageUrl || undefined,
-                  offerStatus: offer.offerStatus,
-                  supplier: offer.supplier ? this.mapProtoToSupplierDto(offer.supplier) : undefined,
-               })),
-               totalOffers: res.totalOffers,
-            };
-         });
+                     return {
+                        ingredientId: res.ingredientId,
+                        ingredientName: res.ingredientName,
+                        offers: res.offers.map((offer) => ({
+                           productId: offer.productId,
+                           supplierId: offer.supplierId,
+                           ingredientId: offer.ingredientId,
+                           productSku: offer.productSku,
+                           productTitle: offer.productTitle,
+                           price: offer.price,
+                           currency: offer.currency,
+                           originalPrice: offer.originalPrice || undefined,
+                           packageSize: offer.packageSize || undefined,
+                           stockQuantity: offer.stockQuantity,
+                           inStock: offer.inStock,
+                           productUrl: offer.productUrl || undefined,
+                           productImageUrl: offer.productImageUrl || undefined,
+                           offerStatus: offer.offerStatus,
+                           supplier: offer.supplier ? this.mapProtoToSupplierDto(offer.supplier) : undefined,
+                        })),
+                        totalOffers: res.totalOffers,
+                     };
+                  },
+                  (err) => {
+                     this.logger.warn(
+                        `getSuppliersByIngredient fallback triggered for ${ingredientId}: ${err.message}`,
+                     );
+                     return {
+                        ingredientId,
+                        ingredientName: '',
+                        offers: [],
+                        totalOffers: 0,
+                     };
+                  },
+               ),
+            (err) => {
+               this.logger.warn(`getSuppliersByIngredient bulkhead fallback for ${ingredientId}: ${err.message}`);
+               return {
+                  ingredientId,
+                  ingredientName: '',
+                  offers: [],
+                  totalOffers: 0,
+               };
+            },
+         );
       } catch (error: unknown) {
          return handleGrpcError(error);
       }
@@ -236,20 +293,33 @@ export class CommerceService implements OnModuleInit {
             callerService: SERVICE_NAMES.GATEWAY,
          });
 
-         return await this.commerceGrpcBreaker.execute(async () => {
-            const res = await firstValueFrom(
-               defer(() => this.commerceGrpcService.listCategories({}, metadata)).pipe(
-                  withGrpcRetry(this.commerceGrpcRetryPolicy),
-               ),
-            );
+         return await this.commerceBulkhead.execute(
+            () =>
+               this.commerceGrpcBreaker.execute(
+                  async () => {
+                     const res = await firstValueFrom(
+                        defer(() => this.commerceGrpcService.listCategories({}, metadata)).pipe(
+                           withGrpcRetry(this.commerceGrpcRetryPolicy),
+                        ),
+                     );
 
-            return res.categories.map((c) => ({
-               categoryId: c.categoryId,
-               categoryName: c.categoryName,
-               categorySlug: c.categorySlug,
-               iconUrl: c.iconUrl || undefined,
-            }));
-         });
+                     return res.categories.map((c) => ({
+                        categoryId: c.categoryId,
+                        categoryName: c.categoryName,
+                        categorySlug: c.categorySlug,
+                        iconUrl: c.iconUrl || undefined,
+                     }));
+                  },
+                  (err) => {
+                     this.logger.warn(`listCategories fallback triggered: ${err.message}`);
+                     return [];
+                  },
+               ),
+            (err) => {
+               this.logger.warn(`listCategories bulkhead fallback triggered: ${err.message}`);
+               return [];
+            },
+         );
       } catch (error: unknown) {
          return handleGrpcError(error);
       }

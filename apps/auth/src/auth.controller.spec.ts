@@ -23,7 +23,6 @@ import { AuthController } from '@auth/auth.controller';
 import { NOTIFICATION_ADAPTER } from '@auth/adapters';
 import { AUTH_COMMAND_HANDLERS } from '@auth/commands';
 import { AuthConfigService } from '@auth/config';
-import { OutboxPublisherService } from '@auth/outbox/services/outbox-publisher.service';
 import { PrismaService } from '@auth/prisma/prisma.service';
 import { UNIT_OF_WORK } from '@auth/unit-of-work';
 import {
@@ -351,11 +350,6 @@ describe('AuthController', () => {
          sendEmail: jest.fn().mockResolvedValue(undefined),
       };
 
-      const mockOutboxPublisherService = {
-         triggerPublish: jest.fn(),
-         publishPendingEvents: jest.fn().mockResolvedValue(0),
-      };
-
       const module: TestingModule = await Test.createTestingModule({
          controllers: [AuthController],
          providers: [
@@ -457,10 +451,6 @@ describe('AuthController', () => {
             {
                provide: AUDIT_LOG_REPOSITORY,
                useClass: AuditLogRepository,
-            },
-            {
-               provide: OutboxPublisherService,
-               useValue: mockOutboxPublisherService,
             },
             {
                provide: SERVICES.NOTIFICATION_SERVICE,

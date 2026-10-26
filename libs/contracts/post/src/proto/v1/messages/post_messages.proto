@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package post.v1;
+
+import "models/post.proto";
+
+message GetPostFeedRequest {
+  optional int32 limit = 1;
+  optional string cursor = 2;
+  optional string userId = 3;
+  optional string tag = 4;
+  optional string category = 5;
+}
+
+message GetPostFeedResponse {
+  repeated PostItemProto items = 1;
+  optional string nextCursor = 2;
+  bool hasMore = 3;
+}
+
+message GetPostByIdRequest {
+  string postId = 1;
+}
+
+message GetPostByIdResponse {
+  PostItemProto post = 1;
+}
+
+message GetIngredientsByPostIdRequest {
+  string postId = 1;
+}
+
+message GetIngredientsByPostIdResponse {
+  repeated PostIngredientProto items = 1;
+}

@@ -2,9 +2,22 @@ name: omni-services
 
 services:
    user-postgres:
+      profiles:
+         - user
       image: postgres:17-alpine
       container_name: omni-services-user
-      command: ['postgres', '-p', '5439']
+      command:
+         [
+            'postgres',
+            '-p',
+            '5439',
+            '-c',
+            'wal_level=logical',
+            '-c',
+            'max_wal_senders=10',
+            '-c',
+            'max_replication_slots=10',
+         ]
       restart: unless-stopped
       environment:
          POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -28,6 +41,8 @@ services:
          - omni-network
 
    nebula-metad:
+      profiles:
+         - user
       image: vesoft/nebula-metad:v3.8.0
       container_name: omni-services-user-nebula-metad
       restart: unless-stopped
@@ -58,6 +73,8 @@ services:
          - omni-network
 
    nebula-storaged:
+      profiles:
+         - user
       image: vesoft/nebula-storaged:v3.8.0
       container_name: omni-services-user-nebula-storaged
       restart: unless-stopped
@@ -82,10 +99,18 @@ services:
       volumes:
          - nebula_storaged_data:/data/storage
          - nebula_storaged_logs:/logs
+      healthcheck:
+         test: ['CMD', 'curl', '-f', 'http://127.0.0.1:19779/status']
+         interval: 5s
+         timeout: 5s
+         retries: 10
+         start_period: 5s
       networks:
          - omni-network
 
    nebula-graphd:
+      profiles:
+         - user
       image: vesoft/nebula-graphd:v3.8.0
       container_name: omni-services-user-nebula-graphd
       restart: unless-stopped
@@ -107,19 +132,40 @@ services:
       depends_on:
          nebula-metad:
             condition: service_healthy
-         nebula-storaged:
-            condition: service_started
       volumes:
          - nebula_graphd_logs:/logs
       healthcheck:
          test: ['CMD', 'curl', '-f', 'http://127.0.0.1:19669/status']
-         interval: 10s
+         interval: 5s
          timeout: 5s
-         retries: 5
+         retries: 10
+         start_period: 5s
+      networks:
+         - omni-network
+
+   nebula-console:
+      profiles:
+         - user
+      image: vesoft/nebula-console:v3.8.0
+      container_name: omni-services-user-nebula-console
+      restart: unless-stopped
+      entrypoint: ['/bin/sh', '-c']
+      command:
+         - |
+            for i in `seq 1 60`; do
+              nebula-console -addr nebula-graphd -port 9669 -u root -p $${NEBULA_PASSWORD:-nebula} -e 'ADD HOSTS "nebula-storaged":9779;' && break
+              sleep 1
+            done
+            tail -f /dev/null
+      depends_on:
+         nebula-graphd:
+            condition: service_healthy
       networks:
          - omni-network
 
    nebula-studio:
+      profiles:
+         - user
       image: vesoft/nebula-graph-studio:v3.8.0
       container_name: omni-services-user-nebula-studio
       restart: unless-stopped

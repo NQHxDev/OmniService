@@ -28,6 +28,9 @@ import { UserMetricsService } from '@user/services/infrastructure/user-metrics.s
 @Module({
    imports: [
       RmqModule.register({
+         name: SERVICES.MEDIA_SERVICE,
+      }),
+      RmqModule.register({
          name: SERVICES.SEARCH_SERVICE,
       }),
       RmqModule.register({

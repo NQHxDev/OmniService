@@ -1,0 +1,39 @@
+{
+   "name": "@omni/payment",
+   "version": "0.0.1",
+   "private": true,
+   "scripts": {
+      "start": "nest start payment --watch",
+      "build": "nest build payment",
+      "prisma:generate": "dotenv -e .env -- prisma generate --schema=prisma/schema.prisma",
+      "prisma:migrate": "dotenv -e .env -- prisma migrate dev --schema=prisma/schema.prisma",
+      "prisma:migrate:deploy": "dotenv -e .env -- prisma migrate deploy --schema=prisma/schema.prisma",
+      "prisma:push": "dotenv -e .env -- prisma db push --schema=prisma/schema.prisma",
+      "prisma:studio": "dotenv -e .env -- prisma studio --schema=prisma/schema.prisma",
+      "lint": "eslint \"src/**/*.ts\" --fix"
+   },
+   "dependencies": {
+      "@common": "workspace:*",
+      "@contracts/payment": "workspace:*",
+      "@contracts/order": "workspace:*",
+      "@contracts/health": "workspace:*",
+      "@nestjs/common": "^11.0.1",
+      "@nestjs/config": "^4.0.4",
+      "@nestjs/core": "^11.0.1",
+      "@nestjs/event-emitter": "^3.0.1",
+      "@nestjs/microservices": "^11.2.6",
+      "@prisma/adapter-pg": "7.10.0",
+      "ioredis": "^6.0.0",
+      "nestjs-pino": "^4.4.1",
+      "pg": "^8.13.1",
+      "pino": "^9.6.0",
+      "reflect-metadata": "^0.2.2",
+      "rxjs": "^7.8.1",
+      "zod": "^4.6.5"
+   },
+   "devDependencies": {
+      "@prisma/client": "7.10.0",
+      "@types/pg": "^8.11.11",
+      "prisma": "7.10.0"
+   }
+}

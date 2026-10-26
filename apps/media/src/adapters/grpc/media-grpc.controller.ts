@@ -25,6 +25,10 @@ import {
    type IMediaV1GrpcService,
    type IUploadFileRequest,
    type IUploadFileResponse,
+   type IInitiateMultipartUploadRequest,
+   type IInitiateMultipartUploadResponse,
+   type ICompleteMultipartUploadRequest,
+   type ICompleteMultipartUploadResponse,
    type MediaResponseDto,
 } from '@contracts/media';
 import { MediaService } from '@media/modules/media/media.service';
@@ -127,7 +131,6 @@ export class MediaGrpcController implements IMediaV1GrpcService {
             .confirmUpload(user.userId, {
                mediaId: data.mediaId,
                size: data.size,
-               key: data.key,
                width: data.width,
                height: data.height,
                duration: data.duration,
@@ -154,6 +157,64 @@ export class MediaGrpcController implements IMediaV1GrpcService {
          this.mediaService.deleteMedia(data.id, metadata as never).then((success) => ({
             success,
          })),
+      );
+   }
+
+   @GrpcMethod(MEDIA_V1_GRPC_SERVICE_NAME, MEDIA_V1_GRPC_METHODS.INITIATE_MULTIPART_UPLOAD)
+   initiateMultipartUpload(
+      data: IInitiateMultipartUploadRequest,
+      metadata?: Metadata,
+   ): Observable<IInitiateMultipartUploadResponse> {
+      const user = extractGrpcUser(metadata);
+      if (!user) {
+         throw new UnauthorizedException(COMMON_ERROR_CODES.UNAUTHORIZED);
+      }
+
+      return from(
+         this.mediaService
+            .initiateMultipartUpload(user.userId, {
+               fileName: data.fileName,
+               mimeType: data.mimeType,
+               partsCount: data.partsCount,
+               fileSize: data.fileSize,
+               folder: data.folder,
+            })
+            .then((res) => ({
+               mediaId: res.mediaId,
+               uploadId: res.uploadId,
+               key: res.key,
+               publicUrl: res.publicUrl,
+               parts: res.parts.map((p) => ({
+                  partNumber: p.partNumber,
+                  uploadUrl: p.uploadUrl,
+               })),
+            })),
+      );
+   }
+
+   @GrpcMethod(MEDIA_V1_GRPC_SERVICE_NAME, MEDIA_V1_GRPC_METHODS.COMPLETE_MULTIPART_UPLOAD)
+   completeMultipartUpload(
+      data: ICompleteMultipartUploadRequest,
+      metadata?: Metadata,
+   ): Observable<ICompleteMultipartUploadResponse> {
+      const user = extractGrpcUser(metadata);
+      if (!user) {
+         throw new UnauthorizedException(COMMON_ERROR_CODES.UNAUTHORIZED);
+      }
+
+      return from(
+         this.mediaService
+            .completeMultipartUpload(user.userId, {
+               mediaId: data.mediaId,
+               uploadId: data.uploadId,
+               parts: data.parts.map((p) => ({
+                  partNumber: p.partNumber,
+                  etag: p.etag,
+               })),
+            })
+            .then((media) => ({
+               media: this.mapMediaToProto(media),
+            })),
       );
    }
 }

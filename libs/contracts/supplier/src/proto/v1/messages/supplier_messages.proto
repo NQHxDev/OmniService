@@ -65,7 +65,6 @@ message UpdateSupplierRequest {
   optional string address = 5;
   optional string city = 6;
   optional string supplierLogoUrl = 7;
-  optional string supplierStatus = 8;
 }
 
 message UpdateSupplierResponse {
@@ -78,5 +77,14 @@ message VerifySupplierRequest {
 }
 
 message VerifySupplierResponse {
+  SupplierProto supplier = 1;
+}
+
+message UpdateSupplierStatusRequest {
+  string supplierId = 1;
+  string status = 2;
+}
+
+message UpdateSupplierStatusResponse {
   SupplierProto supplier = 1;
 }

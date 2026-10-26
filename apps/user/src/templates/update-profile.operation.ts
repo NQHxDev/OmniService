@@ -1,10 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { PROFILE_OPERATIONS, PROFILE_OPERATION_NAMES, type ProfileOperationName } from '@user/constants';
 import type { UserEntity } from '@user/entities';
 import { USER_PROFILE_REPOSITORY, type IUserProfileRepository } from '@user/repositories';
 import { ProfileQueryService } from '@user/services/domain/profile-query.service';
 import { ProfileSyncService } from '@user/services/infrastructure/profile-sync.service';
-import { ProfileValidationPipeline } from '@user/chains/profile-validation';
+import { ProfileValidationPipeline } from '@user/chains/profile-validation/profile-validation.pipeline';
 import { AbstractProfileOperation } from '@user/templates/abstract-profile.operation';
 import type { UpdateProfileContext, UpdateProfileParams } from '@user/templates/profile-operation.interface';
 
@@ -20,8 +20,10 @@ export class UpdateProfileOperation extends AbstractProfileOperation<
    constructor(
       @Inject(USER_PROFILE_REPOSITORY)
       private readonly userProfileRepository: IUserProfileRepository,
+      @Inject(forwardRef(() => ProfileQueryService))
       private readonly profileQueryService: ProfileQueryService,
       private readonly profileSyncService: ProfileSyncService,
+      @Inject(forwardRef(() => ProfileValidationPipeline))
       private readonly profileValidationPipeline: ProfileValidationPipeline,
    ) {
       super();

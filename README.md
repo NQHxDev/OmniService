@@ -1,6 +1,6 @@
 # OmniServices
 
-OmniServices is a scalable, distributed backend platform built with NestJS, TypeScript, gRPC, and RabbitMQ in a pnpm monorepo architecture. It delivers modular services for e-commerce, authentication, social posts, media management, and search indexing.
+OmniServices is a scalable, distributed backend platform built with NestJS, TypeScript, gRPC, and RabbitMQ in a pnpm monorepo architecture. It delivers modular services for e-commerce, authentication, social posts, media management, order lifecycle handling, multi-gateway payments, and search indexing.
 
 ---
 
@@ -17,6 +17,8 @@ flowchart TB
         Auth["Auth Service"]
         User["User Service"]
         Commerce["Commerce Service"]
+        Order["Order Service"]
+        Payment["Payment Service"]
         Post["Post Service"]
         Media["Media Service"]
         Search["Search Service"]
@@ -33,6 +35,8 @@ flowchart TB
         DB_Auth[("PostgreSQL (Auth)")]
         DB_User[("PostgreSQL (User)")]
         DB_Commerce[("PostgreSQL (Commerce)")]
+        DB_Order[("PostgreSQL (Order)")]
+        DB_Payment[("PostgreSQL (Payment)")]
         DB_Post[("PostgreSQL (Post)")]
         DB_Media[("PostgreSQL (Media)")]
         DB_Supplier[("PostgreSQL (Supplier)")]
@@ -44,6 +48,8 @@ flowchart TB
     Gateway -->|gRPC| Auth
     Gateway -->|gRPC| User
     Gateway -->|gRPC| Commerce
+    Gateway -->|gRPC| Order
+    Gateway -->|gRPC| Payment
     Gateway -->|gRPC| Post
     Gateway -->|gRPC| Media
     Gateway -->|gRPC| Search
@@ -53,15 +59,20 @@ flowchart TB
     Auth -.->|Events| RabbitMQ
     User -.->|Events| RabbitMQ
     Commerce -.->|Events| RabbitMQ
+    Order -.->|Events / Saga| RabbitMQ
+    Payment -.->|Events / IPN| RabbitMQ
     Post -.->|Events| RabbitMQ
     Supplier -.->|Events| RabbitMQ
 
     RabbitMQ -.->|Consume| Notification
     RabbitMQ -.->|Index Sync| Search
+    RabbitMQ -.->|Payment Updates| Order
 
     Auth --- DB_Auth
     User --- DB_User
     Commerce --- DB_Commerce
+    Order --- DB_Order
+    Payment --- DB_Payment
     Post --- DB_Post
     Media --- DB_Media
     Supplier --- DB_Supplier
@@ -79,9 +90,9 @@ flowchart TB
 
     class Client clientClass;
     class Gateway gatewayClass;
-    class Auth,User,Commerce,Post,Media,Search,Supplier,Notification serviceClass;
+    class Auth,User,Commerce,Order,Payment,Post,Media,Search,Supplier,Notification serviceClass;
     class RabbitMQ brokerClass;
-    class DB_Auth,DB_User,DB_Commerce,DB_Post,DB_Media,DB_Supplier,DB_Notif,ES,Redis dbClass;
+    class DB_Auth,DB_User,DB_Commerce,DB_Order,DB_Payment,DB_Post,DB_Media,DB_Supplier,DB_Notif,ES,Redis dbClass;
 ```
 
 ---
@@ -100,8 +111,11 @@ OmniServices/
 │   ├── post/            # [apps/post/README.md](apps/post/README.md) - Content publishing, feed operations, and social interactions
 │   ├── search/          # [apps/search/README.md](apps/search/README.md) - Elasticsearch full-text search indexing & query engine
 │   ├── media/           # [apps/media/README.md](apps/media/README.md) - Asset uploads, object storage, and media transformations
-│   ├── commerce/        # [apps/commerce/README.md](apps/commerce/README.md) - Product catalog, orders, and checkout workflows
-│   └── supplier/        # [apps/supplier/README.md](apps/supplier/README.md) - Merchant onboarding, supplier inventory, vendor feeds
+│   ├── commerce/        # [apps/commerce/README.md](apps/commerce/README.md) - Product catalog, carts, and checkout initiation
+│   ├── supplier/        # [apps/supplier/README.md](apps/supplier/README.md) - Merchant onboarding, supplier inventory, vendor feeds
+│   ├── product/         # [apps/product/README.md](apps/product/README.md) - Raw ingredient culinary catalog (WHO 8 groups), variant stock management & moderation
+│   ├── order/           # [apps/order/README.md](apps/order/README.md) - Order lifecycle management, CQRS, and outbox choreography
+│   └── payment/         # [apps/payment/README.md](apps/payment/README.md) - Multi-gateway payments (COD, Cards, VNPay, Momo) & IPN webhooks
 ├── libs/
 │   ├── common/          # Shared utilities, decorators, guards, exceptions, filters
 │   └── contracts/       # gRPC Protobuf definitions and shared DTO interfaces
@@ -196,6 +210,9 @@ Run specific microservices individually:
 | Media Service        | `make start-media`        |               [Media](apps/media/README.md) |
 | Commerce Service     | `make start-commerce`     |         [Commerce](apps/commerce/README.md) |
 | Supplier Service     | `make start-supplier`     |         [Supplier](apps/supplier/README.md) |
+| Product Service      | `make start-product`      |           [Product](apps/product/README.md) |
+| Order Service        | `make start-order`        |               [Order](apps/order/README.md) |
+| Payment Service      | `make start-payment`      |           [Payment](apps/payment/README.md) |
 
 To launch all services concurrently:
 
@@ -237,9 +254,10 @@ http://localhost:<GATEWAY_PORT>/docs
 
 ## Contributing & Security
 
-- **Contributing Guide**: Please review [contributing.md](contributing.md) for branch naming, coding guidelines, and PR lifecycle.
-- **Security Policy**: For vulnerability disclosures, refer to [security.md](security.md).
-- **Pull Request Template**: Pre-merge checklist and change categorization are defined in [.github/pull_request_template.md](.github/pull_request_template.md).
+- **Contributing Guide**: Please review [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for branch naming, coding guidelines, and PR lifecycle.
+- **Code of Conduct**: Community standards and pledges are outlined in [.github/CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md).
+- **Security Policy**: For vulnerability disclosures, refer to [.github/SECURITY.md](.github/SECURITY.md).
+- **Pull Request Template**: Pre-merge checklist and change categorization are defined in [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md).
 
 ---
 

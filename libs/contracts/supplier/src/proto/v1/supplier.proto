@@ -12,4 +12,5 @@ service SupplierService {
   rpc GetMySupplier (GetMySupplierRequest) returns (GetMySupplierResponse);
   rpc UpdateSupplier (UpdateSupplierRequest) returns (UpdateSupplierResponse);
   rpc VerifySupplier (VerifySupplierRequest) returns (VerifySupplierResponse);
+  rpc UpdateSupplierStatus (UpdateSupplierStatusRequest) returns (UpdateSupplierStatusResponse);
 }

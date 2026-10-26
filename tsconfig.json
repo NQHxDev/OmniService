@@ -35,6 +35,9 @@
          "@search/*": ["apps/search/src/*"],
          "@commerce/*": ["apps/commerce/src/*"],
          "@supplier/*": ["apps/supplier/src/*"],
+         "@order/*": ["apps/order/src/*"],
+         "@payment/*": ["apps/payment/src/*"],
+         "@product/*": ["apps/product/src/*"],
 
          // Prisma clients - Convention-based & type-safe
          "@auth/prisma-client": ["apps/auth/src/generated/prisma-client"],
@@ -44,6 +47,9 @@
          "@post/prisma-client": ["apps/post/src/generated/prisma-client"],
          "@commerce/prisma-client": ["apps/commerce/src/generated/prisma-client"],
          "@supplier/prisma-client": ["apps/supplier/src/generated/prisma-client"],
+         "@order/prisma-client": ["apps/order/src/generated/prisma-client"],
+         "@payment/prisma-client": ["apps/payment/src/generated/prisma-client"],
+         "@product/prisma-client": ["apps/product/src/generated/prisma-client"],
          "@*/prisma-client": ["apps/*/src/generated/prisma-client"],
 
          // Shared libraries
@@ -68,7 +74,13 @@
          "@contracts/commerce": ["libs/contracts/commerce/src"],
          "@contracts/commerce/*": ["libs/contracts/commerce/src/*"],
          "@contracts/supplier": ["libs/contracts/supplier/src"],
-         "@contracts/supplier/*": ["libs/contracts/supplier/src/*"]
+         "@contracts/supplier/*": ["libs/contracts/supplier/src/*"],
+         "@contracts/order": ["libs/contracts/order/src"],
+         "@contracts/order/*": ["libs/contracts/order/src/*"],
+         "@contracts/payment": ["libs/contracts/payment/src"],
+         "@contracts/payment/*": ["libs/contracts/payment/src/*"],
+         "@contracts/product": ["libs/contracts/product/src"],
+         "@contracts/product/*": ["libs/contracts/product/src/*"]
       },
       "jsx": "react-jsx"
    }

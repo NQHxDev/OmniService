@@ -60,14 +60,27 @@ export class CommerceController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'listIngredientCategories',
-      summary: 'Get all ingredient categories',
-      description:
-         'Returns the list of culinary ingredient categories (e.g., Meat, Vegetables, Spices, Dairy) for filtering options in the UI.',
+      summary: 'Step 1/4: Get all standardized culinary ingredient categories',
+      description: `### Workflow: Culinary Supply Chain (Step 1 of 4)
+#### Prerequisites
+- None (Public endpoint).
+
+#### Process Flow
+- Returns the catalog list of standardized culinary ingredient categories (Meat, Vegetables, Spices, Dairy, Seafood) for filtering options in the UI.
+
+#### Next Step
+- Query ingredients within a selected category via \`GET /api/v1/commerce/ingredients\`, or proceed to **Step 2/4** (\`POST /api/v1/commerce/ingredients\`) to propose a new ingredient.`,
    })
    @ApiResponse({
       status: HttpStatus.OK,
       description: 'Categories retrieved successfully.',
       type: [CategoryItemDto],
+      links: {
+         SearchIngredients: {
+            operationId: 'searchIngredients',
+            description: 'Search ingredients under a selected category',
+         },
+      },
    })
    @ResponseMessage(COMMERCE_RESPONSE_MESSAGES.LIST_CATEGORIES_SUCCESS)
    async listCategories(): Promise<CategoryItemDto[]> {
@@ -111,9 +124,13 @@ export class CommerceController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'getSuppliersByIngredient',
-      summary: 'Get available suppliers and purchasing offers for an ingredient',
-      description:
-         'Enables viewers of a recipe/video post to view all suppliers providing this ingredient with pricing, stock availability, and online purchase links.',
+      summary: 'Step 4/4: Get available suppliers and purchasing offers for an ingredient',
+      description: `### Workflow: Culinary Supply Chain (Step 4 of 4)
+#### Prerequisites
+- Ingredient ID from recipe post or catalog search.
+
+#### Process Flow
+- Enables viewers of recipe/dish videos to view all registered suppliers providing this ingredient with pricing, verified merchant badge, stock availability, and direct ordering links.`,
    })
    @ApiParam({
       name: 'ingredientId',
@@ -152,14 +169,37 @@ export class CommerceController {
    @HttpCode(HttpStatus.CREATED)
    @ApiOperation({
       operationId: 'createIngredient',
-      summary: 'Create and propose a new standardized cooking ingredient',
-      description:
-         'Adds a new standardized ingredient to the central catalog for creator selection. Requires ADMIN role.',
+      summary: 'Step 2/4: Create and propose standardized culinary ingredient in catalog',
+      description: `### Workflow: Culinary Supply Chain (Step 2 of 4)
+#### Prerequisites
+- Requires Administrator role.
+
+#### Process Flow
+- Adds a new standardized ingredient entity to the central catalog with category reference, default unit, and nutritional metadata.
+
+#### Next Step
+- Suppliers can now link their store inventory to this ingredient via **Step 3/4** (\`POST /api/v1/commerce/products\`).`,
    })
    @ApiResponse({
       status: HttpStatus.CREATED,
       description: 'Ingredient created successfully.',
       type: IngredientItemDto,
+      links: {
+         GetIngredientById: {
+            operationId: 'getIngredientById',
+            description: 'Retrieve full metadata and offers for the newly created ingredient',
+            parameters: {
+               ingredientId: '$response.body#/data/id',
+            },
+         },
+         CreateProductOffer: {
+            operationId: 'createProductOffer',
+            description: 'Step 3/4: Link merchant inventory to this ingredient',
+            parameters: {
+               ingredientId: '$response.body#/data/id',
+            },
+         },
+      },
    })
    @ApiErrorResponses([
       {
@@ -199,14 +239,30 @@ export class CommerceController {
    @HttpCode(HttpStatus.CREATED)
    @ApiOperation({
       operationId: 'createProductOffer',
-      summary: 'Create a supplier product offer for an ingredient',
-      description:
-         'Links an ingredient to a supplier with specific price, packaging, stock, and online ordering link. Requires supplier owner or ADMIN role.',
+      summary: 'Step 3/4: Create supplier product offer linking merchant inventory to standardized ingredient',
+      description: `### Workflow: Culinary Supply Chain (Step 3 of 4)
+#### Prerequisites
+- Authenticated supplier owner or Administrator. Ingredient must exist in central catalog.
+
+#### Process Flow
+- Links merchant product SKU, pricing, packaging unit, stock availability, and online checkout URL to the standardized catalog ingredient.
+
+#### Next Step
+- Video viewers can discover and purchase this offer via **Step 4/4** (\`GET /api/v1/commerce/ingredients/:ingredientId/suppliers\`).`,
    })
    @ApiResponse({
       status: HttpStatus.CREATED,
       description: 'Product offer created successfully.',
       type: SupplierProductOfferDto,
+      links: {
+         GetSuppliersByIngredient: {
+            operationId: 'getSuppliersByIngredient',
+            description: 'Step 4/4: View all active supplier offers for this ingredient',
+            parameters: {
+               ingredientId: '$request.body#/ingredientId',
+            },
+         },
+      },
    })
    @ApiErrorResponses([
       {

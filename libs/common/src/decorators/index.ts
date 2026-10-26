@@ -14,3 +14,5 @@ export * from '@common/decorators/correlation-id.decorator';
 export * from '@common/decorators/grpc-trace.decorator';
 export * from '@common/decorators/circuit-breaker.decorator';
 export * from '@common/decorators/grpc-retry.decorator';
+export * from '@common/decorators/bulkhead.decorator';
+export * from '@common/decorators/idempotent-message.decorator';

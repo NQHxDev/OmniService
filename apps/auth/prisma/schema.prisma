@@ -1,3 +1,6 @@
+// Note: In Prisma 7+, datasource connection URLs (including directUrl for migrations)
+// are configured in prisma.config.ts. Prisma CLI reads process.env.DIRECT_URL ?? env('DATABASE_URL')
+// from prisma.config.ts to execute migrations via direct Postgres connection.
 datasource db {
   provider = "postgresql"
 }
@@ -13,13 +16,27 @@ enum AccountStatus {
   BLOCKED
   SUSPENDED
   PENDING
+  PENDING_ACTIVATION
+  REGISTRATION_ABORTED
 }
 
-enum OutboxStatus {
-  PENDING
-  PROCESSING
-  PUBLISHED
+enum SagaStatus {
+  STARTED
+  EXECUTING
+  COMPENSATING
+  COMPENSATED
+  COMPLETED
   FAILED
+}
+
+enum SagaStepStatus {
+  PENDING
+  EXECUTING
+  SUCCEEDED
+  FAILED
+  COMPENSATING
+  COMPENSATED
+  COMPENSATION_FAILED
 }
 
 enum AuditStatus {
@@ -169,19 +186,14 @@ model SecurityAuditLog {
 }
 
 model OutboxEvent {
-  eventId       String       @id @default(uuid()) @map("event_id")
-  aggregateType String       @map("aggregate_type")
-  aggregateId   String       @map("aggregate_id")
-  eventType     String       @map("event_type")
+  eventId       String   @id @default(uuid()) @map("event_id") @db.Uuid
+  aggregateType String   @map("aggregate_type") @db.VarChar(50)
+  aggregateId   String   @map("aggregate_id")
+  eventType     String   @map("event_type") @db.VarChar(100)
   payload       Json
-  status        OutboxStatus @default(PENDING)
-  retryCount    Int          @default(0) @map("retry_count")
-  lastError     String?      @map("last_error")
-  processedAt   DateTime?    @map("processed_at")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  @@index([status, createdAt])
+  @@index([createdAt])
   @@index([aggregateType, aggregateId])
   @@map("outbox_events")
 }
@@ -212,4 +224,42 @@ model AccountSecurityScore {
 
   @@index([riskLevel])
   @@map("account_security_scores")
+}
+
+model SagaInstance {
+  sagaId       String       @id @default(uuid()) @map("saga_id")
+  sagaType     String       @map("saga_type")
+  aggregateId  String       @map("aggregate_id")
+  currentState SagaStatus   @default(STARTED) @map("current_state")
+  currentStep  String?      @map("current_step")
+  payload      Json?        @map("payload")
+  retryCount   Int          @default(0) @map("retry_count")
+  maxRetries   Int          @default(3) @map("max_retries")
+  timeoutAt    DateTime     @map("timeout_at")
+  lastError    String?      @map("last_error")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  stepLogs     SagaStepLog[]
+
+  @@index([currentState, timeoutAt])
+  @@index([aggregateId])
+  @@index([sagaType, currentState])
+  @@map("saga_instances")
+}
+
+model SagaStepLog {
+  stepLogId   String         @id @default(uuid()) @map("step_log_id")
+  sagaId      String         @map("saga_id")
+  stepName    String         @map("step_name")
+  status      SagaStepStatus @map("status")
+  payload     Json?          @map("payload")
+  error       String?        @map("error")
+  durationMs  Int?           @map("duration_ms")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  saga        SagaInstance   @relation(fields: [sagaId], references: [sagaId], onDelete: Cascade)
+
+  @@index([sagaId, createdAt])
+  @@index([stepName, status])
+  @@map("saga_step_logs")
 }

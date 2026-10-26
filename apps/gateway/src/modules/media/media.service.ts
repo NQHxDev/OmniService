@@ -21,6 +21,9 @@ import {
    type MediaResponseDto,
    type UploadFileDto,
    type UploadUrlResponseDto,
+   type InitiateMultipartUploadDto,
+   type InitiateMultipartUploadResponseDto,
+   type CompleteMultipartUploadDto,
 } from '@contracts/media';
 
 @Injectable()
@@ -163,7 +166,6 @@ export class MediaService implements OnModuleInit {
                      {
                         mediaId: dto.mediaId,
                         size: dto.size,
-                        key: dto.key,
                         width: dto.width,
                         height: dto.height,
                         duration: dto.duration,
@@ -206,6 +208,74 @@ export class MediaService implements OnModuleInit {
                ),
             );
             return { success: res.success };
+         });
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async initiateMultipartUpload(
+      dto: InitiateMultipartUploadDto,
+      user: JwtPayload,
+      correlationId?: string,
+   ): Promise<InitiateMultipartUploadResponseDto> {
+      try {
+         const metadata = this.buildGrpcMetadata(user, correlationId);
+         return await this.mediaGrpcBreaker.execute(async () => {
+            const res = await firstValueFrom(
+               defer(() =>
+                  this.mediaGrpcService.initiateMultipartUpload(
+                     {
+                        fileName: dto.fileName,
+                        mimeType: dto.mimeType,
+                        partsCount: dto.partsCount,
+                        fileSize: dto.fileSize,
+                        folder: dto.folder,
+                     },
+                     metadata,
+                  ),
+               ).pipe(withGrpcRetry(this.mediaGrpcRetryPolicy)),
+            );
+            return {
+               mediaId: res.mediaId,
+               uploadId: res.uploadId,
+               key: res.key,
+               publicUrl: res.publicUrl,
+               parts: res.parts.map((p) => ({
+                  partNumber: p.partNumber,
+                  uploadUrl: p.uploadUrl,
+               })),
+            };
+         });
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async completeMultipartUpload(
+      dto: CompleteMultipartUploadDto,
+      user: JwtPayload,
+      correlationId?: string,
+   ): Promise<MediaResponseDto> {
+      try {
+         const metadata = this.buildGrpcMetadata(user, correlationId);
+         return await this.mediaGrpcBreaker.execute(async () => {
+            const res = await firstValueFrom(
+               defer(() =>
+                  this.mediaGrpcService.completeMultipartUpload(
+                     {
+                        mediaId: dto.mediaId,
+                        uploadId: dto.uploadId,
+                        parts: dto.parts.map((p) => ({
+                           partNumber: p.partNumber,
+                           etag: p.etag,
+                        })),
+                     },
+                     metadata,
+                  ),
+               ).pipe(withGrpcRetry(this.mediaGrpcRetryPolicy)),
+            );
+            return this.mapProtoToMediaResponse(res.media);
          });
       } catch (error: unknown) {
          return handleGrpcError(error);

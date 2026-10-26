@@ -1,6 +1,14 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ApiErrorResponses, COMMON_ERROR_CODES, CurrentUser, ResponseMessage } from '@common';
+import {
+   ApiErrorResponses,
+   COMMON_ERROR_CODES,
+   CurrentUser,
+   DEFAULT_ROLES,
+   type JwtPayload,
+   RequireRoles,
+   ResponseMessage,
+} from '@common';
 import {
    AUDIT_LOG_RESPONSE_MESSAGES,
    AuditLogResponseDto,
@@ -9,7 +17,6 @@ import {
    QueryAuditLogDto,
 } from '@contracts/auth';
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service';
-import type { JwtPayload } from '@common/utils/jwt.util';
 
 @ApiTags('Audit Logs')
 @Controller('audit-logs')
@@ -19,8 +26,10 @@ export class AuditLogsController {
    constructor(private readonly auditLogsService: AuditLogsService) {}
 
    @Get()
+   @RequireRoles(DEFAULT_ROLES.ADMIN)
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
+      operationId: 'getAuditLogs',
       summary: 'Query system security audit logs with filters (SOC 2, ISO 27001 compliance - Admin only)',
    })
    @ApiResponse({
@@ -55,8 +64,12 @@ export class AuditLogsController {
    }
 
    @Get(':id')
+   @RequireRoles(DEFAULT_ROLES.ADMIN)
    @HttpCode(HttpStatus.OK)
-   @ApiOperation({ summary: 'Get security audit log entry details by ID' })
+   @ApiOperation({
+      operationId: 'getAuditLogById',
+      summary: 'Get security audit log entry details by ID (Admin only)',
+   })
    @ApiParam({
       name: 'id',
       description: 'Audit log UUID',

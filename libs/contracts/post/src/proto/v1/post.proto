@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package post.v1;
+
+import "messages/post_messages.proto";
+
+service PostService {
+  rpc GetFeed (GetPostFeedRequest) returns (GetPostFeedResponse);
+  rpc GetPostById (GetPostByIdRequest) returns (GetPostByIdResponse);
+  rpc GetIngredientsByPostId (GetIngredientsByPostIdRequest) returns (GetIngredientsByPostIdResponse);
+}

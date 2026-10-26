@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: omni-media-api
+   namespace: omni-services
+   labels:
+      app: omni-media-api
+      tier: api
+spec:
+   replicas: 2
+   selector:
+      matchLabels:
+         app: omni-media-api
+   template:
+      metadata:
+         labels:
+            app: omni-media-api
+      spec:
+         containers:
+            - name: media-api
+              image: omni-services/media:latest
+              env:
+                 - name: MEDIA_ROLE
+                   value: 'api'
+                 - name: NODE_ENV
+                   value: 'production'
+              ports:
+                 - containerPort: 50055
+                   name: grpc
+              resources:
+                 requests:
+                    cpu: '250m'
+                    memory: '512Mi'
+                 limits:
+                    cpu: '1000m'
+                    memory: '1Gi'
+              readinessProbe:
+                 tcpSocket:
+                    port: 50055
+                 initialDelaySeconds: 5
+                 periodSeconds: 10
+              livenessProbe:
+                 tcpSocket:
+                    port: 50055
+                 initialDelaySeconds: 15
+                 periodSeconds: 20
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+   name: omni-media-transcode-worker
+   namespace: omni-services
+   labels:
+      app: omni-media-transcode-worker
+      tier: worker
+spec:
+   replicas: 1
+   selector:
+      matchLabels:
+         app: omni-media-transcode-worker
+   template:
+      metadata:
+         labels:
+            app: omni-media-transcode-worker
+      spec:
+         containers:
+            - name: transcode-worker
+              image: omni-services/media:latest
+              command: ['node', 'dist/apps/media/worker.js']
+              env:
+                 - name: MEDIA_ROLE
+                   value: 'worker'
+                 - name: TRANSCODE_PREFETCH_COUNT
+                   value: '1'
+                 - name: TRANSCODE_MIN_FREE_DISK_GB
+                   value: '10'
+                 - name: NODE_ENV
+                   value: 'production'
+              volumeMounts:
+                 - name: scratch-volume
+                   mountPath: /tmp
+              resources:
+                 requests:
+                    cpu: '2000m'
+                    memory: '2Gi'
+                 limits:
+                    cpu: '4000m'
+                    memory: '4Gi'
+         volumes:
+            - name: scratch-volume
+              emptyDir:
+                 sizeLimit: 20Gi
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+   name: omni-media-worker-autoscaler
+   namespace: omni-services
+spec:
+   scaleTargetRef:
+      name: omni-media-transcode-worker
+   minReplicaCount: 1
+   maxReplicaCount: 10
+   cooldownPeriod: 300
+   pollingInterval: 15
+   triggers:
+      - type: rabbitmq
+        metadata:
+           protocol: amqp
+           queueName: media_queue
+           mode: QueueLength
+           value: '1'
+        authenticationRef:
+           name: keda-rabbitmq-auth

@@ -35,17 +35,14 @@ export class VerificationTokenService implements IVerificationTokenService {
    }
 
    /**
-    * Consume a verification token (validate and delete)
+    * Consume a verification token (atomically validate and delete)
+    * Uses atomic Redis getdel to prevent TOCTOU race conditions and token replay.
     * @param token - Verification token to consume
-    * @returns Email if valid, null if not found or expired
+    * @returns Email if valid, null if not found or already consumed
     */
    async consume(token: string): Promise<string | null> {
       const tokenKey = AuthRedisKeys.verificationToken(token);
-      const email = await this.redisService.get(tokenKey);
-      if (email) {
-         await this.redisService.del(tokenKey);
-      }
-      return email;
+      return await this.redisService.getdel(tokenKey);
    }
 
    async generateVerificationToken(email: string, ttl?: number): Promise<string> {

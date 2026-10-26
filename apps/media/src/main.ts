@@ -19,30 +19,46 @@ async function bootstrap() {
    app.useGlobalFilters(new AllRpcExceptionsFilter());
    app.useGlobalInterceptors(new TracingInterceptor());
 
-   // Connect RabbitMQ microservice
-   app.connectMicroservice(rmqService.getOptions(SERVICES.MEDIA_SERVICE), {
-      inheritAppConfig: true,
-   });
+   // Connect RabbitMQ microservice with QoS Prefetching backpressure
+   if (configService.isWorkerRole) {
+      app.connectMicroservice(
+         rmqService.getOptions(SERVICES.MEDIA_SERVICE, {
+            prefetchCount: configService.transcodePrefetchCount,
+            noAck: false,
+         }),
+         {
+            inheritAppConfig: true,
+         },
+      );
+   }
 
    // Connect gRPC microservice
-   app.connectMicroservice<MicroserviceOptions>(
-      {
-         transport: Transport.GRPC,
-         options: {
-            package: [MEDIA_V1_GRPC_PACKAGE_NAME],
-            protoPath: [getMediaProtoPath()],
-            url: configService.grpcUrl,
-            loader: getMediaProtoLoaderOptions(),
+   if (configService.isApiRole) {
+      app.connectMicroservice<MicroserviceOptions>(
+         {
+            transport: Transport.GRPC,
+            options: {
+               package: [MEDIA_V1_GRPC_PACKAGE_NAME],
+               protoPath: [getMediaProtoPath()],
+               url: configService.grpcUrl,
+               loader: getMediaProtoLoaderOptions(),
+            },
          },
-      },
-      {
-         inheritAppConfig: true,
-      },
-   );
+         {
+            inheritAppConfig: true,
+         },
+      );
+   }
 
    await app.startAllMicroservices();
-   logger.log(`Media Microservice is listening on RabbitMQ queue: ${SERVICES.MEDIA_SERVICE}`);
-   logger.log(`Media gRPC Microservice is listening on ${configService.grpcUrl}`);
+   if (configService.isWorkerRole) {
+      logger.log(
+         `Media Worker is listening on RabbitMQ queue: ${SERVICES.MEDIA_SERVICE} (prefetch: ${configService.transcodePrefetchCount})`,
+      );
+   }
+   if (configService.isApiRole) {
+      logger.log(`Media gRPC Microservice is listening on ${configService.grpcUrl}`);
+   }
 }
 
 void bootstrap();

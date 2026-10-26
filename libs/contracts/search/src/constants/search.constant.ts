@@ -24,8 +24,10 @@ export type SearchResponseMessage = (typeof SEARCH_RESPONSE_MESSAGES)[keyof type
 export const SEARCH_INDICES = {
    USERS: 'users',
    POSTS: 'posts',
+   FEED_POSTS: 'feed_posts_read_model',
    RECIPES: 'recipes',
    INGREDIENTS: 'ingredients',
+   PRODUCTS: 'products',
 } as const;
 
 export type SearchIndex = (typeof SEARCH_INDICES)[keyof typeof SEARCH_INDICES];

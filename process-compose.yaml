@@ -1,41 +1,117 @@
 version: '0.5'
 
 processes:
+   # Core Shared Infrastructure (Redis, RabbitMQ, Jaeger, PgBouncer)
+   infra:
+      command: docker compose --profile infra up -d --wait && exec docker compose logs -f redis rabbitmq jaeger pgbouncer
+      shutdown:
+         command: docker compose --profile infra stop
+
    # Core Services
    gateway:
-      command: pnpm run start:nowatch:gateway
+      command: exec pnpm run start:nowatch:gateway
       availability:
          restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
 
    # Business Services
    auth:
-      command: pnpm run start:nowatch:auth
+      command: docker compose --profile auth up -d --wait && pnpm --filter @omni/auth run prisma:push && pnpm --filter @omni/auth run prisma:seed && exec pnpm run start:nowatch:auth
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
       disabled: true
 
    user:
-      command: pnpm run start:nowatch:user
+      command: docker compose --profile user up -d --wait && pnpm --filter @omni/user run prisma:push && exec pnpm run start:nowatch:user
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
       disabled: true
 
    post:
-      command: pnpm run start:nowatch:post
+      command: docker compose --profile post up -d --wait && pnpm --filter @omni/post run prisma:push && exec pnpm run start:nowatch:post
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
       disabled: true
 
    notification:
-      command: pnpm run start:nowatch:notification
+      command: docker compose --profile notification up -d --wait && pnpm --filter @omni/notification run prisma:push && exec pnpm run start:nowatch:notification
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
       disabled: true
 
    search:
-      command: pnpm run start:nowatch:search
+      command: docker compose --profile search up -d --wait && exec pnpm run start:nowatch:search
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
       disabled: true
 
    media:
-      command: pnpm run start:nowatch:media
+      command: docker compose --profile media up -d --wait && pnpm --filter @omni/media run prisma:push && exec pnpm run start:nowatch:media
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
       disabled: true
 
    commerce:
-      command: pnpm run start:nowatch:commerce
+      command: docker compose --profile commerce up -d --wait && pnpm --filter @omni/commerce run prisma:push && exec pnpm run start:nowatch:commerce
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
+      disabled: true
+
+   product:
+      command: docker compose --profile product up -d --wait && pnpm --filter @omni/product run prisma:push && exec pnpm run start:nowatch:product
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
       disabled: true
 
    supplier:
-      command: pnpm run start:nowatch:supplier
+      command: docker compose --profile supplier up -d --wait && pnpm --filter @omni/supplier run prisma:push && exec pnpm run start:nowatch:supplier
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
+      disabled: true
+
+   order:
+      command: docker compose --profile order up -d --wait && pnpm --filter @omni/order run prisma:push && exec pnpm run start:nowatch:order
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
+      disabled: true
+
+   payment:
+      command: docker compose --profile payment up -d --wait && pnpm --filter @omni/payment run prisma:push && exec pnpm run start:nowatch:payment
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_started
       disabled: true

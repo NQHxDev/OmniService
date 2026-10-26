@@ -8,7 +8,6 @@ import { AuthRegistrationService } from '@auth/services/domain/auth-registration
 import { ACCOUNT_REPOSITORY, RBAC_REPOSITORY } from '@auth/repositories';
 import { AuthConfigService } from '@auth/config';
 import { OUTBOX_REPOSITORY } from '@auth/outbox/repositories/outbox.repository.interface';
-import { OutboxPublisherService } from '@auth/outbox';
 import { UNIT_OF_WORK } from '@auth/unit-of-work';
 import {
    AUTH_RATE_LIMITER,
@@ -25,7 +24,9 @@ describe('AuthRegistrationService', () => {
    const mockAccountRepository = {
       findByEmail: jest.fn(),
       create: jest.fn(),
+      update: jest.fn().mockResolvedValue(null),
       delete: jest.fn().mockResolvedValue(true),
+      deleteAbortedByEmail: jest.fn().mockResolvedValue(0),
    };
 
    const mockRbacRepository = {
@@ -52,10 +53,6 @@ describe('AuthRegistrationService', () => {
       isEmailAvailable: jest.fn().mockResolvedValue(true),
       mightContain: jest.fn().mockResolvedValue(false),
       addEmail: jest.fn().mockResolvedValue(undefined),
-   };
-
-   const mockOutboxPublisherService = {
-      triggerPublish: jest.fn(),
    };
 
    const mockOutboxRepository = {
@@ -142,10 +139,6 @@ describe('AuthRegistrationService', () => {
             {
                provide: EmailBloomFilterService,
                useValue: mockEmailBloomFilterService,
-            },
-            {
-               provide: OutboxPublisherService,
-               useValue: mockOutboxPublisherService,
             },
             {
                provide: OUTBOX_REPOSITORY,
@@ -247,7 +240,6 @@ describe('AuthRegistrationService', () => {
             undefined,
          );
          expect(mockEmailBloomFilterService.addEmail).toHaveBeenCalledWith('newuser@example.com');
-         expect(mockOutboxPublisherService.triggerPublish).toHaveBeenCalled();
          expect(mockAuditLogService.record).toHaveBeenCalled();
       });
 
@@ -322,7 +314,7 @@ describe('AuthRegistrationService', () => {
          ).rejects.toThrow(AUTH_ERROR_CODES.EMAIL_MISMATCH);
       });
 
-      it('should rollback by deleting outbox events and deleting account if token generation fails', async () => {
+      it('should compensate by deleting outbox events and marking account REGISTRATION_ABORTED if token generation fails', async () => {
          mockTokenLifecycleService.generateTokenPair.mockRejectedValue(new Error('Redis session write failed'));
 
          await expect(
@@ -334,8 +326,27 @@ describe('AuthRegistrationService', () => {
          ).rejects.toThrow('Redis session write failed');
 
          expect(mockOutboxRepository.deleteByAggregateId).toHaveBeenCalledWith('new-account-id');
-         expect(mockAccountRepository.delete).toHaveBeenCalledWith('new-account-id');
-         expect(mockOutboxPublisherService.triggerPublish).not.toHaveBeenCalled();
+         expect(mockAccountRepository.update).toHaveBeenCalledWith('new-account-id', {
+            status: USER_STATUS.REGISTRATION_ABORTED,
+         });
+         expect(mockAccountRepository.delete).not.toHaveBeenCalled();
+      });
+
+      it('should self-heal and allow re-registration if existing account has REGISTRATION_ABORTED status', async () => {
+         mockAccountRepository.findByEmail.mockResolvedValue({
+            accountId: 'aborted-account-id',
+            email: 'newuser@example.com',
+            status: USER_STATUS.REGISTRATION_ABORTED,
+         });
+
+         const result = await service.register({
+            email: 'newuser@example.com',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+         });
+
+         expect(mockAccountRepository.deleteAbortedByEmail).toHaveBeenCalledWith('newuser@example.com');
+         expect(result.user.userId).toBe('new-account-id');
       });
 
       it('should succeed even if audit log fails (non-blocking fire-and-forget)', async () => {

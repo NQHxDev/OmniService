@@ -141,4 +141,66 @@ export class IngredientSearchController {
          throw error;
       }
    }
+
+   @EventPattern('product.event.registered')
+   async handleProductRegistered(@Payload() data: Record<string, unknown>, @Ctx() context?: RmqContext): Promise<void> {
+      try {
+         const productId = data.productId as string;
+         this.logger.log(`Received product.event.registered event for ${productId}`);
+         await this.bulkQueue.addOperation({
+            operation: BULK_OPERATIONS.INDEX,
+            index: SEARCH_INDICES.PRODUCTS,
+            documentId: productId,
+            data: {
+               productId,
+               supplierId: data.supplierId,
+               whoCategoryCode: data.whoCategoryCode,
+               productName: data.productName,
+               productSlug: data.productSlug,
+               description: data.description,
+               origin: data.origin,
+               images: data.images,
+               status: data.status,
+               moderationStatus: data.moderationStatus,
+               variants: data.variants,
+               createdAt: data.createdAt ? new Date(data.createdAt as string) : new Date(),
+               updatedAt: new Date(),
+            },
+         });
+         if (context) {
+            this.rmqService.ack(context);
+         }
+      } catch (error) {
+         this.logger.error('Error queuing product.event.registered', error instanceof Error ? error.stack : undefined);
+         await this.rmqService.handleError(error, context, { queue: QUEUES.SEARCH });
+      }
+   }
+
+   @EventPattern('product.event.approved')
+   async handleProductApproved(@Payload() data: Record<string, unknown>, @Ctx() context?: RmqContext): Promise<void> {
+      try {
+         const productId = data.productId as string;
+         this.logger.log(`Received product.event.approved event for ${productId}`);
+         await this.bulkQueue.addOperation({
+            operation: BULK_OPERATIONS.UPDATE,
+            index: SEARCH_INDICES.PRODUCTS,
+            documentId: productId,
+            data: {
+               doc: {
+                  moderationStatus: data.moderationStatus,
+                  status: 'ACTIVE',
+                  moderatedBy: data.moderatedBy,
+                  moderatedAt: data.moderatedAt,
+                  updatedAt: new Date(),
+               },
+            },
+         });
+         if (context) {
+            this.rmqService.ack(context);
+         }
+      } catch (error) {
+         this.logger.error('Error queuing product.event.approved', error instanceof Error ? error.stack : undefined);
+         await this.rmqService.handleError(error, context, { queue: QUEUES.SEARCH });
+      }
+   }
 }

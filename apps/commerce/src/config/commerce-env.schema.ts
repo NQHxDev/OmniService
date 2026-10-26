@@ -17,7 +17,13 @@ export const commerceEnvSchema = sharedEnvSchema.extend({
    POSTGRES_PASSWORD: z.string().default('postgres'),
    POSTGRES_DB: z.string().default('omni_service_commerce'),
    POSTGRES_PORT: z.coerce.number().int().positive().default(5443),
-   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5443/omni_service_commerce'),
+   PGBOUNCER_PORT: z.coerce.number().int().positive().default(6432),
+   DATABASE_URL: z
+      .string()
+      .default(
+         'postgresql://postgres:postgres@localhost:6432/omni_service_commerce?connection_limit=5&pool_timeout=10&pgbouncer=true',
+      ),
+   DIRECT_URL: z.string().optional(),
    PORT: z.coerce.number().int().positive().default(3007),
    GRPC_PORT: z.coerce.number().int().positive().default(50053),
    SUPPLIER_GRPC_URL: z.string().default('localhost:50054'),

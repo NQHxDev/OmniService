@@ -1,0 +1,34 @@
+name: omni-services
+
+services:
+   payment-postgres:
+      profiles:
+         - payment
+      image: postgres:17-alpine
+      container_name: omni-services-payment
+      command: ['postgres', '-p', '5446']
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-postgres}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+         POSTGRES_DB: ${POSTGRES_DB:-omni_service_payment}
+         PGPORT: ${POSTGRES_PORT:-5446}
+      ports:
+         - '${POSTGRES_PORT:-5446}:${POSTGRES_PORT:-5446}'
+      volumes:
+         - payment_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test:
+            [
+               'CMD-SHELL',
+               'pg_isready -p ${POSTGRES_PORT:-5446} -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-omni_service_payment}',
+            ]
+         interval: 10s
+         timeout: 5s
+         retries: 5
+      networks:
+         - omni-network
+
+volumes:
+   payment_postgres_data:
+      driver: local

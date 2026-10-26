@@ -74,10 +74,87 @@ export interface IGlobalSearchResponse {
    total: number;
 }
 
+export interface IPostAuthorProto {
+   userId: string;
+   displayName?: string;
+   avatarUrl?: string;
+   isVerified?: boolean;
+   followerCount?: number;
+}
+
+export interface IPostShopProto {
+   shopId: string;
+   shopName?: string;
+   logoUrl?: string;
+}
+
+export interface IPostSearchIngredientProto {
+   ingredientId: string;
+   name: string;
+   amount: number;
+   unit: string;
+   group?: string;
+   sortOrder: number;
+}
+
+export interface IPostSearchHitProto {
+   postId: string;
+   userId: string;
+   title: string;
+   caption?: string;
+   mediaId?: string;
+   videoUrl: string;
+   playbackUrl?: string;
+   thumbnailUrl: string;
+   blurHash?: string;
+   duration: number;
+   videoWidth?: number;
+   videoHeight?: number;
+   viewCount: number;
+   likeCount: number;
+   commentCount: number;
+   shareCount: number;
+   saveCount: number;
+   allowComments: boolean;
+   allowDuet: boolean;
+   createdAt: string;
+   updatedAt: string;
+   author: IPostAuthorProto;
+   shop?: IPostShopProto;
+   ingredients: IPostSearchIngredientProto[];
+   tags: string[];
+   category?: string;
+}
+
+export interface IGetPostFeedRequest {
+   limit?: number;
+   cursor?: string;
+   userId?: string;
+   tag?: string;
+   category?: string;
+}
+
+export interface IGetPostFeedResponse {
+   items: IPostSearchHitProto[];
+   nextCursor?: string;
+   hasMore: boolean;
+   total: number;
+}
+
+export interface IGetPostDetailRequest {
+   postId: string;
+}
+
+export interface IGetPostDetailResponse {
+   post: IPostSearchHitProto;
+}
+
 export interface ISearchV1GrpcService {
    searchUsers(request: ISearchUsersRequest, metadata?: Metadata): Observable<ISearchUsersResponse>;
    searchIngredients(request: ISearchIngredientsRequest, metadata?: Metadata): Observable<ISearchIngredientsResponse>;
    globalSearch(request: IGlobalSearchRequest, metadata?: Metadata): Observable<IGlobalSearchResponse>;
+   getPostFeed(request: IGetPostFeedRequest, metadata?: Metadata): Observable<IGetPostFeedResponse>;
+   getPostDetail(request: IGetPostDetailRequest, metadata?: Metadata): Observable<IGetPostDetailResponse>;
 }
 
 export type ISearchGrpcService = ISearchV1GrpcService;

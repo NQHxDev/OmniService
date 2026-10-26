@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { NotFoundException } from '@common';
 import { UserEntity } from '@user/entities';
 import {
@@ -15,13 +15,11 @@ import {
 } from '@user/constants';
 import { ProfileQueryService } from '@user/services/domain/profile-query.service';
 import { ProfileSyncService } from '@user/services/infrastructure/profile-sync.service';
-import { ProfileValidationPipeline } from '@user/chains/profile-validation';
-import {
-   ProfileValidationPipelineFactory,
-   type IProfileValidationPipelineFactory,
-   ProfileOperationFactory,
-   type IProfileOperationFactory,
-} from '@user/factories';
+import { ProfileValidationPipeline } from '@user/chains/profile-validation/profile-validation.pipeline';
+import { ProfileValidationPipelineFactory } from '@user/factories/profile-validation-pipeline.factory';
+import type { IProfileValidationPipelineFactory } from '@user/factories/profile-validation-pipeline.factory.interface';
+import { ProfileOperationFactory } from '@user/factories/profile-operation.factory';
+import type { IProfileOperationFactory } from '@user/factories/profile-operation.factory.interface';
 import {
    CreateProfileOperation,
    UpdateProfileOperation,
@@ -52,10 +50,12 @@ export class ProfileLifecycleService {
    constructor(
       @Inject(USER_PROFILE_REPOSITORY)
       private readonly userProfileRepository: IUserProfileRepository,
+      @Inject(forwardRef(() => ProfileQueryService))
       private readonly profileQueryService: ProfileQueryService,
       private readonly usernameBloomFilterService: UsernameBloomFilterService,
       private readonly profileSyncService: ProfileSyncService,
       @Optional()
+      @Inject(forwardRef(() => ProfileValidationPipeline))
       profileValidationPipeline?: ProfileValidationPipeline,
       @Optional()
       @Inject(PROFILE_VALIDATION_PIPELINE_FACTORY)

@@ -2,9 +2,22 @@ name: omni-services
 
 services:
    commerce-postgres:
+      profiles:
+         - commerce
       image: postgres:17-alpine
       container_name: omni-services-commerce
-      command: ['postgres', '-p', '5443']
+      command:
+         [
+            'postgres',
+            '-p',
+            '5443',
+            '-c',
+            'wal_level=logical',
+            '-c',
+            'max_wal_senders=10',
+            '-c',
+            'max_replication_slots=10',
+         ]
       restart: unless-stopped
       environment:
          POSTGRES_USER: ${POSTGRES_USER:-postgres}

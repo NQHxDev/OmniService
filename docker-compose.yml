@@ -9,9 +9,14 @@ include:
    - apps/media/docker-compose.yml
    - apps/commerce/docker-compose.yml
    - apps/supplier/docker-compose.yml
+   - apps/order/docker-compose.yml
+   - apps/payment/docker-compose.yml
+   - apps/product/docker-compose.yml
 
 services:
    redis:
+      profiles:
+         - infra
       image: redis/redis-stack-server:latest
       container_name: omni-services-redis
       restart: unless-stopped
@@ -28,7 +33,9 @@ services:
          - omni-network
 
    rabbitmq:
-      image: rabbitmq:3-management-alpine
+      profiles:
+         - infra
+      image: rabbitmq:4-management-alpine
       container_name: omni-services-rabbitmq
       restart: unless-stopped
       environment:
@@ -39,6 +46,7 @@ services:
          - '${RABBITMQ_MANAGEMENT_PORT:-15672}:15672'
       volumes:
          - rabbitmq_data:/var/lib/rabbitmq
+         - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       healthcheck:
          test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
          interval: 10s
@@ -48,11 +56,11 @@ services:
          - omni-network
 
    jaeger:
-      image: jaegertracing/all-in-one:latest
+      profiles:
+         - infra
+      image: jaegertracing/jaeger:latest
       container_name: omni-services-jaeger
       restart: unless-stopped
-      environment:
-         - COLLECTOR_OTLP_ENABLED=true
       ports:
          - '${JAEGER_UI_PORT:-16686}:16686'
          - '${OTEL_EXPORTER_OTLP_PORT:-4318}:4318'
@@ -60,10 +68,61 @@ services:
       networks:
          - omni-network
 
+   pgbouncer:
+      profiles:
+         - infra
+      image: edoburu/pgbouncer:latest
+      container_name: omni-services-pgbouncer
+      restart: unless-stopped
+      ports:
+         - '${PGBOUNCER_PORT:-6432}:6432'
+      volumes:
+         - ./infra/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+         - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+      healthcheck:
+         test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-p', '6432']
+         interval: 10s
+         timeout: 5s
+         retries: 5
+      networks:
+         - omni-network
+
+   pgbouncer-exporter:
+      profiles:
+         - infra
+      image: prometheuscommunity/pgbouncer-exporter:latest
+      container_name: omni-services-pgbouncer-exporter
+      restart: unless-stopped
+      environment:
+         - PGBOUNCER_EXPORTER_CONNECTION_STRING=postgres://postgres:postgres@pgbouncer:6432/pgbouncer?sslmode=disable
+      ports:
+         - '9127:9127'
+      depends_on:
+         - pgbouncer
+      networks:
+         - omni-network
+
+   debezium:
+      profiles:
+         - cdc
+      image: debezium/server:2.7.3.Final
+      container_name: omni-services-debezium
+      restart: unless-stopped
+      volumes:
+         - ./infra/debezium/application.properties:/debezium/conf/application.properties:ro
+         - debezium_data:/debezium/data
+      depends_on:
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
 volumes:
    redis_data:
       driver: local
    rabbitmq_data:
+      driver: local
+   debezium_data:
       driver: local
 
 networks:

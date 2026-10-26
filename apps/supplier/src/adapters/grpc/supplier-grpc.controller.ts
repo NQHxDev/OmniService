@@ -33,11 +33,19 @@ import {
    type ISupplierV1GrpcService,
    type IUpdateSupplierRequest,
    type IUpdateSupplierResponse,
+   type IUpdateSupplierStatusRequest,
+   type IUpdateSupplierStatusResponse,
    type IVerifySupplierRequest,
    type IVerifySupplierResponse,
    type SupplierItemDto,
+   type SupplierStatusType,
 } from '@contracts/supplier';
-import { RegisterSupplierCommand, UpdateSupplierCommand, VerifySupplierCommand } from '@supplier/commands';
+import {
+   RegisterSupplierCommand,
+   UpdateSupplierCommand,
+   UpdateSupplierStatusCommand,
+   VerifySupplierCommand,
+} from '@supplier/commands';
 import {
    GetMySupplierQuery,
    GetSupplierByIdQuery,
@@ -186,7 +194,6 @@ export class SupplierGrpcController implements ISupplierV1GrpcService {
                   address: data.address,
                   city: data.city,
                   supplierLogoUrl: data.supplierLogoUrl,
-                  supplierStatus: data.supplierStatus as never,
                }),
             );
 
@@ -194,6 +201,22 @@ export class SupplierGrpcController implements ISupplierV1GrpcService {
                supplier: this.mapSupplierToProto(supplier),
             };
          })(),
+      );
+   }
+
+   @GrpcMethod(SUPPLIER_V1_GRPC_SERVICE_NAME, SUPPLIER_V1_GRPC_METHODS.UPDATE_SUPPLIER_STATUS)
+   updateSupplierStatus(
+      data: IUpdateSupplierStatusRequest,
+      metadata?: Metadata,
+   ): Observable<IUpdateSupplierStatusResponse> {
+      checkRoles(metadata, [DEFAULT_ROLES.ADMIN]);
+
+      return from(
+         this.commandBus
+            .execute(new UpdateSupplierStatusCommand(data.supplierId, data.status as SupplierStatusType))
+            .then((supplier) => ({
+               supplier: this.mapSupplierToProto(supplier),
+            })),
       );
    }
 

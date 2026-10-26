@@ -11,6 +11,8 @@ is_protected_branch() {
 
 should_verify=0
 matched_branch=""
+target_remote_sha=""
+target_local_sha=""
 
 if [ -t 0 ]; then
    # Invoked interactively from terminal without stdin pipe
@@ -38,15 +40,19 @@ else
       if is_protected_branch "$remote_branch"; then
          should_verify=1
          matched_branch="$remote_branch"
+         target_remote_sha="$remote_sha"
+         target_local_sha="$local_sha"
          break
       elif is_protected_branch "$local_branch"; then
          should_verify=1
          matched_branch="$local_branch"
+         target_remote_sha="$remote_sha"
+         target_local_sha="$local_sha"
          break
       fi
-  done
+   done
 
-  # Fallback if stdin was empty
+   # Fallback if stdin was empty
    if [ "$has_stdin" -eq 0 ]; then
       current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || git branch --show-current 2>/dev/null || true)
       if is_protected_branch "$current_branch"; then
@@ -57,12 +63,15 @@ else
 fi
 
 if [ "$should_verify" -eq 0 ]; then
-   echo "[pre-push] Skipping sequential build check (not pushing to 'staging' or 'develop')."
+   echo "[pre-push] Skipping verification (not pushing to 'staging' or 'develop')."
    exit 0
 fi
 
 echo "[pre-push] Push targeting protected branch '$matched_branch' detected."
-echo "[pre-push] Verifying sequential build before allowing push..."
 
-# Execute sequential build script
+# 1. Targeted Unit Tests Check for changed microservices and shared libraries
+sh scripts/test-affected.sh "$target_remote_sha" "$target_local_sha"
+
+# 2. Sequential Microservice Build Check
+echo "[pre-push] Verifying sequential build before allowing push..."
 sh scripts/build-sequential.sh

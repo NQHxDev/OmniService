@@ -1,4 +1,4 @@
-import type { Outbox, Prisma } from '@user/prisma-client';
+import type { OutboxEvent, Prisma } from '@user/prisma-client';
 
 export const OUTBOX_REPOSITORY = Symbol('OUTBOX_REPOSITORY');
 
@@ -11,9 +11,5 @@ export interface CreateOutboxEventData {
 }
 
 export interface IOutboxRepository {
-   create(data: CreateOutboxEventData, tx?: Prisma.TransactionClient): Promise<Outbox>;
-   findPending(limit?: number): Promise<Outbox[]>;
-   markAsProcessing(eventId: string): Promise<Outbox>;
-   markAsPublished(eventId: string): Promise<Outbox>;
-   markAsFailed(eventId: string, error: string): Promise<Outbox>;
+   create(data: CreateOutboxEventData, tx?: Prisma.TransactionClient): Promise<OutboxEvent>;
 }

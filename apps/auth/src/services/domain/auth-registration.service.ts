@@ -1,5 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SAGA_REPOSITORY, type ISagaRepository } from '@common/saga';
 import { BadRequestException, OtpUtil, RedisService, RbacCacheService, UnauthorizedException } from '@common';
 import {
    AUDIT_ACTIONS,
@@ -22,7 +23,6 @@ import { ACCOUNT_REPOSITORY, type IAccountRepository, RBAC_REPOSITORY, type IRba
 import { AuditLogBuilder } from '@auth/builders/audit-log.builder';
 import { AuthConfigService } from '@auth/config';
 import { OUTBOX_REPOSITORY, type IOutboxRepository } from '@auth/outbox/repositories/outbox.repository.interface';
-import { OutboxPublisherService } from '@auth/outbox';
 import { UNIT_OF_WORK, type IUnitOfWork } from '@auth/unit-of-work';
 import {
    AUTH_RATE_LIMITER,
@@ -82,13 +82,15 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
       @Inject(AUTH_RATE_LIMITER)
       private readonly rateLimiter: IAuthRateLimiter,
       private readonly emailBloomFilterService: EmailBloomFilterService,
-      private readonly outboxPublisherService: OutboxPublisherService,
       private readonly redisService: RedisService,
       auditLogService: AuditLogService,
       @Inject(NOTIFICATION_ADAPTER)
       private readonly notificationAdapter: INotificationAdapter,
       private readonly config: AuthConfigService,
       eventEmitter: EventEmitter2,
+      @Optional()
+      @Inject(SAGA_REPOSITORY)
+      private readonly sagaRepository?: ISagaRepository,
    ) {
       super(tokenLifecycleService, auditLogService, eventEmitter);
    }
@@ -381,7 +383,7 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
       const mightContain = await this.emailBloomFilterService.mightContain(normalizedEmail);
       if (mightContain) {
          const existing = await this.accountRepository.findByEmail(normalizedEmail);
-         if (existing) {
+         if (existing && existing.status !== USER_STATUS.REGISTRATION_ABORTED) {
             await this.auditLogService.record(
                AuditLogBuilder.create()
                   .withAction(AUDIT_ACTIONS.AUTH_REGISTER)
@@ -402,15 +404,24 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
          password.hash(this.passwordHasher),
       ]);
 
-      const saga = new RegisterSaga(this.accountRepository, this.tokenLifecycleService, this.outboxRepository);
+      const saga = new RegisterSaga(
+         this.accountRepository,
+         this.tokenLifecycleService,
+         this.outboxRepository,
+         this.sagaRepository,
+      );
 
       const eventType = dto.outboxEventType ?? NOTIFICATION_EVENTS.USER_REGISTERED;
+      const initialStatus = isEmailVerified ? USER_STATUS.ACTIVE : USER_STATUS.PENDING_ACTIVATION;
+
       const newAccount = await this.unitOfWork.runInTransaction(async (uow) => {
+         await uow.accountRepository.deleteAbortedByEmail(normalizedEmail);
+
          const account = await uow.accountRepository.create({
             email: normalizedEmail,
             passwordHash,
             roleId: defaultRole?.roleId,
-            status: USER_STATUS.ACTIVE,
+            status: initialStatus,
             isEmailVerified,
          });
 
@@ -427,7 +438,7 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
 
          return account;
       });
-      saga.setAccount(newAccount);
+      await saga.setAccount(newAccount);
 
       return {
          account: newAccount,
@@ -451,8 +462,7 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
    protected async onSuccess(context: AuthFlowContext<RegistrationFlowDto, RegisterSaga>): Promise<void> {
       const normalizedEmail = context.account.email;
       await this.emailBloomFilterService.addEmail(normalizedEmail);
-      this.logger.log(`Created account ${context.account.email} with Outbox event; triggering publisher`);
-      this.outboxPublisherService.triggerPublish();
+      this.logger.log(`Created account ${context.account.email} with transactional Outbox event; streamed via CDC`);
    }
 
    /**

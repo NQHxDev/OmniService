@@ -7,6 +7,7 @@ import type { TokenPair } from '@auth/services/infrastructure';
  */
 export interface IAuthSaga {
    setTokens(tokens: TokenPair): void;
+   complete?(): Promise<void>;
    rollback(): Promise<void>;
 }
 

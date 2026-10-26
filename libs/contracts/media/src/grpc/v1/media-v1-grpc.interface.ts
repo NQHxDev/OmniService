@@ -57,7 +57,6 @@ export interface IUploadFileResponse {
 export interface IConfirmUploadRequest {
    mediaId: string;
    size?: number;
-   key?: string;
    width?: number;
    height?: number;
    duration?: number;
@@ -84,12 +83,56 @@ export interface IDeleteMediaResponse {
    success: boolean;
 }
 
+export interface IMultipartPartUrlProto {
+   partNumber: number;
+   uploadUrl: string;
+}
+
+export interface ICompletedPartProto {
+   partNumber: number;
+   etag: string;
+}
+
+export interface IInitiateMultipartUploadRequest {
+   fileName: string;
+   mimeType: string;
+   partsCount: number;
+   fileSize?: number;
+   folder?: string;
+}
+
+export interface IInitiateMultipartUploadResponse {
+   mediaId: string;
+   uploadId: string;
+   key: string;
+   publicUrl: string;
+   parts: IMultipartPartUrlProto[];
+}
+
+export interface ICompleteMultipartUploadRequest {
+   mediaId: string;
+   uploadId: string;
+   parts: ICompletedPartProto[];
+}
+
+export interface ICompleteMultipartUploadResponse {
+   media: IMediaProto;
+}
+
 export interface IMediaV1GrpcService {
    getUploadUrl(request: IGetUploadUrlRequest, metadata?: Metadata): Observable<IGetUploadUrlResponse>;
    uploadFile(request: IUploadFileRequest, metadata?: Metadata): Observable<IUploadFileResponse>;
    confirmUpload(request: IConfirmUploadRequest, metadata?: Metadata): Observable<IConfirmUploadResponse>;
    getMediaById(request: IGetMediaByIdRequest, metadata?: Metadata): Observable<IGetMediaByIdResponse>;
    deleteMedia(request: IDeleteMediaRequest, metadata?: Metadata): Observable<IDeleteMediaResponse>;
+   initiateMultipartUpload(
+      request: IInitiateMultipartUploadRequest,
+      metadata?: Metadata,
+   ): Observable<IInitiateMultipartUploadResponse>;
+   completeMultipartUpload(
+      request: ICompleteMultipartUploadRequest,
+      metadata?: Metadata,
+   ): Observable<ICompleteMultipartUploadResponse>;
 }
 
 export type IMediaGrpcService = IMediaV1GrpcService;

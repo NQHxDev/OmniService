@@ -5,6 +5,7 @@
    "author": "",
    "private": true,
    "license": "UNLICENSED",
+   "packageManager": "pnpm@9.15.9",
    "scripts": {
       "start:gateway": "nest start gateway -b swc --watch",
       "start:auth": "nest start auth -b swc --watch",
@@ -24,12 +25,13 @@
       "start:nowatch:media": "nest start media -b swc",
       "start:nowatch:commerce": "nest start commerce -b swc",
       "start:nowatch:supplier": "nest start supplier -b swc",
-      "pc:start": "process-compose up",
-      "pc:down": "process-compose down",
+      "pc:start": "process-compose -p 9999 up",
+      "pc:down": "process-compose -p 9999 down",
       "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
       "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
       "prisma:generate": "pnpm -r run prisma:generate",
       "prisma:migrate": "pnpm -r run prisma:migrate",
+      "prisma:migrate:deploy": "pnpm -r run prisma:migrate:deploy",
       "prisma:push": "pnpm -r run prisma:push",
       "prisma:push:reset": "pnpm -r run prisma:push --force-reset",
       "prisma:seed": "pnpm -r --if-present run prisma:seed",
@@ -40,8 +42,17 @@
       "keys:generate": "ts-node scripts/generate-keys.ts",
       "prepare": "husky",
       "build": "sh scripts/build-sequential.sh",
+      "test:affected": "sh scripts/test-affected.sh",
       "typecheck": "tsc --noEmit -p tsconfig.build.json",
-      "build:sequential": "sh scripts/build-sequential.sh"
+      "build:sequential": "sh scripts/build-sequential.sh",
+      "start:order": "nest start order -b swc --watch",
+      "start:payment": "nest start payment -b swc --watch",
+      "start:media:worker": "nest start media --entryFile worker -b swc --watch",
+      "start:nowatch:order": "nest start order -b swc",
+      "start:nowatch:payment": "nest start payment -b swc",
+      "start:nowatch:media:worker": "nest start media --entryFile worker -b swc",
+      "start:product": "nest start product -b swc --watch",
+      "start:nowatch:product": "nest start product -b swc"
    },
    "devDependencies": {
       "@eslint/eslintrc": "^3.2.0",
@@ -121,7 +132,10 @@
          "^@common$": "<rootDir>/libs/common/src",
          "^@common/(.*)$": "<rootDir>/libs/common/src/$1",
          "^@contracts/([^/]+)/(.*)$": "<rootDir>/libs/contracts/$1/src/$2",
-         "^@contracts/([^/]+)$": "<rootDir>/libs/contracts/$1/src"
+         "^@contracts/([^/]+)$": "<rootDir>/libs/contracts/$1/src",
+         "^@order/(.*)$": "<rootDir>/apps/order/src/$1",
+         "^@payment/(.*)$": "<rootDir>/apps/payment/src/$1",
+         "^@product/(.*)$": "<rootDir>/apps/product/src/$1"
       }
    },
    "lint-staged": {

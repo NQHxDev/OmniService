@@ -10,4 +10,6 @@ service MediaService {
   rpc ConfirmUpload (ConfirmUploadRequest) returns (ConfirmUploadResponse);
   rpc GetMediaById (GetMediaByIdRequest) returns (GetMediaByIdResponse);
   rpc DeleteMedia (DeleteMediaRequest) returns (DeleteMediaResponse);
+  rpc InitiateMultipartUpload (InitiateMultipartUploadRequest) returns (InitiateMultipartUploadResponse);
+  rpc CompleteMultipartUpload (CompleteMultipartUploadRequest) returns (CompleteMultipartUploadResponse);
 }

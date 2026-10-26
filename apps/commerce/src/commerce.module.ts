@@ -25,6 +25,7 @@ import { CommerceConfigModule, CommerceConfigService } from '@commerce/config';
 import { CommerceLoggerModule } from '@commerce/logger';
 import { PrismaModule } from '@commerce/prisma';
 import { UnitOfWorkModule } from '@commerce/unit-of-work';
+import { OutboxModule } from '@commerce/outbox';
 import {
    CATEGORY_REPOSITORY,
    CategoryRepository,
@@ -60,6 +61,7 @@ import { CommerceMetricsController } from '@commerce/commerce-metrics.controller
       CommerceLoggerModule,
       PrismaModule,
       UnitOfWorkModule,
+      OutboxModule,
       RedisModule,
       RmqModule,
       RmqModule.register({

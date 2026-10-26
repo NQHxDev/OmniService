@@ -9,6 +9,8 @@ export const SERVICE_NAMES = {
    MEDIA: 'media-service',
    COMMERCE: 'commerce-service',
    SUPPLIER: 'supplier-service',
+   PAYMENT: 'payment-service',
+   PRODUCT: 'product-service',
 } as const;
 
 export type ServiceName = (typeof SERVICE_NAMES)[keyof typeof SERVICE_NAMES];
@@ -20,6 +22,9 @@ export const GRPC_CLIENTS = {
    SEARCH_V1: 'SEARCH_V1_GRPC_CLIENT',
    MEDIA_V1: 'MEDIA_V1_GRPC_CLIENT',
    COMMERCE_V1: 'COMMERCE_V1_GRPC_CLIENT',
+   ORDER_V1: 'ORDER_V1_GRPC_CLIENT',
+   PAYMENT_V1: 'PAYMENT_V1_GRPC_CLIENT',
+   PRODUCT_V1: 'PRODUCT_V1_GRPC_CLIENT',
    HEALTH_V1: 'HEALTH_V1_GRPC_CLIENT',
 } as const;
 
@@ -32,6 +37,9 @@ export const GRPC_SERVICE_NAMES = {
    SEARCH: 'SearchService',
    MEDIA: 'MediaService',
    COMMERCE: 'CommerceService',
+   ORDER: 'OrderService',
+   PAYMENT: 'PaymentService',
+   PRODUCT: 'ProductService',
    HEALTH: 'HealthService',
 } as const;
 

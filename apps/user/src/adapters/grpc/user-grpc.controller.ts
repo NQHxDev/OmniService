@@ -117,7 +117,7 @@ export class UserGrpcController implements IUserV1GrpcService {
 
    private mapUserToProto(user: UserEntity): IUserProto {
       return {
-         id: user.userId,
+         userId: user.userId,
          accountId: user.accountId,
          username: user.username || undefined,
          status: String(user.status),
@@ -138,7 +138,7 @@ export class UserGrpcController implements IUserV1GrpcService {
          bio: user.bio || undefined,
          profile: user.profile
             ? {
-                 id: user.profile.profileId,
+                 profileId: user.profile.profileId,
                  userId: user.profile.userId,
                  displayName: user.profile.displayName || undefined,
                  bio: user.profile.bio || undefined,
@@ -363,7 +363,7 @@ export class UserGrpcController implements IUserV1GrpcService {
       return from(
          this.commandBus.execute(new GetFollowSuggestionsCommand(targetUserId, data.limit)).then((items) => ({
             items: (items || []).map((i: UserSuggestionItemDto): IUserSuggestionItemProto => ({
-               id: i.id,
+               userId: i.id,
                username: i.username ?? undefined,
                displayName: i.displayName ?? undefined,
                avatar: i.avatar ?? undefined,
@@ -406,7 +406,7 @@ export class UserGrpcController implements IUserV1GrpcService {
             .execute(new SearchUsersCommand(data.query, data.limit, data.cursor, currentUserId))
             .then((res: UserSearchResponseDto): ISearchUsersResponse => ({
                items: (res.items || []).map((item) => ({
-                  id: item.userId,
+                  userId: item.userId,
                   username: item.username ?? undefined,
                   displayName: item.displayName ?? undefined,
                   avatar: item.avatar ?? undefined,

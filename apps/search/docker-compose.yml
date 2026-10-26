@@ -2,6 +2,8 @@ name: omni-services
 
 services:
    elasticsearch:
+      profiles:
+         - search
       image: elasticsearch:8.17.0
       container_name: omni-services-elasticsearch
       restart: unless-stopped

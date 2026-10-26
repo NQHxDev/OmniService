@@ -108,14 +108,14 @@ describe('UsersController', () => {
 
    it('should get current user profile via getMyProfile', async () => {
       mockUsersService.getMyProfile.mockResolvedValue({
-         id: 'u1',
+         userId: 'u1',
          displayName: 'My Name',
          username: 'myusername',
       });
 
       const result = await controller.getMyProfile(mockUser);
       expect(mockUsersService.getMyProfile).toHaveBeenCalledWith(mockUser);
-      expect(result).toEqual({ id: 'u1', displayName: 'My Name', username: 'myusername' });
+      expect(result).toEqual({ userId: 'u1', displayName: 'My Name', username: 'myusername' });
    });
 
    it('should update display name via updateMyDisplayName', async () => {

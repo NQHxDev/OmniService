@@ -2,13 +2,19 @@ import { Controller, UseFilters, UseInterceptors } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import type { Metadata } from '@grpc/grpc-js';
 import { from, type Observable } from 'rxjs';
-import { GrpcExceptionFilter, GrpcLoggingInterceptor, GrpcMetricsInterceptor } from '@common';
+import { GrpcExceptionFilter, GrpcLoggingInterceptor, GrpcMetricsInterceptor, NotFoundException } from '@common';
+import { POST_ERROR_CODES } from '@contracts/post';
 import {
    SEARCH_V1_GRPC_METHODS,
    SEARCH_V1_GRPC_SERVICE_NAME,
+   type IGetPostDetailRequest,
+   type IGetPostDetailResponse,
+   type IGetPostFeedRequest,
+   type IGetPostFeedResponse,
    type IGlobalSearchRequest,
    type IGlobalSearchResponse,
    type IIngredientSearchHitProto,
+   type IPostSearchHitProto,
    type ISearchIngredientsRequest,
    type ISearchIngredientsResponse,
    type ISearchUsersRequest,
@@ -21,6 +27,7 @@ import {
    IngredientSearchService,
    type IngredientDocument,
 } from '@search/domains/ingredient-search/ingredient-search.service';
+import { PostSearchService, type HydratedPostHit } from '@search/domains/post-search/post-search.service';
 
 /**
  * Inbound Adapter (Hexagonal Architecture) handling incoming gRPC requests for SearchService.
@@ -33,6 +40,7 @@ export class SearchGrpcController implements ISearchV1GrpcService {
    constructor(
       private readonly userSearchService: UserSearchService,
       private readonly ingredientSearchService: IngredientSearchService,
+      private readonly postSearchService: PostSearchService,
    ) {}
 
    private mapUserToProto(user: UserDocument): IUserSearchHitProto {
@@ -83,6 +91,56 @@ export class SearchGrpcController implements ISearchV1GrpcService {
       };
    }
 
+   private mapPostToProto(doc: HydratedPostHit): IPostSearchHitProto {
+      return {
+         postId: doc.postId,
+         userId: doc.userId,
+         title: doc.title,
+         caption: doc.caption ?? undefined,
+         mediaId: doc.mediaId ?? undefined,
+         videoUrl: doc.videoUrl,
+         playbackUrl: doc.playbackUrl ?? undefined,
+         thumbnailUrl: doc.thumbnailUrl,
+         blurHash: doc.blurHash ?? undefined,
+         duration: doc.duration,
+         videoWidth: doc.videoWidth ?? undefined,
+         videoHeight: doc.videoHeight ?? undefined,
+         viewCount: doc.viewCount,
+         likeCount: doc.likeCount,
+         commentCount: doc.commentCount,
+         shareCount: doc.shareCount,
+         saveCount: doc.saveCount,
+         allowComments: doc.allowComments,
+         allowDuet: doc.allowDuet,
+         createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
+         updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
+         author: {
+            userId: doc.author.userId,
+            displayName: doc.author.displayName ?? undefined,
+            avatarUrl: doc.author.avatarUrl ?? undefined,
+            isVerified: doc.author.isVerified ?? false,
+            followerCount: doc.author.followerCount ?? 0,
+         },
+         shop: doc.shop
+            ? {
+                 shopId: doc.shop.shopId,
+                 shopName: doc.shop.shopName ?? undefined,
+                 logoUrl: doc.shop.logoUrl ?? undefined,
+              }
+            : undefined,
+         ingredients: (doc.ingredients || []).map((ing) => ({
+            ingredientId: ing.ingredientId,
+            name: ing.name,
+            amount: ing.amount,
+            unit: ing.unit,
+            group: ing.group ?? undefined,
+            sortOrder: ing.sortOrder,
+         })),
+         tags: doc.tags ?? [],
+         category: doc.category ?? undefined,
+      };
+   }
+
    @GrpcMethod(SEARCH_V1_GRPC_SERVICE_NAME, SEARCH_V1_GRPC_METHODS.SEARCH_USERS)
    searchUsers(request: ISearchUsersRequest, _metadata?: Metadata): Observable<ISearchUsersResponse> {
       return from(
@@ -125,6 +183,42 @@ export class SearchGrpcController implements ISearchV1GrpcService {
             ingredients: ingredientsRes.items.map((i) => this.mapIngredientToProto(i)),
             total: (usersRes.total ?? usersRes.items.length) + ingredientsRes.total,
          })),
+      );
+   }
+
+   @GrpcMethod(SEARCH_V1_GRPC_SERVICE_NAME, SEARCH_V1_GRPC_METHODS.GET_POST_FEED)
+   getPostFeed(request: IGetPostFeedRequest, _metadata?: Metadata): Observable<IGetPostFeedResponse> {
+      return from(
+         this.postSearchService
+            .getFeed({
+               limit: request.limit,
+               cursor: request.cursor,
+               userId: request.userId,
+               tag: request.tag,
+               category: request.category,
+            })
+            .then((res) => ({
+               items: res.items.map((item) => this.mapPostToProto(item)),
+               nextCursor: res.nextCursor ?? undefined,
+               hasMore: res.hasMore,
+               total: res.total,
+            })),
+      );
+   }
+
+   @GrpcMethod(SEARCH_V1_GRPC_SERVICE_NAME, SEARCH_V1_GRPC_METHODS.GET_POST_DETAIL)
+   getPostDetail(request: IGetPostDetailRequest, _metadata?: Metadata): Observable<IGetPostDetailResponse> {
+      return from(
+         this.postSearchService.getPostDetail(request.postId).then((post) => {
+            if (!post) {
+               throw new NotFoundException(POST_ERROR_CODES.POST_NOT_FOUND, {
+                  params: { postId: request.postId },
+               });
+            }
+            return {
+               post: this.mapPostToProto(post),
+            };
+         }),
       );
    }
 }

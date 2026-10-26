@@ -1,3 +1,6 @@
+// Note: In Prisma 7+, datasource connection URLs (including directUrl for migrations)
+// are configured in prisma.config.ts. Prisma CLI reads process.env.DIRECT_URL ?? env('DATABASE_URL')
+// from prisma.config.ts to execute migrations via direct Postgres connection.
 datasource db {
   provider = "postgresql"
 }
@@ -17,13 +20,6 @@ enum OfferStatus {
   AVAILABLE
   OUT_OF_STOCK
   DISCONTINUED
-}
-
-enum OutboxStatus {
-  PENDING
-  PROCESSING
-  PUBLISHED
-  FAILED
 }
 
 enum CurrencyEnum {
@@ -110,19 +106,14 @@ model SupplierProduct {
 }
 
 model OutboxEvent {
-  eventId       String       @id @default(uuid()) @map("event_id") @db.Uuid
-  aggregateType String       @map("aggregate_type") @db.VarChar(50)
-  aggregateId   String       @map("aggregate_id")
-  eventType     String       @map("event_type") @db.VarChar(100)
+  eventId       String   @id @default(uuid()) @map("event_id") @db.Uuid
+  aggregateType String   @map("aggregate_type") @db.VarChar(50)
+  aggregateId   String   @map("aggregate_id")
+  eventType     String   @map("event_type") @db.VarChar(100)
   payload       Json
-  status        OutboxStatus @default(PENDING)
-  retryCount    Int          @default(0) @map("retry_count")
-  lastError     String?      @map("last_error")
-  processedAt   DateTime?    @map("processed_at")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  @@index([status, createdAt])
+  @@index([createdAt])
   @@index([aggregateType, aggregateId])
   @@map("outbox_events")
 }

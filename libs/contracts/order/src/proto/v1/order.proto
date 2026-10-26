@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package order.v1;
+
+message OrderItemProto {
+  string orderItemId = 1;
+  string orderId = 2;
+  string productId = 3;
+  string productName = 4;
+  int32 quantity = 5;
+  double unitPrice = 6;
+  double totalPrice = 7;
+}
+
+message OrderProto {
+  string orderId = 1;
+  string userId = 2;
+  string orderNumber = 3;
+  string orderStatus = 4;
+  string paymentMethod = 5;
+  string paymentStatus = 6;
+  double totalAmount = 7;
+  double shippingFee = 8;
+  string shippingAddress = 9;
+  string receiverName = 10;
+  string receiverPhone = 11;
+  string note = 12;
+  repeated OrderItemProto items = 13;
+  string createdAt = 14;
+  string updatedAt = 15;
+}
+
+message CreateOrderItemInput {
+  string productId = 1;
+  string productName = 2;
+  int32 quantity = 3;
+  double unitPrice = 4;
+}
+
+message CreateOrderRequest {
+  string userId = 1;
+  string paymentMethod = 2;
+  string shippingAddress = 3;
+  string receiverName = 4;
+  string receiverPhone = 5;
+  string note = 6;
+  double shippingFee = 7;
+  repeated CreateOrderItemInput items = 8;
+}
+
+message CreateOrderResponse {
+  OrderProto order = 1;
+}
+
+message GetOrderByIdRequest {
+  string orderId = 1;
+  string userId = 2;
+}
+
+message GetOrderByIdResponse {
+  OrderProto order = 1;
+}
+
+message GetOrdersByUserIdRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetOrdersByUserIdResponse {
+  repeated OrderProto orders = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message CancelOrderRequest {
+  string orderId = 1;
+  string userId = 2;
+  string reason = 3;
+}
+
+message CancelOrderResponse {
+  OrderProto order = 1;
+}
+
+message UpdateOrderStatusRequest {
+  string orderId = 1;
+  string status = 2;
+}
+
+message UpdateOrderStatusResponse {
+  OrderProto order = 1;
+}
+
+service OrderService {
+  rpc CreateOrder (CreateOrderRequest) returns (CreateOrderResponse);
+  rpc GetOrderById (GetOrderByIdRequest) returns (GetOrderByIdResponse);
+  rpc GetOrdersByUserId (GetOrdersByUserIdRequest) returns (GetOrdersByUserIdResponse);
+  rpc CancelOrder (CancelOrderRequest) returns (CancelOrderResponse);
+  rpc UpdateOrderStatus (UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
+}

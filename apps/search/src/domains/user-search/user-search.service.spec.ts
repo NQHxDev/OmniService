@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppLogger } from '@common';
 import { ElasticsearchService } from '@search/core/elasticsearch';
+import { METRIC_STATUS } from '@search/core/metrics';
 import { UserSearchService } from '@search/domains/user-search/user-search.service';
 
 describe('UserSearchService', () => {
@@ -119,7 +120,7 @@ describe('UserSearchService', () => {
          expect(mockCounter.inc).toHaveBeenCalledWith({
             index: 'users',
             operation: 'index',
-            status: 'error',
+            status: METRIC_STATUS.ERROR,
          });
       });
    });
@@ -140,7 +141,7 @@ describe('UserSearchService', () => {
          expect(mockCounter.inc).toHaveBeenCalledWith({
             index: 'users',
             operation: 'update',
-            status: 'success',
+            status: METRIC_STATUS.SUCCESS,
          });
       });
    });
@@ -156,7 +157,7 @@ describe('UserSearchService', () => {
          expect(mockCounter.inc).toHaveBeenCalledWith({
             index: 'users',
             operation: 'delete',
-            status: 'success',
+            status: METRIC_STATUS.SUCCESS,
          });
       });
    });
@@ -171,8 +172,8 @@ describe('UserSearchService', () => {
          const result = await service.searchUsers('john', 10);
          expect(mockClient.search).toHaveBeenCalled();
          expect(mockHistogram.startTimer).toHaveBeenCalledWith({ index: 'users' });
-         expect(mockCounter.inc).toHaveBeenCalledWith({ index: 'users', status: 'success' });
-         expect(mockTimer).toHaveBeenCalledWith({ status: 'success' });
+         expect(mockCounter.inc).toHaveBeenCalledWith({ index: 'users', status: METRIC_STATUS.SUCCESS });
+         expect(mockTimer).toHaveBeenCalledWith({ status: METRIC_STATUS.SUCCESS });
          expect(result.items).toHaveLength(1);
          expect(result.items[0].username).toBe('john');
       });
@@ -181,8 +182,8 @@ describe('UserSearchService', () => {
          mockClient.search.mockRejectedValue(new Error('ES search failed'));
 
          const result = await service.searchUsers('fail-query', 10);
-         expect(mockCounter.inc).toHaveBeenCalledWith({ index: 'users', status: 'error' });
-         expect(mockTimer).toHaveBeenCalledWith({ status: 'error' });
+         expect(mockCounter.inc).toHaveBeenCalledWith({ index: 'users', status: METRIC_STATUS.ERROR });
+         expect(mockTimer).toHaveBeenCalledWith({ status: METRIC_STATUS.ERROR });
          expect(result.items).toEqual([]);
       });
    });

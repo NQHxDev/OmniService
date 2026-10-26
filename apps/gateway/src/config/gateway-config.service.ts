@@ -104,4 +104,20 @@ export class GatewayConfigService extends CommonConfigService {
    get searchGrpcUrl(): string {
       return this.configService.get(ENV_KEYS.SEARCH_GRPC_URL, { infer: true }) || 'localhost:50056';
    }
+
+   get orderGrpcUrl(): string {
+      return this.configService.get('ORDER_GRPC_URL' as keyof GatewayEnvConfig, { infer: true }) || 'localhost:50057';
+   }
+
+   get paymentGrpcUrl(): string {
+      return this.configService.get('PAYMENT_GRPC_URL' as keyof GatewayEnvConfig, { infer: true }) || 'localhost:50058';
+   }
+
+   get postGrpcUrl(): string {
+      return this.configService.get(ENV_KEYS.POST_GRPC_URL, { infer: true }) || 'localhost:50059';
+   }
+
+   get productGrpcUrl(): string {
+      return this.configService.get('PRODUCT_GRPC_URL' as keyof GatewayEnvConfig, { infer: true }) || 'localhost:50060';
+   }
 }

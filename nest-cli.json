@@ -20,7 +20,12 @@
          "sourceRoot": "apps/auth/src",
          "compilerOptions": {
             "tsConfigPath": "apps/auth/tsconfig.app.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "user": {
@@ -30,7 +35,12 @@
          "sourceRoot": "apps/user/src",
          "compilerOptions": {
             "tsConfigPath": "apps/user/tsconfig.app.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "common": {
@@ -58,7 +68,12 @@
          "sourceRoot": "apps/notification/src",
          "compilerOptions": {
             "tsConfigPath": "apps/notification/tsconfig.app.json",
-            "assets": [{ "include": "i18n/email/*.json", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "i18n/email/*.json",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "post": {
@@ -67,7 +82,13 @@
          "entryFile": "main",
          "sourceRoot": "apps/post/src",
          "compilerOptions": {
-            "tsConfigPath": "apps/post/tsconfig.app.json"
+            "tsConfigPath": "apps/post/tsconfig.app.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "search": {
@@ -86,7 +107,12 @@
          "sourceRoot": "libs/contracts/auth/src",
          "compilerOptions": {
             "tsConfigPath": "libs/contracts/auth/tsconfig.lib.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "contracts-user": {
@@ -96,7 +122,12 @@
          "sourceRoot": "libs/contracts/user/src",
          "compilerOptions": {
             "tsConfigPath": "libs/contracts/user/tsconfig.lib.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "contracts-notification": {
@@ -106,7 +137,12 @@
          "sourceRoot": "libs/contracts/notification/src",
          "compilerOptions": {
             "tsConfigPath": "libs/contracts/notification/tsconfig.lib.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "contracts-search": {
@@ -116,7 +152,12 @@
          "sourceRoot": "libs/contracts/search/src",
          "compilerOptions": {
             "tsConfigPath": "libs/contracts/search/tsconfig.lib.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "media": {
@@ -143,7 +184,13 @@
          "entryFile": "index",
          "sourceRoot": "libs/contracts/post/src",
          "compilerOptions": {
-            "tsConfigPath": "libs/contracts/post/tsconfig.lib.json"
+            "tsConfigPath": "libs/contracts/post/tsconfig.lib.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "contracts-health": {
@@ -153,7 +200,12 @@
          "sourceRoot": "libs/contracts/health/src",
          "compilerOptions": {
             "tsConfigPath": "libs/contracts/health/tsconfig.lib.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "commerce": {
@@ -163,7 +215,12 @@
          "sourceRoot": "apps/commerce/src",
          "compilerOptions": {
             "tsConfigPath": "apps/commerce/tsconfig.app.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "contracts-commerce": {
@@ -173,7 +230,12 @@
          "sourceRoot": "libs/contracts/commerce/src",
          "compilerOptions": {
             "tsConfigPath": "libs/contracts/commerce/tsconfig.lib.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "supplier": {
@@ -183,7 +245,12 @@
          "sourceRoot": "apps/supplier/src",
          "compilerOptions": {
             "tsConfigPath": "apps/supplier/tsconfig.app.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       },
       "contracts-supplier": {
@@ -193,7 +260,102 @@
          "sourceRoot": "libs/contracts/supplier/src",
          "compilerOptions": {
             "tsConfigPath": "libs/contracts/supplier/tsconfig.lib.json",
-            "assets": [{ "include": "**/*.proto", "watchAssets": true }]
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
+      },
+      "order": {
+         "type": "application",
+         "root": "apps/order",
+         "entryFile": "main",
+         "sourceRoot": "apps/order/src",
+         "compilerOptions": {
+            "tsConfigPath": "apps/order/tsconfig.app.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
+      },
+      "payment": {
+         "type": "application",
+         "root": "apps/payment",
+         "entryFile": "main",
+         "sourceRoot": "apps/payment/src",
+         "compilerOptions": {
+            "tsConfigPath": "apps/payment/tsconfig.app.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
+      },
+      "contracts-order": {
+         "type": "library",
+         "root": "libs/contracts/order",
+         "entryFile": "index",
+         "sourceRoot": "libs/contracts/order/src",
+         "compilerOptions": {
+            "tsConfigPath": "libs/contracts/order/tsconfig.lib.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
+      },
+      "contracts-payment": {
+         "type": "library",
+         "root": "libs/contracts/payment",
+         "entryFile": "index",
+         "sourceRoot": "libs/contracts/payment/src",
+         "compilerOptions": {
+            "tsConfigPath": "libs/contracts/payment/tsconfig.lib.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
+      },
+      "product": {
+         "type": "application",
+         "root": "apps/product",
+         "entryFile": "main",
+         "sourceRoot": "apps/product/src",
+         "compilerOptions": {
+            "tsConfigPath": "apps/product/tsconfig.app.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
+      },
+      "contracts-product": {
+         "type": "library",
+         "root": "libs/contracts/product",
+         "entryFile": "index",
+         "sourceRoot": "libs/contracts/product/src",
+         "compilerOptions": {
+            "tsConfigPath": "libs/contracts/product/tsconfig.lib.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
          }
       }
    }

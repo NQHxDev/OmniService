@@ -55,6 +55,13 @@ export class CircuitBreakerOpenException extends ServiceUnavailableException {
    }
 }
 
+export const SLIDING_WINDOW_TYPES = {
+   COUNT_BASED: 'COUNT_BASED',
+   TIME_BASED: 'TIME_BASED',
+} as const;
+
+export type SlidingWindowType = (typeof SLIDING_WINDOW_TYPES)[keyof typeof SLIDING_WINDOW_TYPES];
+
 export interface CircuitBreakerStats {
    name: string;
    state: CircuitState;
@@ -68,6 +75,10 @@ export interface CircuitBreakerStats {
    totalFailures: number;
    totalSuccesses: number;
    totalShortCircuits: number;
+   slidingWindowType: SlidingWindowType;
+   callsInWindow: number;
+   failuresInWindow: number;
+   failureRate: number;
 }
 
 export interface CircuitBreakerOptions {
@@ -77,7 +88,44 @@ export interface CircuitBreakerOptions {
    name?: string;
 
    /**
+    * Type of sliding window used to record call outcomes in CLOSED state.
+    * - 'COUNT_BASED': sliding window over the last N calls.
+    * - 'TIME_BASED': sliding window over the last N milliseconds.
+    * @default 'COUNT_BASED'
+    */
+   slidingWindowType?: SlidingWindowType;
+
+   /**
+    * Size of the count-based sliding window (number of calls recorded).
+    * Used when slidingWindowType is 'COUNT_BASED'.
+    * @default 100
+    */
+   slidingWindowSize?: number;
+
+   /**
+    * Duration in milliseconds of the time-based sliding window.
+    * Used when slidingWindowType is 'TIME_BASED'.
+    * @default 10000 (10s)
+    */
+   slidingWindowDurationMs?: number;
+
+   /**
+    * Minimum number of recorded calls required in the sliding window before the failure rate is evaluated.
+    * Prevents tripping when call volume is low.
+    * @default 10
+    */
+   minimumNumberOfCalls?: number;
+
+   /**
+    * Percentage of failures (0 to 100) in the sliding window to trip the circuit to OPEN.
+    * For example, 50 means 50% failure rate.
+    * @default 50
+    */
+   failureRateThreshold?: number;
+
+   /**
     * Number of consecutive failures required in CLOSED state to trip the circuit to OPEN.
+    * Acts as an immediate safety floor / fast-fail when calls are below minimumNumberOfCalls.
     * @default 5
     */
    failureThreshold?: number;
@@ -134,6 +182,11 @@ export const CIRCUIT_BREAKER_DEFAULTS = {
    SUCCESS_THRESHOLD: 2,
    TIMEOUT_MS: 3000,
    RESET_TIMEOUT_MS: 10000,
+   SLIDING_WINDOW_TYPE: SLIDING_WINDOW_TYPES.COUNT_BASED,
+   SLIDING_WINDOW_SIZE: 100,
+   SLIDING_WINDOW_DURATION_MS: 10000,
+   MINIMUM_NUMBER_OF_CALLS: 10,
+   FAILURE_RATE_THRESHOLD: 50,
 } as const;
 
 /**
@@ -239,6 +292,11 @@ export const defaultIsFailure = (error: unknown): boolean => {
    return true;
 };
 
+interface CallRecord {
+   timestamp: number;
+   isFailure: boolean;
+}
+
 /**
  * Production-ready Circuit Breaker implementation following GoF State & Cloud Resilience Patterns.
  * Protects caller from cascading failures when downstream microservices are down or experiencing latency.
@@ -252,6 +310,13 @@ export class CircuitBreaker {
    private readonly resetTimeoutMs: number;
    private readonly isFailureFn: (error: unknown) => boolean;
    private readonly onStateChangeFn?: (from: CircuitState, to: CircuitState, name: string) => void;
+
+   private readonly slidingWindowType: SlidingWindowType;
+   private readonly slidingWindowSize: number;
+   private readonly slidingWindowDurationMs: number;
+   private readonly minimumNumberOfCalls: number;
+   private readonly failureRateThreshold: number;
+   private windowRecords: CallRecord[] = [];
 
    private state: CircuitState = CircuitState.CLOSED;
    private failureCount = 0;
@@ -275,6 +340,14 @@ export class CircuitBreaker {
       this.resetTimeoutMs = options.resetTimeout ?? CIRCUIT_BREAKER_DEFAULTS.RESET_TIMEOUT_MS;
       this.isFailureFn = options.isFailure ?? defaultIsFailure;
       this.onStateChangeFn = options.onStateChange;
+
+      this.slidingWindowType = options.slidingWindowType ?? CIRCUIT_BREAKER_DEFAULTS.SLIDING_WINDOW_TYPE;
+      this.slidingWindowSize = options.slidingWindowSize ?? CIRCUIT_BREAKER_DEFAULTS.SLIDING_WINDOW_SIZE;
+      this.slidingWindowDurationMs =
+         options.slidingWindowDurationMs ?? CIRCUIT_BREAKER_DEFAULTS.SLIDING_WINDOW_DURATION_MS;
+      this.minimumNumberOfCalls = options.minimumNumberOfCalls ?? CIRCUIT_BREAKER_DEFAULTS.MINIMUM_NUMBER_OF_CALLS;
+      this.failureRateThreshold = options.failureRateThreshold ?? CIRCUIT_BREAKER_DEFAULTS.FAILURE_RATE_THRESHOLD;
+
       this.logger = new Logger(`CircuitBreaker:${this.name}`);
    }
 
@@ -399,6 +472,7 @@ export class CircuitBreaker {
          }
       } else if (this.state === CircuitState.CLOSED) {
          this.failureCount = 0;
+         this.recordCall(false);
       }
    }
 
@@ -411,14 +485,53 @@ export class CircuitBreaker {
          this.transitionTo(CircuitState.OPEN);
       } else if (this.state === CircuitState.CLOSED) {
          this.failureCount++;
-         if (this.failureCount >= this.failureThreshold) {
-            this.transitionTo(CircuitState.OPEN);
-         }
+         this.recordCall(true);
+         this.evaluateFailureThresholds();
       }
 
       this.logger.warn(
          `Call failed [${this.state}]: ${error instanceof Error ? error.message : String(error)}. FailureCount=${this.failureCount}/${this.failureThreshold}`,
       );
+   }
+
+   private recordCall(isFailure: boolean): void {
+      const now = Date.now();
+      this.windowRecords.push({ timestamp: now, isFailure });
+
+      if (this.slidingWindowType === SLIDING_WINDOW_TYPES.COUNT_BASED) {
+         if (this.windowRecords.length > this.slidingWindowSize) {
+            this.windowRecords.shift();
+         }
+      } else {
+         const cutoff = now - this.slidingWindowDurationMs;
+         this.windowRecords = this.windowRecords.filter((r) => r.timestamp >= cutoff);
+      }
+   }
+
+   private evaluateFailureThresholds(): void {
+      // 1. Immediate trip on consecutive failures (fast fail / safety floor)
+      if (this.failureCount >= this.failureThreshold) {
+         this.transitionTo(CircuitState.OPEN);
+         return;
+      }
+
+      // 2. Sliding window failure rate calculation
+      if (this.slidingWindowType === SLIDING_WINDOW_TYPES.TIME_BASED) {
+         const cutoff = Date.now() - this.slidingWindowDurationMs;
+         this.windowRecords = this.windowRecords.filter((r) => r.timestamp >= cutoff);
+      }
+
+      const totalCallsInWindow = this.windowRecords.length;
+      if (totalCallsInWindow >= this.minimumNumberOfCalls) {
+         const failedCalls = this.windowRecords.filter((r) => r.isFailure).length;
+         const failureRate = (failedCalls / totalCallsInWindow) * 100;
+         if (failureRate >= this.failureRateThreshold) {
+            this.logger.warn(
+               `Circuit tripped OPEN: Failure rate ${failureRate.toFixed(1)}% (${failedCalls}/${totalCallsInWindow} calls) exceeded threshold ${this.failureRateThreshold}%`,
+            );
+            this.transitionTo(CircuitState.OPEN);
+         }
+      }
    }
 
    private transitionTo(newState: CircuitState): void {
@@ -432,6 +545,7 @@ export class CircuitBreaker {
          this.nextAttemptTime = Date.now() + this.resetTimeoutMs;
          this.halfOpenProbeInFlight = false;
          this.consecutiveSuccesses = 0;
+         this.windowRecords = [];
          this.logger.error(`Circuit tripped OPEN! Downstream calls short-circuited for ${this.resetTimeoutMs}ms.`);
       } else if (newState === CircuitState.HALF_OPEN) {
          this.nextAttemptTime = undefined;
@@ -443,6 +557,7 @@ export class CircuitBreaker {
          this.consecutiveSuccesses = 0;
          this.nextAttemptTime = undefined;
          this.halfOpenProbeInFlight = false;
+         this.windowRecords = [];
          this.logger.log(`Circuit recovered to CLOSED. Normal traffic resumed.`);
       }
 
@@ -476,6 +591,15 @@ export class CircuitBreaker {
    }
 
    getStats(): CircuitBreakerStats {
+      let records = this.windowRecords;
+      if (this.slidingWindowType === SLIDING_WINDOW_TYPES.TIME_BASED) {
+         const cutoff = Date.now() - this.slidingWindowDurationMs;
+         records = records.filter((r) => r.timestamp >= cutoff);
+      }
+      const callsInWindow = records.length;
+      const failuresInWindow = records.filter((r) => r.isFailure).length;
+      const failureRate = callsInWindow > 0 ? (failuresInWindow / callsInWindow) * 100 : 0;
+
       return {
          name: this.name,
          state: this.getState(),
@@ -489,10 +613,15 @@ export class CircuitBreaker {
          totalFailures: this.totalFailures,
          totalSuccesses: this.totalSuccesses,
          totalShortCircuits: this.totalShortCircuits,
+         slidingWindowType: this.slidingWindowType,
+         callsInWindow,
+         failuresInWindow,
+         failureRate,
       };
    }
 
    reset(): void {
+      this.windowRecords = [];
       this.transitionTo(CircuitState.CLOSED);
    }
 

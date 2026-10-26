@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { createGrpcRetryChannelOptions, RmqModule, SERVICES } from '@common';
+import { createGrpcRetryChannelOptions } from '@common';
 import {
    COMMERCE_V1_GRPC_CLIENT,
    COMMERCE_V1_GRPC_PACKAGE_NAME,
@@ -20,9 +20,6 @@ import { CommerceService } from '@/modules/commerce/commerce.service';
 
 @Module({
    imports: [
-      RmqModule.register({
-         name: SERVICES.COMMERCE_SERVICE,
-      }),
       ClientsModule.registerAsync([
          {
             name: COMMERCE_V1_GRPC_CLIENT,

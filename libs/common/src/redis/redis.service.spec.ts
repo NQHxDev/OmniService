@@ -92,6 +92,52 @@ describe('RedisService', () => {
       }
    });
 
+   it('should handle getdel and getdelJson gracefully when client is not connected', async () => {
+      const data = await service.getdel('some_token');
+      expect(data).toBeNull();
+
+      const jsonData = await service.getdelJson<{ id: string }>('some_json_token');
+      expect(jsonData).toBeNull();
+   });
+
+   it('should atomically get and delete using native getdel when client is connected', async () => {
+      service.onModuleInit();
+      const client = service.getClient();
+      if (client) {
+         jest.spyOn(client, 'getdel').mockResolvedValueOnce('token-payload');
+         const result = await service.getdel('token_key');
+         expect(result).toBe('token-payload');
+         expect(client.getdel).toHaveBeenCalledWith('token_key');
+      }
+   });
+
+   it('should fall back to Lua script when getdel command is unknown in older Redis', async () => {
+      service.onModuleInit();
+      const client = service.getClient();
+      if (client) {
+         jest.spyOn(client, 'getdel').mockRejectedValueOnce(new Error("ERR unknown command 'GETDEL'"));
+         jest.spyOn(client, 'eval').mockResolvedValueOnce('fallback-payload');
+
+         const result = await service.getdel('token_key');
+         expect(result).toBe('fallback-payload');
+         expect(client.eval).toHaveBeenCalledWith(expect.stringContaining("redis.call('GET'"), 1, 'token_key');
+      }
+   });
+
+   it('should parse JSON correctly in getdelJson and return null for invalid JSON', async () => {
+      service.onModuleInit();
+      const client = service.getClient();
+      if (client) {
+         jest.spyOn(client, 'getdel').mockResolvedValueOnce(JSON.stringify({ userId: 'u-123' }));
+         const parsed = await service.getdelJson<{ userId: string }>('json_key');
+         expect(parsed).toEqual({ userId: 'u-123' });
+
+         jest.spyOn(client, 'getdel').mockResolvedValueOnce('invalid-json');
+         const invalidResult = await service.getdelJson<{ userId: string }>('json_key');
+         expect(invalidResult).toBeNull();
+      }
+   });
+
    it('should clean up client on module destroy', async () => {
       await expect(service.onModuleDestroy()).resolves.not.toThrow();
    });

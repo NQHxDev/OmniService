@@ -6,3 +6,6 @@ export * from '@contracts/media/dto/media/media-response.dto';
 export * from '@contracts/media/dto/media/get-media-by-id.dto';
 export * from '@contracts/media/dto/media/delete-media.dto';
 export * from '@contracts/media/dto/media/delete-media-response.dto';
+export * from '@contracts/media/dto/media/initiate-multipart-upload.dto';
+export * from '@contracts/media/dto/media/initiate-multipart-upload-response.dto';
+export * from '@contracts/media/dto/media/complete-multipart-upload.dto';

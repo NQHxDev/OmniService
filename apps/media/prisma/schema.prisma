@@ -1,3 +1,6 @@
+// Note: In Prisma 7+, datasource connection URLs (including directUrl for migrations)
+// are configured in prisma.config.ts. Prisma CLI reads process.env.DIRECT_URL ?? env('DATABASE_URL')
+// from prisma.config.ts to execute migrations via direct Postgres connection.
 datasource db {
   provider = "postgresql"
 }
@@ -21,6 +24,7 @@ enum MediaType {
 
 enum MediaStatus {
   PENDING
+  PROCESSING
   READY
   FAILED
 }

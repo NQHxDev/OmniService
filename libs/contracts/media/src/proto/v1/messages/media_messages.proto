@@ -43,11 +43,10 @@ message UploadFileResponse {
 message ConfirmUploadRequest {
   string mediaId = 1;
   optional int64 size = 2;
-  optional string key = 3;
-  optional int32 width = 4;
-  optional int32 height = 5;
-  optional double duration = 6;
-  optional string thumbnailUrl = 7;
+  optional int32 width = 3;
+  optional int32 height = 4;
+  optional double duration = 5;
+  optional string thumbnailUrl = 6;
 }
 
 message ConfirmUploadResponse {
@@ -68,4 +67,40 @@ message DeleteMediaRequest {
 
 message DeleteMediaResponse {
   bool success = 1;
+}
+
+message MultipartPartUrlProto {
+  int32 partNumber = 1;
+  string uploadUrl = 2;
+}
+
+message CompletedPartProto {
+  int32 partNumber = 1;
+  string etag = 2;
+}
+
+message InitiateMultipartUploadRequest {
+  string fileName = 1;
+  string mimeType = 2;
+  int32 partsCount = 3;
+  optional int64 fileSize = 4;
+  optional string folder = 5;
+}
+
+message InitiateMultipartUploadResponse {
+  string mediaId = 1;
+  string uploadId = 2;
+  string key = 3;
+  string publicUrl = 4;
+  repeated MultipartPartUrlProto parts = 5;
+}
+
+message CompleteMultipartUploadRequest {
+  string mediaId = 1;
+  string uploadId = 2;
+  repeated CompletedPartProto parts = 3;
+}
+
+message CompleteMultipartUploadResponse {
+  MediaProto media = 1;
 }

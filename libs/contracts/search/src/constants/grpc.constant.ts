@@ -28,6 +28,8 @@ export const SEARCH_V1_GRPC_METHODS = {
    SEARCH_USERS: 'SearchUsers',
    SEARCH_INGREDIENTS: 'SearchIngredients',
    GLOBAL_SEARCH: 'GlobalSearch',
+   GET_POST_FEED: 'GetPostFeed',
+   GET_POST_DETAIL: 'GetPostDetail',
 } as const;
 
 export type SearchV1GrpcMethod = (typeof SEARCH_V1_GRPC_METHODS)[keyof typeof SEARCH_V1_GRPC_METHODS];

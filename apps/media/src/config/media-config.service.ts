@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { isDevelopment, isProduction } from '@common';
+import { ENV_KEYS, isDevelopment, isProduction } from '@common';
+import { CLOUD_TRANSCODE_PROVIDERS, type CloudTranscodeProvider } from '@contracts/media';
 import { MEDIA_ENV_KEYS, type MediaEnvConfig } from '@media/config/media-env.schema';
 
 @Injectable()
@@ -39,6 +40,15 @@ export class MediaConfigService {
       return `postgresql://${user}:${password}@localhost:${port}/${db}`;
    }
 
+   get directUrl(): string | undefined {
+      return this.configService.get(ENV_KEYS.DIRECT_URL, { infer: true });
+   }
+
+   get pgbouncerPort(): number {
+      const val = this.configService.get(ENV_KEYS.PGBOUNCER_PORT, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 6432;
+   }
+
    get rabbitMq() {
       return {
          uri: this.configService.get(MEDIA_ENV_KEYS.RABBIT_MQ_URI, { infer: true }),
@@ -66,10 +76,70 @@ export class MediaConfigService {
    }
 
    get grpcPort(): number {
-      return this.configService.get(MEDIA_ENV_KEYS.GRPC_PORT, { infer: true }) || 50055;
+      const val = this.configService.get(MEDIA_ENV_KEYS.GRPC_PORT, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 50055;
    }
 
    get grpcUrl(): string {
       return this.configService.get(MEDIA_ENV_KEYS.GRPC_URL, { infer: true }) || '0.0.0.0:50055';
+   }
+
+   get ffmpegPath(): string {
+      return this.configService.get(MEDIA_ENV_KEYS.FFMPEG_PATH, { infer: true }) || 'ffmpeg';
+   }
+
+   get ffprobePath(): string {
+      return this.configService.get(MEDIA_ENV_KEYS.FFPROBE_PATH, { infer: true }) || 'ffprobe';
+   }
+
+   get mediaRole(): 'api' | 'worker' | 'all' {
+      return this.configService.get(MEDIA_ENV_KEYS.MEDIA_ROLE, { infer: true }) || 'all';
+   }
+
+   get isWorkerRole(): boolean {
+      return this.mediaRole === 'worker' || this.mediaRole === 'all';
+   }
+
+   get isApiRole(): boolean {
+      return this.mediaRole === 'api' || this.mediaRole === 'all';
+   }
+
+   get transcodePrefetchCount(): number {
+      const val = this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_PREFETCH_COUNT, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 1;
+   }
+
+   get transcodeMinFreeDiskGb(): number {
+      const val = this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_MIN_FREE_DISK_GB, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 10;
+   }
+
+   get transcodeMinFreeDiskBytes(): number {
+      return this.transcodeMinFreeDiskGb * 1024 * 1024 * 1024;
+   }
+
+   get transcodeOffloadMaxSizeMb(): number {
+      const val = this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_OFFLOAD_MAX_SIZE_MB, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 1024;
+   }
+
+   get transcodeOffloadMaxSizeBytes(): number {
+      return this.transcodeOffloadMaxSizeMb * 1024 * 1024;
+   }
+
+   get transcodeOffloadMaxDurationSec(): number {
+      const val = this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_OFFLOAD_MAX_DURATION_SEC, { infer: true });
+      return val !== undefined && val !== null ? Number(val) : 1800;
+   }
+
+   get transcodeHwaccel(): 'none' | 'auto' | 'videotoolbox' | 'nvenc' | 'vaapi' {
+      return this.configService.get(MEDIA_ENV_KEYS.TRANSCODE_HWACCEL, { infer: true }) || 'none';
+   }
+
+   get cloudTranscodeProvider(): CloudTranscodeProvider {
+      return (
+         this.configService.get(MEDIA_ENV_KEYS.CLOUD_TRANSCODE_PROVIDER, { infer: true }) ||
+         CLOUD_TRANSCODE_PROVIDERS.CLOUDFLARE_STREAM
+      );
    }
 }

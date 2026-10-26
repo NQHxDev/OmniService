@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { PROFILE_OPERATIONS, PROFILE_OPERATION_NAMES, type ProfileOperationName } from '@user/constants';
 import type { UserEntity } from '@user/entities';
 import { USER_PROFILE_REPOSITORY, type IUserProfileRepository } from '@user/repositories';
@@ -19,6 +19,7 @@ export class DeleteProfileOperation extends AbstractProfileOperation<
    constructor(
       @Inject(USER_PROFILE_REPOSITORY)
       private readonly userProfileRepository: IUserProfileRepository,
+      @Inject(forwardRef(() => ProfileQueryService))
       private readonly profileQueryService: ProfileQueryService,
       private readonly profileSyncService: ProfileSyncService,
    ) {

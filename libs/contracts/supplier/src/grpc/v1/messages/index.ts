@@ -61,7 +61,6 @@ export interface IUpdateSupplierRequest {
    address?: string;
    city?: string;
    supplierLogoUrl?: string;
-   supplierStatus?: string;
 }
 
 export interface IUpdateSupplierResponse {
@@ -74,5 +73,14 @@ export interface IVerifySupplierRequest {
 }
 
 export interface IVerifySupplierResponse {
+   supplier: ISupplierProto;
+}
+
+export interface IUpdateSupplierStatusRequest {
+   supplierId: string;
+   status: string;
+}
+
+export interface IUpdateSupplierStatusResponse {
    supplier: ISupplierProto;
 }

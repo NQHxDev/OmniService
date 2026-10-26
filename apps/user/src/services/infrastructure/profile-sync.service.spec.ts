@@ -7,7 +7,7 @@ import { UserGraphSyncService } from '@user/services/infrastructure/user-graph-s
 import { SEARCH_ADAPTER, type ISearchAdapter } from '@user/adapters/search/search.adapter.interface';
 import { UserEntity, UserStatus } from '@user/entities';
 import { USER_AGGREGATES, USER_EVENTS, USER_OUTBOX_EVENTS } from '@contracts/user';
-import { USER_DOMAIN_EVENTS } from '@user/domain';
+import { USER_DOMAIN_EVENTS } from '@user/domain/events';
 
 describe('ProfileSyncService (Infrastructure)', () => {
    let service: ProfileSyncService;

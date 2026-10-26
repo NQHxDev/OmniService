@@ -122,6 +122,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }
    }
 
+   async setNx(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
+      if (!this.client) return false;
+      try {
+         let result: string | null;
+         if (ttlSeconds && ttlSeconds > 0) {
+            result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+         } else {
+            result = await this.client.set(key, value, 'NX');
+         }
+         return result === 'OK';
+      } catch (err: unknown) {
+         const error = err as Error;
+         this.logger.warn(`Redis SETNX failed for key "${key}": ${error.message}`);
+         return false;
+      }
+   }
+
    async del(key: string): Promise<void> {
       if (!this.client) return;
       try {
@@ -130,6 +147,50 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
          const error = err as Error;
          this.logger.warn(`Redis DEL failed for key "${key}": ${error.message}`);
       }
+   }
+
+   /**
+    * Atomically gets the value of a key and deletes it (Redis 6.2+ GETDEL command).
+    * If GETDEL command is not supported, transparently falls back to an atomic Lua script.
+    * Eliminates Time-of-Check to Time-of-Use (TOCTOU) race conditions in one-time token flows.
+    * @param key - Cache key to retrieve and delete
+    * @returns The value before deletion, or null if key does not exist or client is disconnected
+    */
+   async getdel(key: string): Promise<string | null> {
+      if (!this.client) return null;
+      try {
+         if (typeof this.client.getdel === 'function') {
+            return await this.client.getdel(key);
+         }
+         return await this.executeAtomicGetDelScript(key);
+      } catch (err: unknown) {
+         const error = err as Error;
+         if (error.message?.toLowerCase().includes('unknown command')) {
+            try {
+               return await this.executeAtomicGetDelScript(key);
+            } catch (fallbackErr: unknown) {
+               const fallbackError = fallbackErr as Error;
+               this.logger.warn(`Redis GETDEL Lua fallback failed for key "${key}": ${fallbackError.message}`);
+               return null;
+            }
+         }
+         this.logger.warn(`Redis GETDEL failed for key "${key}": ${error.message}`);
+         return null;
+      }
+   }
+
+   private async executeAtomicGetDelScript(key: string): Promise<string | null> {
+      if (!this.client) return null;
+      const script = `
+         local val = redis.call('GET', KEYS[1])
+         if val and val ~= false then
+            redis.call('DEL', KEYS[1])
+            return val
+         end
+         return nil
+      `;
+      const result = await this.client.eval(script, 1, key);
+      return (result as string) ?? null;
    }
 
    async incr(key: string): Promise<number> {
@@ -295,6 +356,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
    async getJson<T>(key: string): Promise<T | null> {
       const data = await this.get(key);
+      if (!data) return null;
+      try {
+         return JSON.parse(data) as T;
+      } catch {
+         return null;
+      }
+   }
+
+   async getdelJson<T>(key: string): Promise<T | null> {
+      const data = await this.getdel(key);
       if (!data) return null;
       try {
          return JSON.parse(data) as T;

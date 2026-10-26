@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ConflictException, NotFoundException } from '@common';
+import { BadRequestException, ConflictException, NotFoundException } from '@common';
 import {
    SUPPLIER_ERROR_CODES,
    SUPPLIER_EVENTS,
    SUPPLIER_STATUS,
    type RegisterSupplierDto,
+   type SupplierStatusType,
    type UpdateSupplierDto,
 } from '@contracts/supplier';
 import { SUPPLIER_REPOSITORY, type FindSuppliersParams, type ISupplierRepository } from '@supplier/repositories';
@@ -130,7 +131,6 @@ export class SupplierService {
          address: dto.address !== undefined ? dto.address?.trim() : undefined,
          city: dto.city !== undefined ? dto.city?.trim() : undefined,
          supplierLogoUrl: dto.supplierLogoUrl,
-         supplierStatus: dto.supplierStatus,
       });
 
       if (!updated) {
@@ -144,12 +144,38 @@ export class SupplierService {
          new SupplierUpdatedEvent(updated.supplierId, updated.supplierName),
       );
 
-      if (dto.supplierStatus && dto.supplierStatus !== existing.supplierStatus) {
-         this.eventEmitter.emit(
-            SUPPLIER_EVENTS.SUPPLIER_STATUS_CHANGED,
-            new SupplierStatusChangedEvent(supplierId, existing.supplierStatus, dto.supplierStatus),
-         );
+      return updated;
+   }
+
+   async updateSupplierStatus(supplierId: string, status: SupplierStatusType): Promise<SupplierEntity> {
+      if (!status || !Object.values(SUPPLIER_STATUS).includes(status)) {
+         throw new BadRequestException(SUPPLIER_ERROR_CODES.INVALID_STATUS, {
+            params: { status },
+         });
       }
+
+      const existing = await this.supplierRepository.findById(supplierId);
+      if (!existing) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      if (existing.supplierStatus === status) {
+         return existing;
+      }
+
+      const updated = await this.supplierRepository.update(supplierId, { supplierStatus: status });
+      if (!updated) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      this.eventEmitter.emit(
+         SUPPLIER_EVENTS.SUPPLIER_STATUS_CHANGED,
+         new SupplierStatusChangedEvent(supplierId, existing.supplierStatus, status),
+      );
 
       return updated;
    }

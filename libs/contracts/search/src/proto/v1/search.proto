@@ -8,4 +8,6 @@ service SearchService {
   rpc SearchUsers (SearchUsersRequest) returns (SearchUsersResponse);
   rpc SearchIngredients (SearchIngredientsRequest) returns (SearchIngredientsResponse);
   rpc GlobalSearch (GlobalSearchRequest) returns (GlobalSearchResponse);
+  rpc GetPostFeed (GetPostFeedRequest) returns (GetPostFeedResponse);
+  rpc GetPostDetail (GetPostDetailRequest) returns (GetPostDetailResponse);
 }

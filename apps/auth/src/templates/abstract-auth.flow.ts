@@ -73,6 +73,10 @@ export abstract class AbstractAuthFlow<TDto, TSaga extends IAuthSaga = IAuthSaga
          // Step 4: Primitive operation - Post-authentication actions
          await this.onSuccess(context);
 
+         if (activeSaga?.complete) {
+            await activeSaga.complete();
+         }
+
          // Step 5: Hook operation - Audit logging
          this.recordAudit(context);
 

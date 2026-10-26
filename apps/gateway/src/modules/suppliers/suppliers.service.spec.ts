@@ -4,8 +4,10 @@ import { of } from 'rxjs';
 import { DEFAULT_ROLES } from '@common';
 import {
    SUPPLIER_MEMBER_STATUS,
+   SUPPLIER_ROLES,
    SUPPLIER_STATUS,
    SUPPLIER_V1_GRPC_CLIENT,
+   type ISupplierProto,
    type ISupplierV1GrpcService,
    type SupplierItemDto,
 } from '@contracts/supplier';
@@ -30,6 +32,21 @@ describe('SuppliersService', () => {
       supplierLogoUrl: 'https://example.com/logo.png',
    };
 
+   const mockSupplierProto: ISupplierProto = {
+      supplierId: mockSupplier.supplierId,
+      supplierName: mockSupplier.supplierName,
+      supplierSlug: mockSupplier.supplierSlug,
+      supplierCode: mockSupplier.supplierCode,
+      contactEmail: mockSupplier.contactEmail || '',
+      contactPhone: mockSupplier.contactPhone || '',
+      address: mockSupplier.address || '',
+      city: mockSupplier.city || '',
+      rating: mockSupplier.rating,
+      isVerified: mockSupplier.isVerified,
+      supplierStatus: mockSupplier.supplierStatus,
+      supplierLogoUrl: mockSupplier.supplierLogoUrl || '',
+   };
+
    beforeEach(async () => {
       mockGrpcService = {
          getSupplierById: jest.fn(),
@@ -38,6 +55,7 @@ describe('SuppliersService', () => {
          registerSupplier: jest.fn(),
          getMySupplier: jest.fn(),
          updateSupplier: jest.fn(),
+         updateSupplierStatus: jest.fn(),
          verifySupplier: jest.fn(),
       };
 
@@ -57,20 +75,7 @@ describe('SuppliersService', () => {
    it('should call supplier gRPC registerSupplier and map response', async () => {
       mockGrpcService.registerSupplier.mockReturnValue(
          of({
-            supplier: {
-               supplierId: mockSupplier.supplierId,
-               supplierName: mockSupplier.supplierName,
-               supplierSlug: mockSupplier.supplierSlug,
-               supplierCode: mockSupplier.supplierCode,
-               contactEmail: mockSupplier.contactEmail || '',
-               contactPhone: mockSupplier.contactPhone || '',
-               address: mockSupplier.address || '',
-               city: mockSupplier.city || '',
-               rating: mockSupplier.rating,
-               isVerified: mockSupplier.isVerified,
-               supplierStatus: mockSupplier.supplierStatus,
-               supplierLogoUrl: mockSupplier.supplierLogoUrl || '',
-            },
+            supplier: mockSupplierProto,
          }),
       );
 
@@ -82,7 +87,7 @@ describe('SuppliersService', () => {
          {
             correlationId: 'req-123',
             accountId: 'acc-123',
-            roles: [DEFAULT_ROLES.SUPPLIER_ADMIN],
+            roles: [SUPPLIER_ROLES.SUPPLIER_ADMIN],
             email: 'admin@supplier.vn',
          },
       );
@@ -102,21 +107,8 @@ describe('SuppliersService', () => {
       mockGrpcService.getMySupplier.mockReturnValue(
          of({
             hasSupplier: true,
-            supplier: {
-               supplierId: mockSupplier.supplierId,
-               supplierName: mockSupplier.supplierName,
-               supplierSlug: mockSupplier.supplierSlug,
-               supplierCode: mockSupplier.supplierCode,
-               contactEmail: mockSupplier.contactEmail || '',
-               contactPhone: mockSupplier.contactPhone || '',
-               address: mockSupplier.address || '',
-               city: mockSupplier.city || '',
-               rating: mockSupplier.rating,
-               isVerified: mockSupplier.isVerified,
-               supplierStatus: mockSupplier.supplierStatus,
-               supplierLogoUrl: mockSupplier.supplierLogoUrl || '',
-            },
-            role: DEFAULT_ROLES.SUPPLIER_ADMIN,
+            supplier: mockSupplierProto,
+            role: SUPPLIER_ROLES.SUPPLIER_ADMIN,
             memberStatus: SUPPLIER_MEMBER_STATUS.ACTIVE,
          }),
       );
@@ -124,7 +116,7 @@ describe('SuppliersService', () => {
       const result = await service.getMySupplier({
          correlationId: 'req-123',
          accountId: 'acc-123',
-         roles: [DEFAULT_ROLES.SUPPLIER_ADMIN],
+         roles: [SUPPLIER_ROLES.SUPPLIER_ADMIN],
          email: 'admin@supplier.vn',
       });
 
@@ -136,6 +128,132 @@ describe('SuppliersService', () => {
       );
       expect(result.hasSupplier).toBe(true);
       expect(result.supplier?.supplierId).toBe(mockSupplier.supplierId);
-      expect(result.role).toBe(DEFAULT_ROLES.SUPPLIER_ADMIN);
+      expect(result.role).toBe(SUPPLIER_ROLES.SUPPLIER_ADMIN);
+   });
+
+   it('should call supplier gRPC getSupplierById and map response', async () => {
+      mockGrpcService.getSupplierById.mockReturnValue(
+         of({
+            supplier: mockSupplierProto,
+         }),
+      );
+
+      const result = await service.getSupplierById(mockSupplier.supplierId, {
+         correlationId: 'req-123',
+      });
+
+      expect(mockGrpcService.getSupplierById).toHaveBeenCalledWith(
+         { supplierId: mockSupplier.supplierId },
+         expect.any(Object),
+      );
+      expect(result.supplierId).toBe(mockSupplier.supplierId);
+      expect(result.supplierName).toBe('Mega Market');
+   });
+
+   it('should call supplier gRPC listSuppliers and map response', async () => {
+      mockGrpcService.listSuppliers.mockReturnValue(
+         of({
+            suppliers: [mockSupplierProto],
+            total: 1,
+         }),
+      );
+
+      const result = await service.listSuppliers(
+         {
+            status: SUPPLIER_STATUS.ACTIVE,
+            limit: 10,
+            offset: 0,
+         },
+         { correlationId: 'req-123' },
+      );
+
+      expect(mockGrpcService.listSuppliers).toHaveBeenCalledWith(
+         expect.objectContaining({
+            status: SUPPLIER_STATUS.ACTIVE,
+            limit: 10,
+            offset: 0,
+         }),
+         expect.any(Object),
+      );
+      expect(result.items).toHaveLength(1);
+      expect(result.total).toBe(1);
+   });
+
+   it('should call supplier gRPC updateSupplier and map response', async () => {
+      mockGrpcService.updateSupplier.mockReturnValue(
+         of({
+            supplier: {
+               ...mockSupplierProto,
+               supplierName: 'Mega Market Updated',
+            },
+         }),
+      );
+
+      const result = await service.updateSupplier(
+         mockSupplier.supplierId,
+         {
+            supplierName: 'Mega Market Updated',
+         },
+         { correlationId: 'req-123', accountId: 'acc-123' },
+      );
+
+      expect(mockGrpcService.updateSupplier).toHaveBeenCalledWith(
+         expect.objectContaining({
+            supplierId: mockSupplier.supplierId,
+            supplierName: 'Mega Market Updated',
+         }),
+         expect.any(Object),
+      );
+      expect(result.supplierName).toBe('Mega Market Updated');
+   });
+
+   it('should call supplier gRPC verifySupplier and map response', async () => {
+      mockGrpcService.verifySupplier.mockReturnValue(
+         of({
+            supplier: {
+               ...mockSupplierProto,
+               isVerified: true,
+            },
+         }),
+      );
+
+      const result = await service.verifySupplier(mockSupplier.supplierId, true, {
+         correlationId: 'req-123',
+         roles: [DEFAULT_ROLES.ADMIN],
+      });
+
+      expect(mockGrpcService.verifySupplier).toHaveBeenCalledWith(
+         {
+            supplierId: mockSupplier.supplierId,
+            isVerified: true,
+         },
+         expect.any(Object),
+      );
+      expect(result.isVerified).toBe(true);
+   });
+
+   it('should call supplier gRPC updateSupplierStatus and map response', async () => {
+      mockGrpcService.updateSupplierStatus.mockReturnValue(
+         of({
+            supplier: {
+               ...mockSupplierProto,
+               supplierStatus: SUPPLIER_STATUS.SUSPENDED,
+            },
+         }),
+      );
+
+      const result = await service.updateSupplierStatus(mockSupplier.supplierId, SUPPLIER_STATUS.SUSPENDED, {
+         correlationId: 'req-123',
+         roles: [DEFAULT_ROLES.ADMIN],
+      });
+
+      expect(mockGrpcService.updateSupplierStatus).toHaveBeenCalledWith(
+         {
+            supplierId: mockSupplier.supplierId,
+            status: SUPPLIER_STATUS.SUSPENDED,
+         },
+         expect.any(Object),
+      );
+      expect(result.supplierStatus).toBe(SUPPLIER_STATUS.SUSPENDED);
    });
 });

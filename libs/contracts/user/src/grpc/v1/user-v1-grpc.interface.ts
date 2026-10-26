@@ -2,7 +2,7 @@ import type { Observable } from 'rxjs';
 import type { Metadata } from '@grpc/grpc-js';
 
 export interface IUserProfileProto {
-   id: string;
+   profileId: string;
    userId: string;
    displayName?: string;
    bio?: string;
@@ -31,7 +31,7 @@ export interface IUserSettingsProto {
 }
 
 export interface IUserProto {
-   id: string;
+   userId: string;
    accountId: string;
    username?: string;
    status: string;
@@ -48,7 +48,7 @@ export interface IUserProto {
 }
 
 export interface IUserSuggestionItemProto {
-   id: string;
+   userId: string;
    username?: string;
    displayName?: string;
    avatar?: string;
@@ -211,7 +211,7 @@ export interface IGetDateOfBirthResponse {
 
 // --- Search Users ---
 export interface IUserSearchHitProto {
-   id: string;
+   userId: string;
    username?: string;
    displayName?: string;
    avatar?: string;

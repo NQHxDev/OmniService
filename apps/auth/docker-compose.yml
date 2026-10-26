@@ -2,9 +2,22 @@ name: omni-services
 
 services:
    auth-postgres:
+      profiles:
+         - auth
       image: postgres:17-alpine
       container_name: omni-services-auth
-      command: ['postgres', '-p', '5433']
+      command:
+         [
+            'postgres',
+            '-p',
+            '5433',
+            '-c',
+            'wal_level=logical',
+            '-c',
+            'max_wal_senders=10',
+            '-c',
+            'max_replication_slots=10',
+         ]
       restart: unless-stopped
       environment:
          POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -16,7 +29,11 @@ services:
       volumes:
          - auth_postgres_data:/var/lib/postgresql/data
       healthcheck:
-         test: ['CMD-SHELL', 'pg_isready -p ${POSTGRES_PORT:-5433} -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-omni_service_auth}']
+         test:
+            [
+               'CMD-SHELL',
+               'pg_isready -p ${POSTGRES_PORT:-5433} -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-omni_service_auth}',
+            ]
          interval: 10s
          timeout: 5s
          retries: 5

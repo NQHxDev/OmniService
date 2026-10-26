@@ -1,6 +1,7 @@
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
 import {
+   BulkheadRegistry,
    CircuitBreakerRegistry,
    createGrpcMetadata,
    handleGrpcError,
@@ -19,6 +20,7 @@ import {
    UserDateOfBirthResponseDto,
    UserSearchResponseDto,
    UpdatePersonalInfoDto,
+   USER_STATUS,
    USER_V1_GRPC_CLIENT,
    USER_V1_GRPC_SERVICE_NAME,
    type IFollowRequestActionResponse,
@@ -29,6 +31,7 @@ import {
    type IGetMutualFollowersResponse,
    type IUserStatsResponse,
    type IUnfollowUserResponse,
+   type IUserProto,
    type IUserV1GrpcService,
 } from '@contracts/user';
 import { defer, firstValueFrom } from 'rxjs';
@@ -36,7 +39,12 @@ import type { JwtPayload } from '@common/utils/jwt.util';
 
 @Injectable()
 export class UsersService implements OnModuleInit {
+   private readonly logger = new Logger(UsersService.name);
    private userGrpcService!: IUserV1GrpcService;
+   private readonly userBulkhead = BulkheadRegistry.getOrCreate(USER_V1_GRPC_SERVICE_NAME, {
+      maxConcurrent: 50,
+      maxQueueCapacity: 100,
+   });
    private readonly userGrpcBreaker = CircuitBreakerRegistry.getOrCreate(USER_V1_GRPC_SERVICE_NAME, {
       timeout: 3000,
       failureThreshold: 5,
@@ -278,17 +286,46 @@ export class UsersService implements OnModuleInit {
       }
    }
 
-   async getMyProfile(user: JwtPayload, correlationId?: string): Promise<unknown> {
+   private buildFallbackUserProfile(user: JwtPayload): IUserProto {
+      const userId = user.sub;
+      const accountId = user.sub;
+      const username = user.email ? user.email.split('@')[0] : 'user';
+      const now = new Date().toISOString();
+      return {
+         userId,
+         accountId,
+         username,
+         displayName: username,
+         status: USER_STATUS.ACTIVE,
+         createdAt: now,
+         updatedAt: now,
+      };
+   }
+
+   async getMyProfile(user: JwtPayload, correlationId?: string): Promise<IUserProto | undefined> {
       try {
          const metadata = this.buildGrpcMetadata(user, correlationId);
-         return await this.userGrpcBreaker.execute(async () => {
-            const res = await firstValueFrom(
-               defer(() => this.userGrpcService.getMyProfile({ userId: user.sub }, metadata)).pipe(
-                  withGrpcRetry(this.userGrpcRetryPolicy),
+         return await this.userBulkhead.execute(
+            () =>
+               this.userGrpcBreaker.execute(
+                  async () => {
+                     const res = await firstValueFrom(
+                        defer(() => this.userGrpcService.getMyProfile({ userId: user.sub }, metadata)).pipe(
+                           withGrpcRetry(this.userGrpcRetryPolicy),
+                        ),
+                     );
+                     return res.user;
+                  },
+                  (err) => {
+                     this.logger.warn(`getMyProfile degraded snapshot fallback: ${err.message}`);
+                     return this.buildFallbackUserProfile(user);
+                  },
                ),
-            );
-            return res.user;
-         });
+            (err) => {
+               this.logger.warn(`getMyProfile bulkhead snapshot fallback: ${err.message}`);
+               return this.buildFallbackUserProfile(user);
+            },
+         );
       } catch (error: unknown) {
          return handleGrpcError(error);
       }
@@ -303,42 +340,71 @@ export class UsersService implements OnModuleInit {
    ): Promise<UserSearchResponseDto> {
       try {
          const metadata = this.buildGrpcMetadata(user, correlationId);
-         return await this.userGrpcBreaker.execute(async () => {
-            const res = await firstValueFrom(
-               defer(() =>
-                  this.userGrpcService.searchUsers(
-                     {
-                        query,
-                        limit,
-                        cursor,
-                        currentUserId: user?.sub,
-                     },
-                     metadata,
-                  ),
-               ).pipe(withGrpcRetry(this.userGrpcRetryPolicy)),
-            );
-            return {
-               items: (res.items || []).map((item) => ({
-                  userId: item.id,
-                  username: item.username ?? null,
-                  displayName: item.displayName ?? null,
-                  avatar: item.avatar ?? null,
-                  bio: item.bio ?? null,
-                  isVerified: Boolean(item.isVerified),
-                  followersCount: item.followersCount || 0,
-                  followingCount: item.followingCount || 0,
-                  isFollowing: Boolean(item.isFollowing),
-                  isFollower: Boolean(item.isFollower),
-                  isSelf: Boolean(item.isSelf),
-               })),
-               meta: {
-                  nextCursor: res.nextCursor ?? null,
-                  hasMore: Boolean(res.hasMore),
-                  limit,
-                  total: res.total,
-               },
-            };
-         });
+         return await this.userBulkhead.execute(
+            () =>
+               this.userGrpcBreaker.execute(
+                  async () => {
+                     const res = await firstValueFrom(
+                        defer(() =>
+                           this.userGrpcService.searchUsers(
+                              {
+                                 query,
+                                 limit,
+                                 cursor,
+                                 currentUserId: user?.sub,
+                              },
+                              metadata,
+                           ),
+                        ).pipe(withGrpcRetry(this.userGrpcRetryPolicy)),
+                     );
+                     return {
+                        items: (res.items || []).map((item) => ({
+                           userId: item.userId,
+                           username: item.username ?? null,
+                           displayName: item.displayName ?? null,
+                           avatar: item.avatar ?? null,
+                           bio: item.bio ?? null,
+                           isVerified: Boolean(item.isVerified),
+                           followersCount: item.followersCount || 0,
+                           followingCount: item.followingCount || 0,
+                           isFollowing: Boolean(item.isFollowing),
+                           isFollower: Boolean(item.isFollower),
+                           isSelf: Boolean(item.isSelf),
+                        })),
+                        meta: {
+                           nextCursor: res.nextCursor ?? null,
+                           hasMore: Boolean(res.hasMore),
+                           limit,
+                           total: res.total,
+                        },
+                     };
+                  },
+                  (err) => {
+                     this.logger.warn(`searchUsers fallback triggered for "${query}": ${err.message}`);
+                     return {
+                        items: [],
+                        meta: {
+                           nextCursor: null,
+                           hasMore: false,
+                           limit,
+                           total: 0,
+                        },
+                     };
+                  },
+               ),
+            (err) => {
+               this.logger.warn(`searchUsers bulkhead fallback for "${query}": ${err.message}`);
+               return {
+                  items: [],
+                  meta: {
+                     nextCursor: null,
+                     hasMore: false,
+                     limit,
+                     total: 0,
+                  },
+               };
+            },
+         );
       } catch (error: unknown) {
          return handleGrpcError(error);
       }
@@ -347,14 +413,27 @@ export class UsersService implements OnModuleInit {
    async getFollowSuggestions(limit = 10, user: JwtPayload, correlationId?: string): Promise<unknown> {
       try {
          const metadata = this.buildGrpcMetadata(user, correlationId);
-         return await this.userGrpcBreaker.execute(async () => {
-            const res = await firstValueFrom(
-               defer(() => this.userGrpcService.getFollowSuggestions({ userId: user.sub, limit }, metadata)).pipe(
-                  withGrpcRetry(this.userGrpcRetryPolicy),
+         return await this.userBulkhead.execute(
+            () =>
+               this.userGrpcBreaker.execute(
+                  async () => {
+                     const res = await firstValueFrom(
+                        defer(() =>
+                           this.userGrpcService.getFollowSuggestions({ userId: user.sub, limit }, metadata),
+                        ).pipe(withGrpcRetry(this.userGrpcRetryPolicy)),
+                     );
+                     return res.items;
+                  },
+                  (err) => {
+                     this.logger.warn(`getFollowSuggestions fallback triggered: ${err.message}`);
+                     return [];
+                  },
                ),
-            );
-            return res.items;
-         });
+            (err) => {
+               this.logger.warn(`getFollowSuggestions bulkhead fallback triggered: ${err.message}`);
+               return [];
+            },
+         );
       } catch (error: unknown) {
          return handleGrpcError(error);
       }

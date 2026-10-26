@@ -2,6 +2,8 @@ name: omni-services
 
 services:
    notification-postgres:
+      profiles:
+         - notification
       image: postgres:17-alpine
       container_name: omni-services-notification
       command: ['postgres', '-p', '5436']
@@ -16,7 +18,11 @@ services:
       volumes:
          - notification_postgres_data:/var/lib/postgresql/data
       healthcheck:
-         test: ['CMD-SHELL', 'pg_isready -p ${POSTGRES_PORT:-5436} -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-omni_service_notification}']
+         test:
+            [
+               'CMD-SHELL',
+               'pg_isready -p ${POSTGRES_PORT:-5436} -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-omni_service_notification}',
+            ]
          interval: 10s
          timeout: 5s
          retries: 5

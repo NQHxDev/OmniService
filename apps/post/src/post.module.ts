@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RedisModule, RmqModule, SERVICES } from '@common';
 import { PostController } from '@post/post.controller';
+import { PostGrpcController } from '@post/adapters';
 import { PostService } from '@post/services';
 import { POST_REPOSITORY_TOKEN, PostRepository } from '@post/repositories';
 import { PostConfigModule } from '@post/config';
@@ -17,7 +18,7 @@ import { PrismaModule } from '@post/prisma';
          name: SERVICES.USER_SERVICE,
       }),
    ],
-   controllers: [PostController],
+   controllers: [PostController, PostGrpcController],
    providers: [
       PostService,
       {

@@ -1,9 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { PROFILE_OPERATIONS, PROFILE_OPERATION_NAMES, type ProfileOperationName } from '@user/constants';
 import type { UserEntity } from '@user/entities';
 import { USER_PROFILE_REPOSITORY, type IUserProfileRepository } from '@user/repositories';
 import { ProfileSyncService } from '@user/services/infrastructure/profile-sync.service';
-import { ProfileValidationPipeline } from '@user/chains/profile-validation';
+import { ProfileValidationPipeline } from '@user/chains/profile-validation/profile-validation.pipeline';
 import { AbstractProfileOperation } from '@user/templates/abstract-profile.operation';
 import type { CreateProfileContext, CreateProfileParams } from '@user/templates/profile-operation.interface';
 
@@ -20,6 +20,7 @@ export class CreateProfileOperation extends AbstractProfileOperation<
       @Inject(USER_PROFILE_REPOSITORY)
       private readonly userProfileRepository: IUserProfileRepository,
       private readonly profileSyncService: ProfileSyncService,
+      @Inject(forwardRef(() => ProfileValidationPipeline))
       private readonly profileValidationPipeline: ProfileValidationPipeline,
    ) {
       super();

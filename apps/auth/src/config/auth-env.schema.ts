@@ -20,7 +20,13 @@ export const authEnvSchema = sharedEnvSchema.extend({
    POSTGRES_PASSWORD: z.string().default('postgres'),
    POSTGRES_DB: z.string().default('omni_service_auth'),
    POSTGRES_PORT: z.coerce.number().int().positive().default(5433),
-   DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5433/omni_service_auth'),
+   PGBOUNCER_PORT: z.coerce.number().int().positive().default(6432),
+   DATABASE_URL: z
+      .string()
+      .default(
+         'postgresql://postgres:postgres@localhost:6432/omni_service_auth?connection_limit=5&pool_timeout=10&pgbouncer=true',
+      ),
+   DIRECT_URL: z.string().optional(),
    JWT_PRIVATE_KEY_PATH: z.string().default('apps/auth/keys/private.key'),
    JWT_PUBLIC_KEY_PATH: z.string().default('apps/auth/keys/public.key'),
    JWT_KEY_ID: z.string().default(DEFAULT_JWT_KEY_ID),

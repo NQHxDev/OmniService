@@ -15,6 +15,7 @@ import {
    RedisService,
    RmqModule,
    SERVICES,
+   SagaModule,
    type ICommandHandler,
 } from '@common';
 import { PrismaService } from '@auth/prisma';
@@ -35,6 +36,7 @@ import {
    RbacRepository,
    SESSION_REPOSITORY,
    SessionRepository,
+   PrismaSagaRepository,
 } from '@auth/repositories';
 import {
    AUTH_METRICS_SERVICE,
@@ -51,6 +53,7 @@ import {
    TokenLifecycleService,
    VERIFICATION_TOKEN_SERVICE,
    VerificationTokenService,
+   AccountSweeperService,
 } from '@auth/services/infrastructure';
 import { AuthMetricsController } from '@auth/auth-metrics.controller';
 import {
@@ -118,6 +121,10 @@ import {
       UnitOfWorkModule,
       RmqModule.register({
          name: SERVICES.NOTIFICATION_SERVICE,
+      }),
+      SagaModule.forRoot({
+         repository: PrismaSagaRepository,
+         enableRecoveryWorker: true,
       }),
    ],
    controllers: [AuthController, AuthMetricsController, AuthGrpcController],
@@ -245,6 +252,7 @@ import {
          useExisting: CommandBus,
       },
       ...AUTH_COMMAND_HANDLERS,
+      AccountSweeperService,
    ],
    exports: [
       AuthCoreService,
@@ -258,6 +266,7 @@ import {
       LoginValidationPipeline,
       JWT_SERVICE,
       JwtService,
+      AccountSweeperService,
       PASSWORD_HASHER,
       PasswordHasherService,
       VERIFICATION_TOKEN_SERVICE,

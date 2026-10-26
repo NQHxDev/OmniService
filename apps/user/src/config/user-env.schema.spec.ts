@@ -12,6 +12,8 @@ describe('UserEnvSchema', () => {
       expect(config.POSTGRES_PORT).toBe(5439);
       expect(config.NEBULA_GRAPHD_HOST).toBe('localhost');
       expect(config.NEBULA_GRAPHD_PORT).toBe(9669);
+      expect(config.NEBULA_ADMIN_USERNAME).toBe('root');
+      expect(config.NEBULA_ADMIN_PASSWORD).toBe('nebula');
    });
 
    it('should parse custom valid configuration correctly', () => {
