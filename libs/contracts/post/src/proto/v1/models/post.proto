@@ -12,6 +12,28 @@ message PostIngredientProto {
   optional string catalogIngredientId = 7;
 }
 
+message RecipeStepProto {
+  string stepId = 1;
+  int32 stepNumber = 2;
+  optional string title = 3;
+  string instruction = 4;
+  optional int32 timestampSeconds = 5;
+  optional string imageUrl = 6;
+  optional string mediaId = 7;
+}
+
+message RecipeProto {
+  string recipeId = 1;
+  int32 prepTimeMinutes = 2;
+  int32 cookTimeMinutes = 3;
+  int32 servings = 4;
+  string difficulty = 5;
+  optional int32 calories = 6;
+  optional string cuisine = 7;
+  optional string chefTips = 8;
+  repeated RecipeStepProto steps = 9;
+}
+
 message PostItemProto {
   string postId = 1;
   string userId = 2;
@@ -35,4 +57,7 @@ message PostItemProto {
   string createdAt = 20;
   string updatedAt = 21;
   repeated PostIngredientProto ingredients = 22;
+  optional RecipeProto recipe = 23;
+  repeated string tags = 24;
+  repeated string mentionedUserIds = 25;
 }

@@ -16,11 +16,22 @@ export const POST_VISIBILITY = {
 
 export type PostVisibility = (typeof POST_VISIBILITY)[keyof typeof POST_VISIBILITY];
 
+export const RECIPE_DIFFICULTY = {
+   EASY: 'EASY',
+   MEDIUM: 'MEDIUM',
+   HARD: 'HARD',
+   EXPERT: 'EXPERT',
+} as const;
+
+export type RecipeDifficulty = (typeof RECIPE_DIFFICULTY)[keyof typeof RECIPE_DIFFICULTY];
+
 export const POST_ERROR_CODES = {
    POST_NOT_FOUND: 'POST.POST_NOT_FOUND',
    INVALID_CURSOR: 'POST.INVALID_CURSOR',
    FEED_FETCH_FAILED: 'POST.FEED_FETCH_FAILED',
    UNAUTHORIZED: 'POST.UNAUTHORIZED',
+   CREATE_FAILED: 'POST.CREATE_FAILED',
+   INVALID_MEDIA: 'POST.INVALID_MEDIA',
 } as const;
 
 export type PostErrorCode = (typeof POST_ERROR_CODES)[keyof typeof POST_ERROR_CODES];
@@ -29,6 +40,7 @@ export const POST_RESPONSE_MESSAGES = {
    GET_FEED_SUCCESS: 'POSTS.GET_FEED_SUCCESS',
    GET_POST_SUCCESS: 'POSTS.GET_POST_SUCCESS',
    GET_INGREDIENTS_SUCCESS: 'POSTS.GET_INGREDIENTS_SUCCESS',
+   CREATE_POST_SUCCESS: 'POSTS.CREATE_POST_SUCCESS',
 } as const;
 
 export type PostResponseMessage = (typeof POST_RESPONSE_MESSAGES)[keyof typeof POST_RESPONSE_MESSAGES];
@@ -37,6 +49,7 @@ export const POST_PATTERNS = {
    GET_FEED: 'post.get_feed',
    GET_BY_ID: 'post.get_by_id',
    GET_INGREDIENTS: 'post.get_ingredients',
+   CREATE: 'post.create',
 } as const;
 
 export type PostPattern = (typeof POST_PATTERNS)[keyof typeof POST_PATTERNS];
@@ -60,4 +73,11 @@ export const POST_CACHE_KEYS = {
 export const POST_CACHE_TTL = {
    DETAIL_SECONDS: 60,
    RECENT_AUTHOR_SECONDS: 5,
+} as const;
+
+export const POST_EVENT_KEYS = {
+   CREATED_EVENT_ID_PREFIX: 'evt-post-created',
+   CREATED_IDEMPOTENCY_PREFIX: 'post-created',
+   buildCreatedEventId: (postId: string): string => `evt-post-created-${postId}`,
+   buildCreatedIdempotencyKey: (postId: string): string => `post-created-${postId}`,
 } as const;

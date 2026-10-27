@@ -3,7 +3,7 @@ import { PostController } from '@post/post.controller';
 import { PostService } from '@post/services';
 import { RmqService } from '@common';
 import { RmqContext } from '@nestjs/microservices';
-import { PostFeedResponseDto, PostItemDto } from '@contracts/post';
+import { type CreatePostDto, PostFeedResponseDto, PostItemDto } from '@contracts/post';
 
 describe('PostController', () => {
    let controller: PostController;
@@ -57,12 +57,15 @@ describe('PostController', () => {
                useValue: {
                   getFeed: jest.fn().mockResolvedValue(mockFeedResponse),
                   getPostById: jest.fn().mockResolvedValue(mockPostItem),
+                  getIngredientsByPostId: jest.fn().mockResolvedValue([]),
+                  createPost: jest.fn().mockResolvedValue(mockPostItem),
                },
             },
             {
                provide: RmqService,
                useValue: {
                   ack: jest.fn(),
+                  handleError: jest.fn(),
                },
             },
          ],
@@ -95,6 +98,24 @@ describe('PostController', () => {
 
          expect(result).toEqual(mockPostItem);
          expect(service.getPostById).toHaveBeenCalledWith('post-1');
+         expect(rmqService.ack).toHaveBeenCalledWith(mockRmqContext);
+      });
+   });
+
+   describe('createPost', () => {
+      it('should delegate to postService.createPost and ack context', async () => {
+         const createDto: CreatePostDto = {
+            title: 'Hanoi Beef Pho',
+            videoUrl: 'https://r2.dev/video.mp4',
+            thumbnailUrl: 'https://r2.dev/thumb.jpg',
+            duration: 45,
+         };
+         const payload = { userId: 'user-1', dto: createDto };
+
+         const result = await controller.createPost(payload, mockRmqContext);
+
+         expect(result).toEqual(mockPostItem);
+         expect(service.createPost).toHaveBeenCalledWith('user-1', createDto);
          expect(rmqService.ack).toHaveBeenCalledWith(mockRmqContext);
       });
    });

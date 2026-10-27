@@ -128,4 +128,29 @@ describe('PostGrpcController', () => {
          expect(response.items[0].amount).toBe(200);
       });
    });
+
+   describe('createPost', () => {
+      it('should create post through PostService and map to proto response', async () => {
+         (postService.createPost as jest.Mock) = jest.fn().mockResolvedValue(mockPostItem);
+
+         const response = await firstValueFrom(
+            controller.createPost({
+               userId: 'user-1',
+               title: 'Delicious Pho',
+               videoUrl: 'https://example.com/video.mp4',
+               thumbnailUrl: 'https://example.com/thumb.jpg',
+               duration: 60,
+            }),
+         );
+
+         expect(postService.createPost).toHaveBeenCalledWith(
+            'user-1',
+            expect.objectContaining({
+               title: 'Delicious Pho',
+               duration: 60,
+            }),
+         );
+         expect(response.post.postId).toBe('post-1');
+      });
+   });
 });

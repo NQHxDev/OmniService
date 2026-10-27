@@ -14,6 +14,7 @@ import {
    POST_CACHE_TTL,
    POST_V1_GRPC_CLIENT,
    POST_V1_GRPC_SERVICE_NAME,
+   type CreatePostDto,
    type GetPostFeedDto,
    type IPostItemProto,
    type IPostV1GrpcService,
@@ -217,6 +218,74 @@ export class PostsService implements OnModuleInit {
       }
    }
 
+   async createPost(userId: string, dto: CreatePostDto): Promise<PostItemDto> {
+      try {
+         const res = await this.postBulkhead.execute(() =>
+            this.postGrpcBreaker.execute(() =>
+               firstValueFrom(
+                  defer(() =>
+                     this.postGrpcService.createPost({
+                        userId,
+                        title: dto.title,
+                        caption: dto.caption,
+                        mediaId: dto.mediaId,
+                        videoUrl: dto.videoUrl,
+                        playbackUrl: dto.playbackUrl,
+                        thumbnailUrl: dto.thumbnailUrl,
+                        blurHash: dto.blurHash,
+                        duration: dto.duration,
+                        videoWidth: dto.videoWidth,
+                        videoHeight: dto.videoHeight,
+                        visibility: dto.visibility,
+                        allowComments: dto.allowComments,
+                        allowDuet: dto.allowDuet,
+                        tags: dto.tags,
+                        mentionedUserIds: dto.mentionedUserIds,
+                        categoryIds: dto.categoryIds,
+                        ingredients: (dto.ingredients || []).map((ing, idx) => ({
+                           name: ing.name,
+                           amount: ing.amount !== undefined ? Number(ing.amount) : undefined,
+                           unit: ing.unit,
+                           group: ing.group,
+                           sortOrder: ing.sortOrder ?? idx,
+                           catalogIngredientId: ing.catalogIngredientId,
+                        })),
+                        recipe: dto.recipe
+                           ? {
+                                prepTimeMinutes: dto.recipe.prepTimeMinutes ?? 0,
+                                cookTimeMinutes: dto.recipe.cookTimeMinutes ?? 0,
+                                servings: dto.recipe.servings ?? 1,
+                                difficulty: dto.recipe.difficulty || 'EASY',
+                                calories: dto.recipe.calories,
+                                cuisine: dto.recipe.cuisine,
+                                chefTips: dto.recipe.chefTips,
+                                steps: (dto.recipe.steps || []).map((step, sIdx) => ({
+                                   stepNumber: step.stepNumber ?? sIdx + 1,
+                                   title: step.title,
+                                   instruction: step.instruction,
+                                   timestampSeconds: step.timestampSeconds,
+                                   imageUrl: step.imageUrl,
+                                   mediaId: step.mediaId,
+                                })),
+                             }
+                           : undefined,
+                     }),
+                  ).pipe(withGrpcRetry(this.postGrpcRetryPolicy)),
+               ),
+            ),
+         );
+
+         const createdPost = this.mapPostProtoToDto(res.post);
+
+         // Mark recent author write for Read-Your-Own-Writes consistency
+         await this.markRecentPostCreation(createdPost.postId, userId);
+
+         return createdPost;
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
    private async fetchFeedFromPostService(query: GetPostFeedDto): Promise<PostFeedResponseDto> {
       try {
          const res = await this.postBulkhead.execute(() =>
@@ -295,6 +364,29 @@ export class PostsService implements OnModuleInit {
             sortOrder: ing.sortOrder,
             catalogIngredientId: ing.catalogIngredientId || null,
          })),
+         recipe: item.recipe
+            ? {
+                 recipeId: item.recipe.recipeId,
+                 prepTimeMinutes: item.recipe.prepTimeMinutes,
+                 cookTimeMinutes: item.recipe.cookTimeMinutes,
+                 servings: item.recipe.servings,
+                 difficulty: item.recipe.difficulty,
+                 calories: item.recipe.calories !== undefined ? item.recipe.calories : null,
+                 cuisine: item.recipe.cuisine || null,
+                 chefTips: item.recipe.chefTips || null,
+                 steps: (item.recipe.steps || []).map((step) => ({
+                    stepId: step.stepId,
+                    stepNumber: step.stepNumber,
+                    title: step.title || null,
+                    instruction: step.instruction,
+                    timestampSeconds: step.timestampSeconds !== undefined ? step.timestampSeconds : null,
+                    imageUrl: step.imageUrl || null,
+                    mediaId: step.mediaId || null,
+                 })),
+              }
+            : null,
+         tags: item.tags || [],
+         mentionedUserIds: item.mentionedUserIds || [],
       };
    }
 

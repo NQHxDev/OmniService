@@ -8,6 +8,7 @@ export class PostIngredientEntity {
    unit: string | null;
    group: string | null;
    sortOrder: number;
+   catalogIngredientId: string | null;
 
    constructor(partial: Partial<PrismaPostIngredient>) {
       this.ingredientId = partial.ingredientId || '';
@@ -17,5 +18,6 @@ export class PostIngredientEntity {
       this.unit = partial.unit ?? null;
       this.group = partial.group ?? null;
       this.sortOrder = partial.sortOrder ?? 0;
+      this.catalogIngredientId = partial.catalogIngredientId ?? null;
    }
 }

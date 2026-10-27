@@ -13,6 +13,7 @@ import {
    SendChangePasswordOtpEmailDto,
 } from '@contracts/notification';
 import { PRODUCT_EVENTS, type ProductModeratedEventPayload } from '@contracts/product';
+import { POST_EVENTS } from '@contracts/post';
 import { NotificationService } from '@notification/notification.service';
 
 @Controller()
@@ -163,6 +164,31 @@ export class NotificationController {
       );
       return this.handleConsumerMessage(context, () => {
          this.logger.log(`Product ${data?.productId} suspended by moderator ${data?.moderatedBy}`);
+         return Promise.resolve();
+      });
+   }
+
+   @EventPattern(POST_EVENTS.CREATED)
+   async handlePostCreated(
+      @Payload()
+      data: {
+         postId: string;
+         userId: string;
+         title: string;
+         mentionedUserIds?: string[];
+         eventId?: string;
+      },
+      @Ctx() context: RmqContext,
+   ) {
+      this.logger.log(`Received POST_CREATED event for post: ${data?.postId} by user: ${data?.userId}`);
+      return this.handleConsumerMessage(context, () => {
+         if (data?.mentionedUserIds && data.mentionedUserIds.length > 0) {
+            for (const mentionedUserId of data.mentionedUserIds) {
+               this.logger.log(
+                  `Notifying mentioned user ${mentionedUserId} about post ${data.postId} ("${data.title}") created by user ${data.userId}`,
+               );
+            }
+         }
          return Promise.resolve();
       });
    }

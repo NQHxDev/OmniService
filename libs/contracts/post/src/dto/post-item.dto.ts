@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PostIngredientDto } from '@contracts/post/dto/post-ingredient.dto';
+import { RecipeDto } from '@contracts/post/dto/recipe.dto';
 
 export class PostItemDto {
    @ApiProperty({
@@ -139,4 +140,25 @@ export class PostItemDto {
       type: [PostIngredientDto],
    })
    ingredients!: PostIngredientDto[];
+
+   @ApiPropertyOptional({
+      description: 'Detailed recipe instructions for cooking the dish',
+      type: RecipeDto,
+      nullable: true,
+   })
+   recipe?: RecipeDto | null;
+
+   @ApiPropertyOptional({
+      description: 'List of hashtags associated with this post',
+      type: [String],
+      example: ['phobo', 'monngon'],
+   })
+   tags?: string[];
+
+   @ApiPropertyOptional({
+      description: 'List of mentioned user UUIDs in this post',
+      type: [String],
+      example: ['0192e21b-0002-7000-8000-000000000010'],
+   })
+   mentionedUserIds?: string[];
 }

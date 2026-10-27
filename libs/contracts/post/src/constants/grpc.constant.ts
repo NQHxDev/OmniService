@@ -28,6 +28,7 @@ export const POST_V1_GRPC_METHODS = {
    GET_FEED: 'GetFeed',
    GET_POST_BY_ID: 'GetPostById',
    GET_INGREDIENTS_BY_POST_ID: 'GetIngredientsByPostId',
+   CREATE_POST: 'CreatePost',
 } as const;
 
 export type PostV1GrpcMethod = (typeof POST_V1_GRPC_METHODS)[keyof typeof POST_V1_GRPC_METHODS];

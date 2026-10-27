@@ -1,6 +1,8 @@
 import type { Observable } from 'rxjs';
 import type { Metadata } from '@grpc/grpc-js';
 import type {
+   ICreatePostRequest,
+   ICreatePostResponse,
    IGetIngredientsByPostIdRequest,
    IGetIngredientsByPostIdResponse,
    IGetPostByIdRequest,
@@ -16,6 +18,7 @@ export interface IPostV1GrpcService {
       request: IGetIngredientsByPostIdRequest,
       metadata?: Metadata,
    ): Observable<IGetIngredientsByPostIdResponse>;
+   createPost(request: ICreatePostRequest, metadata?: Metadata): Observable<ICreatePostResponse>;
 }
 
 export type IPostGrpcService = IPostV1GrpcService;

@@ -1,7 +1,8 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ApiErrorResponses, COMMON_ERROR_CODES, CurrentUser, type JwtPayload, Public, ResponseMessage } from '@common';
 import {
+   CreatePostDto,
    GetPostFeedDto,
    POST_ERROR_CODES,
    POST_RESPONSE_MESSAGES,
@@ -15,6 +16,58 @@ import { PostsService } from '@/modules/posts/posts.service';
 @Controller('posts')
 export class PostsController {
    constructor(private readonly postsService: PostsService) {}
+
+   @Post()
+   @HttpCode(HttpStatus.CREATED)
+   @ApiBearerAuth()
+   @ApiCookieAuth()
+   @ApiOperation({
+      operationId: 'createPost',
+      summary: 'Publish a new video recipe post',
+      description: `### Workflow: Video Recipe Post Publishing
+#### Prerequisites
+- Client must have uploaded the video and thumbnail via Media Service to acquire valid \`videoUrl\`, \`thumbnailUrl\`, and optional \`mediaId\`.
+
+#### Process Flow
+- Validates the post content, ingredients list, and optional step-by-step cooking recipe.
+- Atomically creates the post, ingredients, recipe steps, tags, and user mentions in a database transaction.
+- Automatically extracts hashtags from the caption and registers them into trending tags.
+- Emits \`post.created\` domain event across RabbitMQ to index into Elasticsearch and dispatch notifications to mentioned users.
+- Marks creator author key in Redis for Read-Your-Own-Writes consistency.
+
+#### Next Step
+- Call \`GET /api/v1/posts/:postId\` to inspect the newly published post with immediate consistency.`,
+   })
+   @ApiResponse({
+      status: HttpStatus.CREATED,
+      description: 'Post published successfully.',
+      type: PostItemDto,
+      links: {
+         GetPostById: {
+            operationId: 'getPostById',
+            description: 'Fetch the newly created post by its ID',
+            parameters: {
+               postId: '$response.body#/data/postId',
+            },
+         },
+      },
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Invalid post creation payload or missing mandatory parameters',
+         errorCodes: [POST_ERROR_CODES.CREATE_FAILED, COMMON_ERROR_CODES.INVALID_REQUEST],
+      },
+      {
+         status: HttpStatus.UNAUTHORIZED,
+         description: 'User authentication required',
+         errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
+      },
+   ])
+   @ResponseMessage(POST_RESPONSE_MESSAGES.CREATE_POST_SUCCESS)
+   async createPost(@Body() dto: CreatePostDto, @CurrentUser() user: JwtPayload): Promise<PostItemDto> {
+      return this.postsService.createPost(user.sub, dto);
+   }
 
    @Get('feed')
    @Public()
