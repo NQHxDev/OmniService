@@ -31,6 +31,8 @@ export const PRODUCT_V1_GRPC_METHODS = {
    CREATE_PRODUCT: 'CreateProduct',
    UPDATE_PRODUCT: 'UpdateProduct',
    MODERATE_PRODUCT: 'ModerateProduct',
+   SUBMIT_PRODUCT_FOR_REVIEW: 'SubmitProductForReview',
+   GET_PRODUCT_MODERATION_HISTORY: 'GetProductModerationHistory',
    UPDATE_PRODUCT_STATUS: 'UpdateProductStatus',
    CHECK_AND_RESERVE_STOCK: 'CheckAndReserveStock',
    RELEASE_STOCK: 'ReleaseStock',

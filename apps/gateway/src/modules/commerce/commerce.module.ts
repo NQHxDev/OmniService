@@ -17,9 +17,11 @@ import { HEALTH_GRPC_PACKAGE_NAME, getHealthProtoPath } from '@contracts/health'
 import { GatewayConfigModule, GatewayConfigService } from '@/config';
 import { CommerceController } from '@/modules/commerce/commerce.controller';
 import { CommerceService } from '@/modules/commerce/commerce.service';
+import { SuppliersModule } from '@/modules/suppliers/suppliers.module';
 
 @Module({
    imports: [
+      SuppliersModule,
       ClientsModule.registerAsync([
          {
             name: COMMERCE_V1_GRPC_CLIENT,

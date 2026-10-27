@@ -23,7 +23,12 @@ import {
    PRODUCT_ERROR_CODES,
    PRODUCT_RESPONSE_MESSAGES,
    ProductItemDto,
+   ProductModerationHistoryDto,
    ReleaseStockDto,
+   SearchProductsQueryDto,
+   SearchProductsResponseDto,
+   SuggestProductsQueryDto,
+   SuggestProductsResponseDto,
    UpdateProductDto,
    UpdateProductStatusDto,
    WhoCategoryDto,
@@ -137,6 +142,82 @@ export class ProductsController {
       });
    }
 
+   @Get('search')
+   @Public()
+   @HttpCode(HttpStatus.OK)
+   @ApiOperation({
+      operationId: 'searchProducts',
+      summary: 'Search products by name and attributes using Elasticsearch',
+      description: `### Workflow: Culinary Recipe Ingredient Search
+#### Process Flow
+- Executes full-text fuzzy and phrase-prefix search on the Elasticsearch \`products\` index.
+- Allows content creators and customers to search raw ingredients and food products to attach to dish recipe posts.`,
+   })
+   @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Products matching search criteria retrieved successfully from Elasticsearch.',
+      type: SearchProductsResponseDto,
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Invalid search parameters or pagination limits',
+         errorCodes: [COMMON_ERROR_CODES.INVALID_REQUEST],
+      },
+   ])
+   @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.SEARCH_PRODUCTS_SUCCESS)
+   async searchProducts(
+      @Query() query: SearchProductsQueryDto,
+      @Req() req: Request,
+      @CurrentUser() user?: JwtPayload,
+   ): Promise<SearchProductsResponseDto> {
+      const correlationId = (req.headers[CORRELATION_ID_HEADER] as string) || undefined;
+      return this.productsService.searchProducts(query, {
+         correlationId,
+         accountId: user?.sub,
+         roles: user?.roles,
+         permissions: user?.permissions,
+         email: user?.email,
+      });
+   }
+
+   @Get('suggest')
+   @Public()
+   @HttpCode(HttpStatus.OK)
+   @ApiOperation({
+      operationId: 'suggestProducts',
+      summary: 'Autocomplete / suggest products by name prefix using Elasticsearch',
+      description:
+         'Provides high-performance typeahead autocomplete suggestions for product names while users type in recipe ingredient inputs.',
+   })
+   @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Product suggestions retrieved successfully.',
+      type: SuggestProductsResponseDto,
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Invalid autocomplete query parameters',
+         errorCodes: [COMMON_ERROR_CODES.INVALID_REQUEST],
+      },
+   ])
+   @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.SUGGEST_PRODUCTS_SUCCESS)
+   async suggestProducts(
+      @Query() query: SuggestProductsQueryDto,
+      @Req() req: Request,
+      @CurrentUser() user?: JwtPayload,
+   ): Promise<SuggestProductsResponseDto> {
+      const correlationId = (req.headers[CORRELATION_ID_HEADER] as string) || undefined;
+      return this.productsService.suggestProducts(query, {
+         correlationId,
+         accountId: user?.sub,
+         roles: user?.roles,
+         permissions: user?.permissions,
+         email: user?.email,
+      });
+   }
+
    @Get(':productId')
    @Public()
    @HttpCode(HttpStatus.OK)
@@ -237,8 +318,9 @@ export class ProductsController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'moderateProduct',
-      summary: 'Approve or reject a supplier product (Admin only)',
-      description: 'Platform administrators review submitted product quality, compliance, and approve/reject.',
+      summary: 'Approve, reject, or suspend a product with audit trail (Admin only)',
+      description:
+         'Platform administrators review submitted product quality, compliance, and perform moderation decisions.',
    })
    @ApiParam({
       name: 'productId',
@@ -256,6 +338,15 @@ export class ProductsController {
          errorCodes: [COMMON_ERROR_CODES.INSUFFICIENT_ROLES, COMMON_ERROR_CODES.FORBIDDEN],
       },
       {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Invalid moderation action, missing rejection reason, or invalid state',
+         errorCodes: [
+            PRODUCT_ERROR_CODES.MODERATION_REJECTION_REASON_REQUIRED,
+            PRODUCT_ERROR_CODES.PRODUCT_NOT_IN_REVIEWABLE_STATE,
+            PRODUCT_ERROR_CODES.MODERATION_ACTION_NOT_APPLICABLE,
+         ],
+      },
+      {
          status: HttpStatus.NOT_FOUND,
          description: 'Product not found',
          errorCodes: [PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND],
@@ -270,6 +361,106 @@ export class ProductsController {
    ): Promise<ProductItemDto> {
       const correlationId = (req.headers[CORRELATION_ID_HEADER] as string) || undefined;
       return this.productsService.moderateProduct(productId, dto, {
+         correlationId,
+         accountId: user?.sub,
+         roles: user?.roles,
+         permissions: user?.permissions,
+         email: user?.email,
+      });
+   }
+
+   @Post(':productId/submit-review')
+   @ApiCookieAuth()
+   @ApiBearerAuth()
+   @HttpCode(HttpStatus.OK)
+   @ApiOperation({
+      operationId: 'submitProductForReview',
+      summary: 'Submit product for moderation review',
+      description:
+         'Allows merchant supplier or platform admin to submit draft or rejected product for moderation review.',
+   })
+   @ApiParam({
+      name: 'productId',
+      description: 'Unique product identifier UUID',
+   })
+   @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Product submitted for review successfully.',
+      type: ProductItemDto,
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.UNAUTHORIZED,
+         description: 'Unauthorized access',
+         errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
+      },
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Product not owned or not in valid reviewable state',
+         errorCodes: [PRODUCT_ERROR_CODES.PRODUCT_NOT_OWNED, PRODUCT_ERROR_CODES.PRODUCT_NOT_IN_REVIEWABLE_STATE],
+      },
+      {
+         status: HttpStatus.NOT_FOUND,
+         description: 'Product not found',
+         errorCodes: [PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND],
+      },
+   ])
+   @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.SUBMIT_FOR_REVIEW_SUCCESS)
+   async submitProductForReview(
+      @Param('productId') productId: string,
+      @Req() req: Request,
+      @CurrentUser() user?: JwtPayload,
+   ): Promise<ProductItemDto> {
+      const correlationId = (req.headers[CORRELATION_ID_HEADER] as string) || undefined;
+      return this.productsService.submitProductForReview(productId, {
+         correlationId,
+         accountId: user?.sub,
+         roles: user?.roles,
+         permissions: user?.permissions,
+         email: user?.email,
+      });
+   }
+
+   @Get(':productId/moderation-history')
+   @ApiCookieAuth()
+   @ApiBearerAuth()
+   @RequireRoles(DEFAULT_ROLES.ADMIN)
+   @HttpCode(HttpStatus.OK)
+   @ApiOperation({
+      operationId: 'getProductModerationHistory',
+      summary: 'Retrieve moderation audit trail history (Admin only)',
+      description:
+         'Allows platform administrators to view historical moderation decisions, actions, notes, and snapshots.',
+   })
+   @ApiParam({
+      name: 'productId',
+      description: 'Unique product identifier UUID',
+   })
+   @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Moderation history retrieved successfully.',
+      type: [ProductModerationHistoryDto],
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.FORBIDDEN,
+         description: 'Caller does not possess ADMIN role',
+         errorCodes: [COMMON_ERROR_CODES.INSUFFICIENT_ROLES, COMMON_ERROR_CODES.FORBIDDEN],
+      },
+      {
+         status: HttpStatus.NOT_FOUND,
+         description: 'Product not found',
+         errorCodes: [PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND],
+      },
+   ])
+   @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.GET_MODERATION_HISTORY_SUCCESS)
+   async getProductModerationHistory(
+      @Param('productId') productId: string,
+      @Req() req: Request,
+      @CurrentUser() user?: JwtPayload,
+   ): Promise<ProductModerationHistoryDto[]> {
+      const correlationId = (req.headers[CORRELATION_ID_HEADER] as string) || undefined;
+      return this.productsService.getProductModerationHistory(productId, {
          correlationId,
          accountId: user?.sub,
          roles: user?.roles,

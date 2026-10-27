@@ -10,6 +10,7 @@ export interface IProductEventPublisher {
    publishProductRegistered(event: ProductRegisteredEventPayload): Promise<void>;
    publishProductApproved(event: ProductModeratedEventPayload): Promise<void>;
    publishProductRejected(event: ProductModeratedEventPayload): Promise<void>;
+   publishProductSuspended(event: ProductModeratedEventPayload): Promise<void>;
    publishProductStatusChanged(event: {
       productId: string;
       supplierId: string;

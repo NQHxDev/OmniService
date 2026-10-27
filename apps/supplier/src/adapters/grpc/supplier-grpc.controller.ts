@@ -37,11 +37,18 @@ import {
    type IUpdateSupplierStatusResponse,
    type IVerifySupplierRequest,
    type IVerifySupplierResponse,
+   type ISubmitKybRequest,
+   type ISubmitKybResponse,
+   type IRejectSupplierRequest,
+   type IRejectSupplierResponse,
+   type MerchantType,
    type SupplierItemDto,
    type SupplierStatusType,
 } from '@contracts/supplier';
 import {
    RegisterSupplierCommand,
+   RejectSupplierCommand,
+   SubmitKybCommand,
    UpdateSupplierCommand,
    UpdateSupplierStatusCommand,
    VerifySupplierCommand,
@@ -87,6 +94,19 @@ export class SupplierGrpcController implements ISupplierV1GrpcService {
          isVerified: supplier.isVerified,
          supplierStatus: supplier.supplierStatus,
          supplierLogoUrl: supplier.supplierLogoUrl || '',
+         merchantType: supplier.merchantType,
+         citizenId: supplier.citizenId,
+         citizenIdIssuedDate: supplier.citizenIdIssuedDate,
+         idCardFrontUrl: supplier.idCardFrontUrl,
+         idCardBackUrl: supplier.idCardBackUrl,
+         businessName: supplier.businessName,
+         taxCode: supplier.taxCode,
+         businessLicenseUrl: supplier.businessLicenseUrl,
+         bankName: supplier.bankName,
+         bankAccountNumber: supplier.bankAccountNumber,
+         bankAccountHolder: supplier.bankAccountHolder,
+         rejectionReason: supplier.rejectionReason,
+         verifiedAt: supplier.verifiedAt,
       };
    }
 
@@ -226,6 +246,56 @@ export class SupplierGrpcController implements ISupplierV1GrpcService {
 
       return from(
          this.commandBus.execute(new VerifySupplierCommand(data.supplierId, data.isVerified)).then((supplier) => ({
+            supplier: this.mapSupplierToProto(supplier),
+         })),
+      );
+   }
+
+   @GrpcMethod(SUPPLIER_V1_GRPC_SERVICE_NAME, SUPPLIER_V1_GRPC_METHODS.SUBMIT_KYB)
+   submitKyb(data: ISubmitKybRequest, metadata?: Metadata): Observable<ISubmitKybResponse> {
+      return from(
+         (async () => {
+            const accountId = this.extractAccountId(metadata);
+            if (!isActorAdmin(metadata)) {
+               const member = await this.supplierMemberRepository.findByAccountId(accountId);
+               if (
+                  !member ||
+                  member.supplierId !== data.supplierId ||
+                  member.memberStatus !== SUPPLIER_MEMBER_STATUS.ACTIVE
+               ) {
+                  throw new ForbiddenException(COMMON_ERROR_CODES.NOT_OWNER_OR_ADMIN);
+               }
+            }
+
+            const supplier = await this.commandBus.execute(
+               new SubmitKybCommand(data.supplierId, {
+                  merchantType: data.merchantType as MerchantType,
+                  citizenId: data.citizenId,
+                  citizenIdIssuedDate: data.citizenIdIssuedDate,
+                  idCardFrontUrl: data.idCardFrontUrl,
+                  idCardBackUrl: data.idCardBackUrl,
+                  businessName: data.businessName,
+                  taxCode: data.taxCode,
+                  businessLicenseUrl: data.businessLicenseUrl,
+                  bankName: data.bankName,
+                  bankAccountNumber: data.bankAccountNumber,
+                  bankAccountHolder: data.bankAccountHolder,
+               }),
+            );
+
+            return {
+               supplier: this.mapSupplierToProto(supplier),
+            };
+         })(),
+      );
+   }
+
+   @GrpcMethod(SUPPLIER_V1_GRPC_SERVICE_NAME, SUPPLIER_V1_GRPC_METHODS.REJECT_SUPPLIER)
+   rejectSupplier(data: IRejectSupplierRequest, metadata?: Metadata): Observable<IRejectSupplierResponse> {
+      checkRoles(metadata, [DEFAULT_ROLES.ADMIN]);
+
+      return from(
+         this.commandBus.execute(new RejectSupplierCommand(data.supplierId, data.reason)).then((supplier) => ({
             supplier: this.mapSupplierToProto(supplier),
          })),
       );

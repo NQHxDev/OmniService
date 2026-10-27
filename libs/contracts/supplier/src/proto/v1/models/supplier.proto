@@ -18,4 +18,17 @@ message SupplierProto {
   int32 version = 13;
   string createdAt = 14;
   string updatedAt = 15;
+  optional string merchantType = 16;
+  optional string citizenId = 17;
+  optional string citizenIdIssuedDate = 18;
+  optional string idCardFrontUrl = 19;
+  optional string idCardBackUrl = 20;
+  optional string businessName = 21;
+  optional string taxCode = 22;
+  optional string businessLicenseUrl = 23;
+  optional string bankName = 24;
+  optional string bankAccountNumber = 25;
+  optional string bankAccountHolder = 26;
+  optional string rejectionReason = 27;
+  optional string verifiedAt = 28;
 }

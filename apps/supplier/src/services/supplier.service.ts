@@ -6,13 +6,16 @@ import {
    SUPPLIER_EVENTS,
    SUPPLIER_STATUS,
    type RegisterSupplierDto,
+   type SubmitKybDto,
    type SupplierStatusType,
    type UpdateSupplierDto,
 } from '@contracts/supplier';
 import { SUPPLIER_REPOSITORY, type FindSuppliersParams, type ISupplierRepository } from '@supplier/repositories';
 import { Slug, SupplierCode } from '@supplier/domain/value-objects';
 import {
+   SupplierKybSubmittedEvent,
    SupplierRegisteredEvent,
+   SupplierRejectedEvent,
    SupplierStatusChangedEvent,
    SupplierUpdatedEvent,
    SupplierVerifiedEvent,
@@ -93,7 +96,7 @@ export class SupplierService {
          city: dto.city?.trim(),
          supplierLogoUrl: dto.supplierLogoUrl,
          isVerified: false,
-         supplierStatus: SUPPLIER_STATUS.ACTIVE,
+         supplierStatus: SUPPLIER_STATUS.PENDING,
       });
 
       this.eventEmitter.emit(
@@ -180,6 +183,55 @@ export class SupplierService {
       return updated;
    }
 
+   async submitKyb(supplierId: string, dto: SubmitKybDto): Promise<SupplierEntity> {
+      const existing = await this.supplierRepository.findById(supplierId);
+      if (!existing) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      if (existing.supplierStatus !== SUPPLIER_STATUS.PENDING && existing.supplierStatus !== SUPPLIER_STATUS.REJECTED) {
+         if (existing.supplierStatus === SUPPLIER_STATUS.UNDER_REVIEW) {
+            throw new BadRequestException(SUPPLIER_ERROR_CODES.KYB_ALREADY_SUBMITTED, {
+               params: { status: existing.supplierStatus },
+            });
+         }
+         throw new BadRequestException(SUPPLIER_ERROR_CODES.CANNOT_SUBMIT_KYB, {
+            params: { status: existing.supplierStatus },
+         });
+      }
+
+      const updated = await this.supplierRepository.update(supplierId, {
+         supplierStatus: SUPPLIER_STATUS.UNDER_REVIEW,
+         merchantType: dto.merchantType,
+         citizenId: dto.citizenId?.trim(),
+         citizenIdIssuedDate: dto.citizenIdIssuedDate ? new Date(dto.citizenIdIssuedDate) : undefined,
+         idCardFrontUrl: dto.idCardFrontUrl?.trim(),
+         idCardBackUrl: dto.idCardBackUrl?.trim(),
+         businessName: dto.businessName?.trim(),
+         taxCode: dto.taxCode?.trim(),
+         businessLicenseUrl: dto.businessLicenseUrl?.trim(),
+         bankName: dto.bankName?.trim(),
+         bankAccountNumber: dto.bankAccountNumber?.trim(),
+         bankAccountHolder: dto.bankAccountHolder?.trim(),
+         rejectionReason: null,
+      });
+
+      if (!updated) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      this.eventEmitter.emit(
+         SUPPLIER_EVENTS.SUPPLIER_KYB_SUBMITTED,
+         new SupplierKybSubmittedEvent(supplierId, dto.merchantType),
+      );
+
+      return updated;
+   }
+
    async verifySupplier(supplierId: string, isVerified: boolean): Promise<SupplierEntity> {
       const existing = await this.supplierRepository.findById(supplierId);
       if (!existing) {
@@ -188,7 +240,15 @@ export class SupplierService {
          });
       }
 
-      const updated = await this.supplierRepository.update(supplierId, { isVerified });
+      const newStatus = isVerified ? SUPPLIER_STATUS.ACTIVE : SUPPLIER_STATUS.PENDING;
+      const verifiedAt = isVerified ? new Date() : null;
+
+      const updated = await this.supplierRepository.update(supplierId, {
+         isVerified,
+         supplierStatus: newStatus,
+         verifiedAt,
+         rejectionReason: null,
+      });
       if (!updated) {
          throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
             params: { supplierId },
@@ -196,6 +256,34 @@ export class SupplierService {
       }
 
       this.eventEmitter.emit(SUPPLIER_EVENTS.SUPPLIER_VERIFIED, new SupplierVerifiedEvent(supplierId, isVerified));
+
+      return updated;
+   }
+
+   async rejectSupplier(supplierId: string, reason: string): Promise<SupplierEntity> {
+      if (!reason || !reason.trim()) {
+         throw new BadRequestException(SUPPLIER_ERROR_CODES.REJECTION_REASON_REQUIRED);
+      }
+
+      const existing = await this.supplierRepository.findById(supplierId);
+      if (!existing) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      const updated = await this.supplierRepository.update(supplierId, {
+         isVerified: false,
+         supplierStatus: SUPPLIER_STATUS.REJECTED,
+         rejectionReason: reason.trim(),
+      });
+      if (!updated) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      this.eventEmitter.emit(SUPPLIER_EVENTS.SUPPLIER_REJECTED, new SupplierRejectedEvent(supplierId, reason.trim()));
 
       return updated;
    }

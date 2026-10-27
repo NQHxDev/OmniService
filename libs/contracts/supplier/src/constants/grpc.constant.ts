@@ -33,6 +33,8 @@ export const SUPPLIER_V1_GRPC_METHODS = {
    UPDATE_SUPPLIER: 'UpdateSupplier',
    VERIFY_SUPPLIER: 'VerifySupplier',
    UPDATE_SUPPLIER_STATUS: 'UpdateSupplierStatus',
+   SUBMIT_KYB: 'SubmitKyb',
+   REJECT_SUPPLIER: 'RejectSupplier',
 } as const;
 
 export type SupplierV1GrpcMethod = (typeof SUPPLIER_V1_GRPC_METHODS)[keyof typeof SUPPLIER_V1_GRPC_METHODS];

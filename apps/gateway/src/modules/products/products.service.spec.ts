@@ -16,8 +16,17 @@ describe('ProductsService', () => {
       listWhoCategories: jest.fn(),
    };
 
+   const mockSearchGrpcService = {
+      searchProducts: jest.fn(),
+      suggestProducts: jest.fn(),
+   };
+
    const mockGrpcClient = {
       getService: jest.fn().mockReturnValue(mockGrpcService),
+   };
+
+   const mockSearchGrpcClient = {
+      getService: jest.fn().mockReturnValue(mockSearchGrpcService),
    };
 
    const mockCacheService = {
@@ -35,7 +44,7 @@ describe('ProductsService', () => {
 
    beforeEach(() => {
       jest.clearAllMocks();
-      service = new ProductsService(mockGrpcClient as never, mockCacheService as never);
+      service = new ProductsService(mockGrpcClient as never, mockSearchGrpcClient as never, mockCacheService as never);
       service.onModuleInit();
    });
 
@@ -90,6 +99,89 @@ describe('ProductsService', () => {
 
          expect(mockGrpcService.listWhoCategories).toHaveBeenCalled();
          expect(result).toHaveLength(8);
+      });
+   });
+
+   describe('searchProducts', () => {
+      it('should call searchGrpcService.searchProducts and map results', async () => {
+         const mockHit = {
+            productId: 'p-1',
+            supplierId: 's-1',
+            whoCategoryCode: 'STAPLES',
+            productName: 'ST25 Rice',
+            productSlug: 'st25-rice',
+            description: 'Delicious rice',
+            origin: 'Soc Trang',
+            images: ['https://example.com/st25.png'],
+            status: 'ACTIVE',
+            moderationStatus: 'APPROVED',
+            variants: [
+               {
+                  variantId: 'v-1',
+                  sku: 'ST25-5KG',
+                  variantName: '5kg Bag',
+                  unit: 'kg',
+                  price: 180000,
+                  currency: 'VND',
+                  stockQuantity: 10,
+                  isDefault: true,
+                  status: 'ACTIVE',
+               },
+            ],
+            minPrice: 180000,
+            maxPrice: 180000,
+            currency: 'VND',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-02T00:00:00.000Z',
+         };
+
+         mockSearchGrpcService.searchProducts.mockReturnValue(
+            of({
+               items: [mockHit],
+               total: 1,
+               limit: 20,
+               offset: 0,
+            }),
+         );
+
+         const result = await service.searchProducts({ query: 'rice' });
+
+         expect(mockSearchGrpcService.searchProducts).toHaveBeenCalled();
+         expect(result.items).toHaveLength(1);
+         expect(result.items[0].productId).toBe('p-1');
+         expect(result.items[0].productName).toBe('ST25 Rice');
+         expect(result.items[0].variants).toHaveLength(1);
+         expect(result.total).toBe(1);
+      });
+   });
+
+   describe('suggestProducts', () => {
+      it('should call searchGrpcService.suggestProducts and map suggestions', async () => {
+         const mockSuggestion = {
+            productId: 'p-1',
+            productName: 'ST25 Rice',
+            productSlug: 'st25-rice',
+            whoCategoryCode: 'STAPLES',
+            origin: 'Soc Trang',
+            images: ['https://example.com/st25.png'],
+            defaultUnit: 'kg',
+            minPrice: 180000,
+            maxPrice: 180000,
+            currency: 'VND',
+         };
+
+         mockSearchGrpcService.suggestProducts.mockReturnValue(
+            of({
+               items: [mockSuggestion],
+            }),
+         );
+
+         const result = await service.suggestProducts({ query: 'st2' });
+
+         expect(mockSearchGrpcService.suggestProducts).toHaveBeenCalled();
+         expect(result.items).toHaveLength(1);
+         expect(result.items[0].productId).toBe('p-1');
+         expect(result.items[0].productName).toBe('ST25 Rice');
       });
    });
 });

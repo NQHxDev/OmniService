@@ -84,10 +84,30 @@ message ModerateProductRequest {
   string moderation_status = 2;
   string rejection_reason = 3;
   string moderated_by = 4;
+  string action = 5;
+  string moderation_notes = 6;
+  string moderator_email = 7;
 }
 
 message ModerateProductResponse {
   ProductProto product = 1;
+}
+
+message SubmitProductForReviewRequest {
+  string product_id = 1;
+  string supplier_id = 2;
+}
+
+message SubmitProductForReviewResponse {
+  ProductProto product = 1;
+}
+
+message GetProductModerationHistoryRequest {
+  string product_id = 1;
+}
+
+message GetProductModerationHistoryResponse {
+  repeated ProductModerationHistoryProto items = 1;
 }
 
 message UpdateProductStatusRequest {

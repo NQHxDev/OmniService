@@ -29,10 +29,25 @@ export interface IProductProto {
    status: string;
    moderationStatus: string;
    rejectionReason?: string;
+   pendingEditData?: string;
    variants: IProductVariantProto[];
    version: number;
    createdAt: string;
    updatedAt: string;
+}
+
+export interface IProductModerationHistoryProto {
+   historyId: string;
+   productId: string;
+   moderatorId: string;
+   moderatorEmail?: string;
+   action: string;
+   previousStatus: string;
+   newStatus: string;
+   rejectionReason?: string;
+   moderationNotes?: string;
+   snapshot?: string;
+   createdAt: string;
 }
 
 export interface IWhoCategoryProto {

@@ -14,4 +14,17 @@ export interface ISupplierProto {
    version?: number;
    createdAt?: string;
    updatedAt?: string;
+   merchantType?: string;
+   citizenId?: string;
+   citizenIdIssuedDate?: string;
+   idCardFrontUrl?: string;
+   idCardBackUrl?: string;
+   businessName?: string;
+   taxCode?: string;
+   businessLicenseUrl?: string;
+   bankName?: string;
+   bankAccountNumber?: string;
+   bankAccountHolder?: string;
+   rejectionReason?: string;
+   verifiedAt?: string;
 }

@@ -9,6 +9,7 @@ import { MetricsModule } from '@search/core/metrics';
 import { UserSearchModule } from '@search/domains/user-search';
 import { IngredientSearchModule } from '@search/domains/ingredient-search';
 import { PostSearchModule } from '@search/domains/post-search';
+import { ProductSearchModule } from '@search/domains/product-search';
 import { SearchGrpcController } from '@search/adapters/grpc/search-grpc.controller';
 import { SearchService } from '@search/search.service';
 
@@ -25,6 +26,7 @@ import { SearchService } from '@search/search.service';
       UserSearchModule,
       IngredientSearchModule,
       PostSearchModule,
+      ProductSearchModule,
    ],
    controllers: [SearchGrpcController],
    providers: [SearchService],
@@ -33,6 +35,7 @@ import { SearchService } from '@search/search.service';
       UserSearchModule,
       IngredientSearchModule,
       PostSearchModule,
+      ProductSearchModule,
       QueueModule,
       ElasticsearchModule,
    ],

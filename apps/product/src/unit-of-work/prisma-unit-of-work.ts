@@ -4,6 +4,7 @@ import { ProductRepository } from '@product/repositories/product.repository';
 import { ProductVariantRepository } from '@product/repositories/product-variant.repository';
 import { WhoCategoryRepository } from '@product/repositories/who-category.repository';
 import { StockMovementRepository } from '@product/repositories/stock-movement.repository';
+import { ProductModerationHistoryRepository } from '@product/repositories/product-moderation-history.repository';
 import type {
    IProductUnitOfWork,
    IProductUnitOfWorkRepositories,
@@ -26,6 +27,7 @@ export class PrismaProductUnitOfWork implements IProductUnitOfWork {
                productVariantRepository: new ProductVariantRepository(txPrisma),
                whoCategoryRepository: new WhoCategoryRepository(txPrisma),
                stockMovementRepository: new StockMovementRepository(txPrisma),
+               moderationHistoryRepository: new ProductModerationHistoryRepository(txPrisma),
             };
 
             return work(repositories);

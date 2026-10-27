@@ -7,6 +7,12 @@ import {
    getProductProtoLoaderOptions,
    getProductProtoPath,
 } from '@contracts/product';
+import {
+   SEARCH_V1_GRPC_CLIENT,
+   SEARCH_V1_GRPC_PACKAGE_NAME,
+   getSearchProtoLoaderOptions,
+   getSearchProtoPath,
+} from '@contracts/search';
 import { HEALTH_GRPC_PACKAGE_NAME, getHealthProtoPath } from '@contracts/health';
 import { GatewayConfigModule, GatewayConfigService } from '@/config';
 import { ProductsController } from './products.controller';
@@ -29,6 +35,23 @@ import { ProductsService } from './products.service';
                   loader: getProductProtoLoaderOptions(),
                   channelOptions: createGrpcRetryChannelOptions({
                      serviceNames: [PRODUCT_V1_GRPC_PACKAGE_NAME],
+                  }),
+               },
+            }),
+         },
+         {
+            name: SEARCH_V1_GRPC_CLIENT,
+            imports: [GatewayConfigModule],
+            inject: [GatewayConfigService],
+            useFactory: (configService: GatewayConfigService) => ({
+               transport: Transport.GRPC,
+               options: {
+                  package: [SEARCH_V1_GRPC_PACKAGE_NAME],
+                  protoPath: [getSearchProtoPath()],
+                  url: configService.searchGrpcUrl,
+                  loader: getSearchProtoLoaderOptions(),
+                  channelOptions: createGrpcRetryChannelOptions({
+                     serviceNames: [SEARCH_V1_GRPC_PACKAGE_NAME],
                   }),
                },
             }),

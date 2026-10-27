@@ -5,12 +5,12 @@ import {
    SUPPLIER_MEMBER_STATUS,
    SUPPLIER_ROLES,
    type SupplierItemDto,
-   type SupplierStatusType,
 } from '@contracts/supplier';
 import { SupplierService } from '@supplier/services/supplier.service';
 import { RegisterSupplierCommand } from '@supplier/commands/register-supplier.command';
 import { SUPPLIER_MEMBER_REPOSITORY, type ISupplierMemberRepository } from '@supplier/repositories';
 import { SUPPLIER_EVENT_PUBLISHER, type ISupplierEventPublisher } from '@supplier/publishers';
+import { mapSupplierEntityToDto } from '@supplier/utils';
 
 @Injectable()
 @CommandHandler(RegisterSupplierCommand)
@@ -61,19 +61,6 @@ export class RegisterSupplierHandler implements ICommandHandler<RegisterSupplier
          });
       }
 
-      return {
-         supplierId: created.supplierId,
-         supplierName: created.supplierName,
-         supplierSlug: created.supplierSlug,
-         supplierCode: created.supplierCode,
-         contactEmail: created.contactEmail || undefined,
-         contactPhone: created.contactPhone || undefined,
-         address: created.address || undefined,
-         city: created.city || undefined,
-         rating: created.rating,
-         isVerified: created.isVerified,
-         supplierStatus: created.supplierStatus as SupplierStatusType,
-         supplierLogoUrl: created.supplierLogoUrl || undefined,
-      };
+      return mapSupplierEntityToDto(created);
    }
 }

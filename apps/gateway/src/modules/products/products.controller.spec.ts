@@ -12,6 +12,8 @@ describe('ProductsController', () => {
       listWhoCategories: jest.fn(),
       createProduct: jest.fn(),
       listProducts: jest.fn(),
+      searchProducts: jest.fn(),
+      suggestProducts: jest.fn(),
       getProductById: jest.fn(),
       updateProduct: jest.fn(),
       moderateProduct: jest.fn(),
@@ -87,6 +89,68 @@ describe('ProductsController', () => {
             email: undefined,
          });
          expect(result).toEqual(sampleCategories);
+      });
+   });
+
+   describe('searchProducts', () => {
+      it('should search products with query parameters and correlation headers', async () => {
+         const mockResult = {
+            items: [],
+            total: 0,
+            limit: 20,
+            offset: 0,
+         };
+         mockProductsService.searchProducts.mockResolvedValue(mockResult);
+
+         const req = {
+            headers: {
+               [CORRELATION_ID_HEADER]: 'test-corr-id-search',
+            },
+         } as unknown as Request;
+
+         const user: JwtPayload = {
+            sub: 'user-uuid-1',
+            email: 'creator@example.com',
+            roles: ['USER'],
+            permissions: [],
+         };
+
+         const query = { query: 'Gạo', limit: 20, offset: 0 };
+         const result = await controller.searchProducts(query, req, user);
+
+         expect(mockProductsService.searchProducts).toHaveBeenCalledWith(query, {
+            correlationId: 'test-corr-id-search',
+            accountId: 'user-uuid-1',
+            roles: ['USER'],
+            permissions: [],
+            email: 'creator@example.com',
+         });
+         expect(result).toEqual(mockResult);
+      });
+   });
+
+   describe('suggestProducts', () => {
+      it('should return autocomplete suggestions', async () => {
+         const mockResult = {
+            items: [],
+         };
+         mockProductsService.suggestProducts.mockResolvedValue(mockResult);
+
+         const req = {
+            headers: {},
+         } as unknown as Request;
+
+         const query = { query: 'Gạo', limit: 5 };
+         const result = await controller.suggestProducts(query, req, undefined);
+
+         expect(mockProductsService.suggestProducts).toHaveBeenCalledWith(query, {
+            correlationId: undefined,
+            accountId: undefined,
+            roles: undefined,
+            permissions: undefined,
+            email: undefined,
+         });
+         expect(result).toEqual(mockResult);
       });
    });
 });

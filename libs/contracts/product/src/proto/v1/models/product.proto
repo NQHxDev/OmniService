@@ -37,6 +37,21 @@ message ProductProto {
   int32 version = 15;
   string created_at = 16;
   string updated_at = 17;
+  string pending_edit_data = 18;
+}
+
+message ProductModerationHistoryProto {
+  string history_id = 1;
+  string product_id = 2;
+  string moderator_id = 3;
+  string moderator_email = 4;
+  string action = 5;
+  string previous_status = 6;
+  string new_status = 7;
+  string rejection_reason = 8;
+  string moderation_notes = 9;
+  string snapshot = 10;
+  string created_at = 11;
 }
 
 message WhoCategoryProto {

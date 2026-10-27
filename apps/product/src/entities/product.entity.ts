@@ -1,3 +1,4 @@
+import type { ProductPendingEditData } from '@contracts/product';
 import { ProductVariantEntity } from './product-variant.entity';
 import { WhoCategoryEntity } from './who-category.entity';
 
@@ -18,6 +19,7 @@ export class ProductEntity {
    rejectionReason?: string | null;
    moderatedBy?: string | null;
    moderatedAt?: Date | null;
+   pendingEditData?: ProductPendingEditData | null;
    version!: number;
    deletedAt?: Date | null;
    createdAt!: Date;

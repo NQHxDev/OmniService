@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { WhoCategoryCode } from '../constants/product-categories.constant';
-import type { ModerationStatusType, ProductStatusType } from '../constants/status.constant';
-import { ProductVariantDto } from './product-variant.dto';
+import { WHO_CATEGORY_CODES, type WhoCategoryCode } from '@contracts/product/constants/product-categories.constant';
+import type { ModerationStatusType, ProductStatusType } from '@contracts/product/constants/status.constant';
+import { ProductVariantDto } from '@contracts/product/dto/product-variant.dto';
+import { ProductPendingEditDto, type ProductPendingEditData } from './product-pending-edit.dto';
 
 export class ProductItemDto {
    @ApiProperty({
@@ -18,7 +19,8 @@ export class ProductItemDto {
 
    @ApiProperty({
       description: 'Standard WHO nutrition group code',
-      example: 'STAPLES',
+      enum: WHO_CATEGORY_CODES,
+      example: WHO_CATEGORY_CODES.STAPLES,
    })
    whoCategoryCode!: WhoCategoryCode;
 
@@ -82,6 +84,12 @@ export class ProductItemDto {
       example: 'Cần cung cấp thêm giấy chứng nhận an toàn thực phẩm.',
    })
    rejectionReason?: string;
+
+   @ApiPropertyOptional({
+      description: 'Pending draft edit changes waiting for administrator approval',
+      type: () => ProductPendingEditDto,
+   })
+   pendingEditData?: ProductPendingEditData | null;
 
    @ApiProperty({
       description: 'Product packaging variants and stock levels',

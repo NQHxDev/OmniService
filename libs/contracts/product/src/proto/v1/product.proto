@@ -11,6 +11,8 @@ service ProductService {
   rpc CreateProduct (CreateProductRequest) returns (CreateProductResponse);
   rpc UpdateProduct (UpdateProductRequest) returns (UpdateProductResponse);
   rpc ModerateProduct (ModerateProductRequest) returns (ModerateProductResponse);
+  rpc SubmitProductForReview (SubmitProductForReviewRequest) returns (SubmitProductForReviewResponse);
+  rpc GetProductModerationHistory (GetProductModerationHistoryRequest) returns (GetProductModerationHistoryResponse);
   rpc UpdateProductStatus (UpdateProductStatusRequest) returns (UpdateProductStatusResponse);
   rpc CheckAndReserveStock (CheckAndReserveStockRequest) returns (CheckAndReserveStockResponse);
   rpc ReleaseStock (ReleaseStockRequest) returns (ReleaseStockResponse);

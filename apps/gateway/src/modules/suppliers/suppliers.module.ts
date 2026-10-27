@@ -11,6 +11,7 @@ import { HEALTH_GRPC_PACKAGE_NAME, getHealthProtoPath } from '@contracts/health'
 import { GatewayConfigModule, GatewayConfigService } from '@/config';
 import { SuppliersController } from '@/modules/suppliers/suppliers.controller';
 import { SuppliersService } from '@/modules/suppliers/suppliers.service';
+import { VerifiedSupplierGuard } from '@/modules/suppliers/guards';
 
 @Module({
    imports: [
@@ -35,7 +36,7 @@ import { SuppliersService } from '@/modules/suppliers/suppliers.service';
       ]),
    ],
    controllers: [SuppliersController],
-   providers: [SuppliersService],
-   exports: [SuppliersService],
+   providers: [SuppliersService, VerifiedSupplierGuard],
+   exports: [SuppliersService, VerifiedSupplierGuard],
 })
 export class SuppliersModule {}

@@ -1,25 +1,34 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { CacheNamespace, CacheService, uuidv7 } from '@common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { BadRequestException, CacheNamespace, CacheService, NotFoundException, uuidv7 } from '@common';
 import {
    CURRENCY,
+   MODERATION_ACTION,
    MODERATION_STATUS,
+   PRODUCT_AGGREGATE_TYPE,
    PRODUCT_CACHE_KEYS,
    PRODUCT_CACHE_TTL,
    PRODUCT_ERROR_CODES,
+   PRODUCT_FIELDS,
+   PRODUCT_OUTBOX_EVENTS,
    PRODUCT_STATUS,
    type CreateProductDto,
    type CurrencyType,
    type ListProductsQueryDto,
    type ModerateProductDto,
+   type ModerationStatusType,
    type ProductItemDto,
+   type ProductModeratedEventPayload,
+   type ProductModerationHistoryDto,
+   type ProductStatusType,
    type UpdateProductDto,
    type UpdateProductStatusDto,
 } from '@contracts/product';
-import { ProductSlug, Sku } from '@product/domain';
+import { ProductModerationStateMachine, ProductSlug, Sku } from '@product/domain';
 import { ProductEntity, WhoCategoryEntity } from '@product/entities';
 import { PRODUCT_EVENT_PUBLISHER, type IProductEventPublisher } from '@product/publishers';
 import { PRODUCT_UNIT_OF_WORK, type IProductUnitOfWork } from '@product/unit-of-work';
 import { OutboxService } from '@product/outbox';
+import type { UpdateProductInput } from '@product/repositories';
 
 export const WHO_CATEGORIES_CACHE_KEY = PRODUCT_CACHE_KEYS.WHO_CATEGORIES_ALL;
 
@@ -49,6 +58,7 @@ export class ProductService {
          status: entity.status as never,
          moderationStatus: entity.moderationStatus as never,
          rejectionReason: entity.rejectionReason || undefined,
+         pendingEditData: entity.pendingEditData || undefined,
          variants: (entity.variants || []).map((v) => ({
             variantId: v.variantId,
             productId: v.productId,
@@ -79,18 +89,16 @@ export class ProductService {
       return this.uow.runInTransaction(async (repos) => {
          const category = await repos.whoCategoryRepository.findByCode(dto.whoCategoryCode);
          if (!category) {
-            throw new BadRequestException({
-               code: PRODUCT_ERROR_CODES.WHO_CATEGORY_INVALID,
-               message: `Invalid WHO food category code: ${dto.whoCategoryCode}`,
+            throw new BadRequestException(PRODUCT_ERROR_CODES.WHO_CATEGORY_INVALID, {
+               params: { code: dto.whoCategoryCode },
             });
          }
 
          const productId = uuidv7();
          const slugResult = ProductSlug.create(dto.productName, productId);
          if (slugResult.isFailure()) {
-            throw new BadRequestException({
-               code: PRODUCT_ERROR_CODES.PRODUCT_INVALID_DATA,
-               message: 'Invalid product name',
+            throw new BadRequestException(PRODUCT_ERROR_CODES.PRODUCT_INVALID_DATA, {
+               params: { field: 'productName' },
             });
          }
          const slugVo = slugResult.getValue();
@@ -208,16 +216,20 @@ export class ProductService {
       return this.uow.runInTransaction(async (repos) => {
          const existing = await repos.productRepository.findById(productId);
          if (!existing) {
-            throw new NotFoundException({
-               code: PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND,
-               message: `Product ${productId} not found`,
+            throw new NotFoundException(PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND, {
+               params: { id: productId },
             });
          }
 
          if (existing.supplierId !== supplierId) {
-            throw new BadRequestException({
-               code: PRODUCT_ERROR_CODES.PRODUCT_NOT_OWNED,
-               message: `You do not own product ${productId}`,
+            throw new BadRequestException(PRODUCT_ERROR_CODES.PRODUCT_NOT_OWNED, {
+               params: { id: productId },
+            });
+         }
+
+         if (existing.moderationStatus === MODERATION_STATUS.PENDING_APPROVAL) {
+            throw new BadRequestException(PRODUCT_ERROR_CODES.CANNOT_EDIT_WHILE_PENDING_APPROVAL, {
+               params: { id: productId },
             });
          }
 
@@ -226,9 +238,8 @@ export class ProductService {
          if (dto.productName && dto.productName !== existing.productName) {
             const slugResult = ProductSlug.create(dto.productName, productId);
             if (slugResult.isFailure()) {
-               throw new BadRequestException({
-                  code: PRODUCT_ERROR_CODES.PRODUCT_INVALID_DATA,
-                  message: 'Invalid product name',
+               throw new BadRequestException(PRODUCT_ERROR_CODES.PRODUCT_INVALID_DATA, {
+                  params: { field: PRODUCT_FIELDS.PRODUCT_NAME },
                });
             }
             const slugVo = slugResult.getValue();
@@ -236,7 +247,33 @@ export class ProductService {
             normalizedName = slugVo.normalizedName;
          }
 
+         // Live Version vs Pending Edit Draft
+         // When product is APPROVED or ACTIVE, Supplier edits are staged into pendingEditData
+         if (existing.moderationStatus === MODERATION_STATUS.APPROVED || existing.status === PRODUCT_STATUS.ACTIVE) {
+            const editDraft: Record<string, unknown> = {
+               productName: dto.productName ?? existing.productName,
+               normalizedName: normalizedName ?? existing.normalizedName,
+               productSlug: slugValue ?? existing.productSlug,
+               description: dto.description ?? existing.description,
+               origin: dto.origin !== undefined ? dto.origin : existing.origin,
+               storageCondition: dto.storageCondition !== undefined ? dto.storageCondition : existing.storageCondition,
+               shelfLifeDays: dto.shelfLifeDays !== undefined ? dto.shelfLifeDays : existing.shelfLifeDays,
+               images: dto.images ?? existing.images,
+               whoCategoryCode: dto.whoCategoryCode ?? existing.whoCategoryCode,
+               editedAt: new Date().toISOString(),
+            };
+
+            const updated = await repos.productRepository.update(productId, {
+               pendingEditData: editDraft,
+               moderationStatus: MODERATION_STATUS.EDIT_PENDING_APPROVAL,
+            });
+
+            return this.mapEntityToDto(updated);
+         }
+
+         // Direct edit for DRAFT or REJECTED products
          const updated = await repos.productRepository.update(productId, {
+            whoCategoryCode: dto.whoCategoryCode,
             productName: dto.productName,
             normalizedName,
             productSlug: slugValue,
@@ -245,63 +282,180 @@ export class ProductService {
             storageCondition: dto.storageCondition,
             shelfLifeDays: dto.shelfLifeDays,
             images: dto.images,
+            moderationStatus: MODERATION_STATUS.DRAFT,
          });
 
          return this.mapEntityToDto(updated);
       });
    }
 
-   async moderateProduct(productId: string, moderatorId: string, dto: ModerateProductDto): Promise<ProductItemDto> {
+   async submitProductForReview(productId: string, supplierId: string): Promise<ProductItemDto> {
       return this.uow.runInTransaction(async (repos) => {
          const existing = await repos.productRepository.findById(productId);
          if (!existing) {
-            throw new NotFoundException({
-               code: PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND,
-               message: `Product ${productId} not found`,
+            throw new NotFoundException(PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND, {
+               params: { id: productId },
             });
          }
 
-         if (dto.moderationStatus === MODERATION_STATUS.REJECTED && !dto.rejectionReason?.trim()) {
-            throw new BadRequestException({
-               code: PRODUCT_ERROR_CODES.MODERATION_REJECTION_REASON_REQUIRED,
-               message: 'Rejection reason is required when rejecting a product',
+         if (existing.supplierId !== supplierId) {
+            throw new BadRequestException(PRODUCT_ERROR_CODES.PRODUCT_NOT_OWNED, {
+               params: { id: productId },
             });
          }
 
-         const now = new Date();
+         const transition = ProductModerationStateMachine.transitionOnSubmitForReview(
+            existing.moderationStatus as ModerationStatusType,
+         );
+
          const updated = await repos.productRepository.update(productId, {
-            moderationStatus: dto.moderationStatus,
-            rejectionReason: dto.moderationStatus === MODERATION_STATUS.REJECTED ? dto.rejectionReason : null,
-            moderatedBy: moderatorId,
-            moderatedAt: now,
-            // If approved, activate status automatically or let supplier activate
-            status:
-               dto.moderationStatus === MODERATION_STATUS.APPROVED ? PRODUCT_STATUS.ACTIVE : PRODUCT_STATUS.INACTIVE,
+            moderationStatus: transition.newModerationStatus,
          });
 
-         const payload = {
+         return this.mapEntityToDto(updated);
+      });
+   }
+
+   async moderateProduct(
+      productId: string,
+      moderatorId: string,
+      dto: ModerateProductDto,
+      moderatorEmail?: string,
+   ): Promise<ProductItemDto> {
+      return this.uow.runInTransaction(async (repos) => {
+         const existing = await repos.productRepository.findById(productId);
+         if (!existing) {
+            throw new NotFoundException(PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND, {
+               params: { id: productId },
+            });
+         }
+
+         const transition = ProductModerationStateMachine.transitionOnModeration(
+            existing.moderationStatus as ModerationStatusType,
+            existing.status as ProductStatusType,
+            dto.moderationStatus,
+            dto.action,
+            dto.rejectionReason,
+            existing.pendingEditData,
+         );
+
+         const now = new Date();
+         const updatePayload: UpdateProductInput = {
+            moderationStatus: transition.newModerationStatus,
+            status: transition.newProductStatus,
+            rejectionReason:
+               dto.moderationStatus === MODERATION_STATUS.REJECTED ||
+               transition.action === MODERATION_ACTION.REJECT_EDIT
+                  ? dto.rejectionReason
+                  : null,
+            moderatedBy: moderatorId,
+            moderatedAt: now,
+         };
+
+         if (transition.applyPendingEdit && transition.updatedFields) {
+            const draft = transition.updatedFields;
+            if (typeof draft.productName === 'string') updatePayload.productName = draft.productName;
+            if (typeof draft.normalizedName === 'string') updatePayload.normalizedName = draft.normalizedName;
+            if (typeof draft.productSlug === 'string') updatePayload.productSlug = draft.productSlug;
+            if (typeof draft.description === 'string') updatePayload.description = draft.description;
+            if (draft.origin !== undefined) updatePayload.origin = draft.origin as string;
+            if (draft.storageCondition !== undefined) updatePayload.storageCondition = draft.storageCondition as string;
+            if (draft.shelfLifeDays !== undefined) updatePayload.shelfLifeDays = draft.shelfLifeDays as number;
+            if (Array.isArray(draft.images)) updatePayload.images = draft.images;
+            if (typeof draft.whoCategoryCode === 'string') updatePayload.whoCategoryCode = draft.whoCategoryCode;
+            updatePayload.pendingEditData = null;
+         } else if (transition.clearPendingEdit) {
+            updatePayload.pendingEditData = null;
+         }
+
+         const updated = await repos.productRepository.update(productId, updatePayload);
+
+         // Snapshot for audit trail
+         const snapshot: Record<string, unknown> = {
+            productId: existing.productId,
+            productName: existing.productName,
+            status: existing.status,
+            moderationStatus: existing.moderationStatus,
+            pendingEditData: existing.pendingEditData,
+            images: existing.images,
+            version: existing.version,
+         };
+
+         // Write audit history record
+         await repos.moderationHistoryRepository.create({
+            productId,
+            moderatorId,
+            moderatorEmail: moderatorEmail || null,
+            action: transition.action,
+            previousStatus: existing.moderationStatus,
+            newStatus: transition.newModerationStatus,
+            rejectionReason: dto.rejectionReason || null,
+            moderationNotes: dto.moderationNotes || null,
+            snapshot,
+         });
+
+         const eventPayload: ProductModeratedEventPayload = {
             productId,
             supplierId: updated.supplierId,
-            moderationStatus: dto.moderationStatus,
+            productName: updated.productName,
+            moderationStatus: updated.moderationStatus,
+            action: transition.action,
             rejectionReason: dto.rejectionReason,
+            moderationNotes: dto.moderationNotes,
             moderatedBy: moderatorId,
+            moderatorEmail,
             moderatedAt: now.toISOString(),
          };
 
+         const eventType =
+            transition.action === MODERATION_ACTION.SUSPEND
+               ? PRODUCT_OUTBOX_EVENTS.SUSPENDED
+               : transition.newModerationStatus === MODERATION_STATUS.APPROVED
+                 ? PRODUCT_OUTBOX_EVENTS.APPROVED
+                 : PRODUCT_OUTBOX_EVENTS.REJECTED;
+
          await this.outboxService.emitEvent({
             aggregateId: productId,
-            aggregateType: 'PRODUCT',
-            eventType: dto.moderationStatus === MODERATION_STATUS.APPROVED ? 'PRODUCT_APPROVED' : 'PRODUCT_REJECTED',
-            payload,
+            aggregateType: PRODUCT_AGGREGATE_TYPE,
+            eventType,
+            payload: eventPayload as unknown as Record<string, unknown>,
          });
 
-         if (dto.moderationStatus === MODERATION_STATUS.APPROVED) {
-            await this.publisher.publishProductApproved(payload);
+         if (transition.action === MODERATION_ACTION.SUSPEND) {
+            await this.publisher.publishProductSuspended(eventPayload);
+         } else if (transition.newModerationStatus === MODERATION_STATUS.APPROVED) {
+            await this.publisher.publishProductApproved(eventPayload);
          } else {
-            await this.publisher.publishProductRejected(payload);
+            await this.publisher.publishProductRejected(eventPayload);
          }
 
          return this.mapEntityToDto(updated);
+      });
+   }
+
+   async getProductModerationHistory(productId: string): Promise<ProductModerationHistoryDto[]> {
+      return this.uow.runInTransaction(async (repos) => {
+         const existing = await repos.productRepository.findById(productId);
+         if (!existing) {
+            throw new NotFoundException(PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND, {
+               params: { id: productId },
+            });
+         }
+
+         const histories = await repos.moderationHistoryRepository.findByProductId(productId);
+         return histories.map((h) => ({
+            historyId: h.historyId,
+            productId: h.productId,
+            moderatorId: h.moderatorId,
+            moderatorEmail: h.moderatorEmail || undefined,
+            action: h.action as never,
+            previousStatus: h.previousStatus as never,
+            newStatus: h.newStatus as never,
+            rejectionReason: h.rejectionReason || undefined,
+            moderationNotes: h.moderationNotes || undefined,
+            snapshot: h.snapshot || undefined,
+            createdAt: h.createdAt.toISOString(),
+         }));
       });
    }
 
@@ -313,24 +467,21 @@ export class ProductService {
       return this.uow.runInTransaction(async (repos) => {
          const existing = await repos.productRepository.findById(productId);
          if (!existing) {
-            throw new NotFoundException({
-               code: PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND,
-               message: `Product ${productId} not found`,
+            throw new NotFoundException(PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND, {
+               params: { id: productId },
             });
          }
 
          if (existing.supplierId !== supplierId) {
-            throw new BadRequestException({
-               code: PRODUCT_ERROR_CODES.PRODUCT_NOT_OWNED,
-               message: `You do not own product ${productId}`,
+            throw new BadRequestException(PRODUCT_ERROR_CODES.PRODUCT_NOT_OWNED, {
+               params: { id: productId },
             });
          }
 
          // Enforce moderation rule: cannot active unapproved product!
          if (dto.status === PRODUCT_STATUS.ACTIVE && existing.moderationStatus !== MODERATION_STATUS.APPROVED) {
-            throw new BadRequestException({
-               code: PRODUCT_ERROR_CODES.CANNOT_ACTIVATE_UNAPPROVED_PRODUCT,
-               message: 'Cannot activate product before admin approval',
+            throw new BadRequestException(PRODUCT_ERROR_CODES.CANNOT_ACTIVATE_UNAPPROVED_PRODUCT, {
+               params: { id: productId },
             });
          }
 
@@ -353,9 +504,8 @@ export class ProductService {
       return this.uow.runInTransaction(async (repos) => {
          const existing = await repos.productRepository.findById(productId);
          if (!existing) {
-            throw new NotFoundException({
-               code: PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND,
-               message: `Product ${productId} not found`,
+            throw new NotFoundException(PRODUCT_ERROR_CODES.PRODUCT_NOT_FOUND, {
+               params: { id: productId },
             });
          }
          return this.mapEntityToDto(existing);

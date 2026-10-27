@@ -13,4 +13,6 @@ service SupplierService {
   rpc UpdateSupplier (UpdateSupplierRequest) returns (UpdateSupplierResponse);
   rpc VerifySupplier (VerifySupplierRequest) returns (VerifySupplierResponse);
   rpc UpdateSupplierStatus (UpdateSupplierStatusRequest) returns (UpdateSupplierStatusResponse);
+  rpc SubmitKyb (SubmitKybRequest) returns (SubmitKybResponse);
+  rpc RejectSupplier (RejectSupplierRequest) returns (RejectSupplierResponse);
 }

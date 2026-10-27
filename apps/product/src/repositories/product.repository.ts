@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { MODERATION_STATUS, PRODUCT_STATUS } from '@contracts/product';
 import { PrismaService } from '@product/prisma';
 import { ProductEntity } from '@product/entities';
-import type { Prisma } from '@product/prisma-client';
+import { Prisma } from '@product/prisma-client';
 import type {
    CreateProductInput,
    FindProductsParams,
    IProductRepository,
    UpdateProductInput,
-} from './product.repository.interface';
+} from '@product/repositories/product.repository.interface';
 
 @Injectable()
 export class ProductRepository implements IProductRepository {
@@ -31,6 +32,7 @@ export class ProductRepository implements IProductRepository {
          rejectionReason: (item.rejectionReason as string) || null,
          moderatedBy: (item.moderatedBy as string) || null,
          moderatedAt: (item.moderatedAt as Date) || null,
+         pendingEditData: (item.pendingEditData as Record<string, unknown>) || null,
          version: item.version as number,
          deletedAt: (item.deletedAt as Date) || null,
          createdAt: item.createdAt as Date,
@@ -170,8 +172,9 @@ export class ProductRepository implements IProductRepository {
             storageCondition: input.storageCondition,
             shelfLifeDays: input.shelfLifeDays,
             images: input.images || [],
-            status: input.status || 'DRAFT',
-            moderationStatus: input.moderationStatus || 'PENDING_APPROVAL',
+            status: input.status || PRODUCT_STATUS.DRAFT,
+            moderationStatus: input.moderationStatus || MODERATION_STATUS.PENDING_APPROVAL,
+            pendingEditData: (input.pendingEditData as Prisma.InputJsonValue) ?? undefined,
          },
          include: {
             whoCategory: true,
@@ -182,12 +185,21 @@ export class ProductRepository implements IProductRepository {
    }
 
    async update(productId: string, input: UpdateProductInput): Promise<ProductEntity> {
+      const { pendingEditData, ...rest } = input;
+      const data: Prisma.ProductUncheckedUpdateInput = {
+         ...rest,
+         version: { increment: 1 },
+      };
+
+      if (pendingEditData === null) {
+         data.pendingEditData = Prisma.JsonNull;
+      } else if (pendingEditData !== undefined) {
+         data.pendingEditData = pendingEditData as Prisma.InputJsonValue;
+      }
+
       const updated = await this.prisma.product.update({
          where: { productId },
-         data: {
-            ...input,
-            version: { increment: 1 },
-         },
+         data,
          include: {
             whoCategory: true,
             variants: {

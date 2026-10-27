@@ -2,6 +2,8 @@ export const SEARCH_PATTERNS = {
    SEARCH_USERS: 'search_users',
    SEARCH_POSTS: 'search_posts',
    SEARCH_INGREDIENTS: 'search_ingredients',
+   SEARCH_PRODUCTS: 'search_products',
+   SUGGEST_PRODUCTS: 'suggest_products',
    GLOBAL_SEARCH: 'global_search',
 } as const;
 
@@ -17,6 +19,8 @@ export type SearchErrorCode = (typeof SEARCH_ERROR_CODES)[keyof typeof SEARCH_ER
 
 export const SEARCH_RESPONSE_MESSAGES = {
    SEARCH_SUCCESS: 'SEARCH.SEARCH_SUCCESS',
+   SEARCH_PRODUCTS_SUCCESS: 'SEARCH.SEARCH_PRODUCTS_SUCCESS',
+   SUGGEST_PRODUCTS_SUCCESS: 'SEARCH.SUGGEST_PRODUCTS_SUCCESS',
 } as const;
 
 export type SearchResponseMessage = (typeof SEARCH_RESPONSE_MESSAGES)[keyof typeof SEARCH_RESPONSE_MESSAGES];
