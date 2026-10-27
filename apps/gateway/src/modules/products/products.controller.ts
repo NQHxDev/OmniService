@@ -35,11 +35,11 @@ import { ProductsService } from './products.service';
 export class ProductsController {
    constructor(private readonly productsService: ProductsService) {}
 
-   @Get('who-categories')
+   @Get('categories')
    @Public()
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
-      operationId: 'listWhoCategories',
+      operationId: 'listCategories',
       summary: 'Get WHO standardized 8 culinary food nutrition groups',
       description:
          'Returns standard food categories required when creating ingredient products (WHO 8 nutrition groups).',
@@ -50,7 +50,7 @@ export class ProductsController {
       type: [WhoCategoryDto],
    })
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.LIST_CATEGORIES_SUCCESS)
-   async listWhoCategories(@Req() req: Request, @CurrentUser() user?: JwtPayload): Promise<WhoCategoryDto[]> {
+   async listCategories(@Req() req: Request, @CurrentUser() user?: JwtPayload): Promise<WhoCategoryDto[]> {
       const correlationId = (req.headers[CORRELATION_ID_HEADER] as string) || undefined;
       return this.productsService.listWhoCategories({
          correlationId,

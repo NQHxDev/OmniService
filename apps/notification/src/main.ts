@@ -12,12 +12,14 @@ async function bootstrap() {
    const rmqService = appContext.get(RmqService);
 
    await rmqService.setupQueueTopology(SERVICES.NOTIFICATION_SERVICE);
+   await appContext.close();
 
    const app = await NestFactory.createMicroservice(
       NotificationModule,
       rmqService.getOptions(SERVICES.NOTIFICATION_SERVICE),
    );
 
+   app.enableShutdownHooks();
    app.useLogger(logger);
    app.useGlobalFilters(new AllRpcExceptionsFilter());
    app.useGlobalInterceptors(new TracingInterceptor());

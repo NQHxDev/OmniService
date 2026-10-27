@@ -1,8 +1,10 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { uuidv7 } from '@common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { CacheNamespace, CacheService, uuidv7 } from '@common';
 import {
    CURRENCY,
    MODERATION_STATUS,
+   PRODUCT_CACHE_KEYS,
+   PRODUCT_CACHE_TTL,
    PRODUCT_ERROR_CODES,
    PRODUCT_STATUS,
    type CreateProductDto,
@@ -14,10 +16,12 @@ import {
    type UpdateProductStatusDto,
 } from '@contracts/product';
 import { ProductSlug, Sku } from '@product/domain';
-import { ProductEntity } from '@product/entities';
+import { ProductEntity, WhoCategoryEntity } from '@product/entities';
 import { PRODUCT_EVENT_PUBLISHER, type IProductEventPublisher } from '@product/publishers';
 import { PRODUCT_UNIT_OF_WORK, type IProductUnitOfWork } from '@product/unit-of-work';
 import { OutboxService } from '@product/outbox';
+
+export const WHO_CATEGORIES_CACHE_KEY = PRODUCT_CACHE_KEYS.WHO_CATEGORIES_ALL;
 
 @Injectable()
 export class ProductService {
@@ -27,6 +31,7 @@ export class ProductService {
       @Inject(PRODUCT_EVENT_PUBLISHER)
       private readonly publisher: IProductEventPublisher,
       private readonly outboxService: OutboxService,
+      @Optional() private readonly cacheService?: CacheService,
    ) {}
 
    private mapEntityToDto(entity: ProductEntity): ProductItemDto {
@@ -383,9 +388,38 @@ export class ProductService {
       });
    }
 
-   async listWhoCategories() {
-      return this.uow.runInTransaction(async (repos) => {
+   async listWhoCategories(): Promise<WhoCategoryEntity[]> {
+      if (this.cacheService) {
+         try {
+            const cached = await this.cacheService.get<WhoCategoryEntity[]>(
+               CacheNamespace.PRODUCT,
+               WHO_CATEGORIES_CACHE_KEY,
+            );
+            if (cached && Array.isArray(cached) && cached.length > 0) {
+               return cached;
+            }
+         } catch {
+            // Degrade gracefully if cache is unreachable
+         }
+      }
+
+      const categories = await this.uow.runInTransaction(async (repos) => {
          return repos.whoCategoryRepository.findAll();
       });
+
+      if (this.cacheService && categories.length > 0) {
+         try {
+            await this.cacheService.set(
+               CacheNamespace.PRODUCT,
+               WHO_CATEGORIES_CACHE_KEY,
+               categories,
+               PRODUCT_CACHE_TTL.WHO_CATEGORIES_SECONDS,
+            );
+         } catch {
+            // Degrade gracefully if cache is unreachable
+         }
+      }
+
+      return categories;
    }
 }

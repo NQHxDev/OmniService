@@ -1,7 +1,9 @@
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { defer, firstValueFrom } from 'rxjs';
 import {
+   CacheNamespace,
+   CacheService,
    CircuitBreakerRegistry,
    createGrpcMetadata,
    handleGrpcError,
@@ -13,6 +15,8 @@ import {
 import {
    CURRENCY,
    type CurrencyType,
+   PRODUCT_CACHE_KEYS,
+   PRODUCT_CACHE_TTL,
    PRODUCT_ERROR_CODES,
    PRODUCT_V1_GRPC_CLIENT,
    PRODUCT_V1_GRPC_SERVICE_NAME,
@@ -65,7 +69,10 @@ export class ProductsService implements OnModuleInit {
       maxDelayMs: 2000,
    });
 
-   constructor(@Inject(PRODUCT_V1_GRPC_CLIENT) private readonly productGrpcClient: ClientGrpc) {}
+   constructor(
+      @Inject(PRODUCT_V1_GRPC_CLIENT) private readonly productGrpcClient: ClientGrpc,
+      @Optional() private readonly cacheService?: CacheService,
+   ) {}
 
    onModuleInit(): void {
       this.productGrpcService = this.productGrpcClient.getService<IProductV1GrpcService>(PRODUCT_V1_GRPC_SERVICE_NAME);
@@ -459,6 +466,18 @@ export class ProductsService implements OnModuleInit {
    }
 
    async listWhoCategories(options?: ProductCallOptions): Promise<WhoCategoryDto[]> {
+      const cacheKey = PRODUCT_CACHE_KEYS.WHO_CATEGORIES_ALL;
+      if (this.cacheService) {
+         try {
+            const cached = await this.cacheService.get<WhoCategoryDto[]>(CacheNamespace.GATEWAY, cacheKey);
+            if (cached && Array.isArray(cached) && cached.length > 0) {
+               return cached;
+            }
+         } catch {
+            // Degrade gracefully if cache is unreachable
+         }
+      }
+
       try {
          const metadata = createGrpcMetadata({
             correlationId: options?.correlationId,
@@ -470,7 +489,7 @@ export class ProductsService implements OnModuleInit {
             email: options?.email,
          });
 
-         return await this.productGrpcBreaker.execute(async () => {
+         const categories = await this.productGrpcBreaker.execute(async () => {
             const res = await firstValueFrom(
                defer(() => this.productGrpcService.listWhoCategories({}, metadata)).pipe(
                   withGrpcRetry(this.productGrpcRetryPolicy),
@@ -485,6 +504,21 @@ export class ProductsService implements OnModuleInit {
                order: c.order,
             }));
          });
+
+         if (this.cacheService && categories.length > 0) {
+            try {
+               await this.cacheService.set(
+                  CacheNamespace.GATEWAY,
+                  cacheKey,
+                  categories,
+                  PRODUCT_CACHE_TTL.WHO_CATEGORIES_SECONDS,
+               );
+            } catch {
+               // Degrade gracefully on cache write failure
+            }
+         }
+
+         return categories;
       } catch (error: unknown) {
          return handleGrpcError(error);
       }

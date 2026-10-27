@@ -18,7 +18,7 @@ processes:
 
    # Business Services
    auth:
-      command: docker compose --profile auth up -d --wait && pnpm --filter @omni/auth run prisma:push && pnpm --filter @omni/auth run prisma:seed && exec pnpm run start:nowatch:auth
+      command: ./scripts/run-service.sh auth "docker compose --profile auth up -d --wait && pnpm --filter @omni/auth run prisma:push && pnpm --filter @omni/auth run prisma:seed && pnpm run start:nowatch:auth"
       availability:
          restart: on_failure
       depends_on:
@@ -27,7 +27,7 @@ processes:
       disabled: true
 
    user:
-      command: docker compose --profile user up -d --wait && pnpm --filter @omni/user run prisma:push && exec pnpm run start:nowatch:user
+      command: ./scripts/run-service.sh user "docker compose --profile user up -d --wait && pnpm --filter @omni/user run prisma:push && pnpm run start:nowatch:user"
       availability:
          restart: on_failure
       depends_on:
@@ -36,7 +36,7 @@ processes:
       disabled: true
 
    post:
-      command: docker compose --profile post up -d --wait && pnpm --filter @omni/post run prisma:push && exec pnpm run start:nowatch:post
+      command: ./scripts/run-service.sh post "docker compose --profile post up -d --wait && pnpm --filter @omni/post run prisma:push && pnpm run start:nowatch:post"
       availability:
          restart: on_failure
       depends_on:
@@ -45,7 +45,7 @@ processes:
       disabled: true
 
    notification:
-      command: docker compose --profile notification up -d --wait && pnpm --filter @omni/notification run prisma:push && exec pnpm run start:nowatch:notification
+      command: ./scripts/run-service.sh notification "docker compose --profile notification up -d --wait && pnpm --filter @omni/notification run prisma:push && pnpm run start:nowatch:notification"
       availability:
          restart: on_failure
       depends_on:
@@ -54,7 +54,7 @@ processes:
       disabled: true
 
    search:
-      command: docker compose --profile search up -d --wait && exec pnpm run start:nowatch:search
+      command: ./scripts/run-service.sh search "docker compose --profile search up -d --wait && pnpm run start:nowatch:search"
       availability:
          restart: on_failure
       depends_on:
@@ -63,7 +63,7 @@ processes:
       disabled: true
 
    media:
-      command: docker compose --profile media up -d --wait && pnpm --filter @omni/media run prisma:push && exec pnpm run start:nowatch:media
+      command: ./scripts/run-service.sh media "docker compose --profile media up -d --wait && pnpm --filter @omni/media run prisma:push && pnpm run start:nowatch:media"
       availability:
          restart: on_failure
       depends_on:
@@ -72,7 +72,7 @@ processes:
       disabled: true
 
    commerce:
-      command: docker compose --profile commerce up -d --wait && pnpm --filter @omni/commerce run prisma:push && exec pnpm run start:nowatch:commerce
+      command: ./scripts/run-service.sh commerce "docker compose --profile commerce up -d --wait && pnpm --filter @omni/commerce run prisma:push && pnpm run start:nowatch:commerce"
       availability:
          restart: on_failure
       depends_on:
@@ -81,7 +81,7 @@ processes:
       disabled: true
 
    product:
-      command: docker compose --profile product up -d --wait && pnpm --filter @omni/product run prisma:push && exec pnpm run start:nowatch:product
+      command: ./scripts/run-service.sh product "docker compose --profile product up -d --wait && pnpm --filter @omni/product run prisma:push && pnpm run start:nowatch:product"
       availability:
          restart: on_failure
       depends_on:
@@ -90,7 +90,7 @@ processes:
       disabled: true
 
    supplier:
-      command: docker compose --profile supplier up -d --wait && pnpm --filter @omni/supplier run prisma:push && exec pnpm run start:nowatch:supplier
+      command: ./scripts/run-service.sh supplier "docker compose --profile supplier up -d --wait && pnpm --filter @omni/supplier run prisma:push && pnpm run start:nowatch:supplier"
       availability:
          restart: on_failure
       depends_on:
@@ -99,7 +99,7 @@ processes:
       disabled: true
 
    order:
-      command: docker compose --profile order up -d --wait && pnpm --filter @omni/order run prisma:push && exec pnpm run start:nowatch:order
+      command: ./scripts/run-service.sh order "docker compose --profile order up -d --wait && pnpm --filter @omni/order run prisma:push && pnpm run start:nowatch:order"
       availability:
          restart: on_failure
       depends_on:
@@ -108,7 +108,7 @@ processes:
       disabled: true
 
    payment:
-      command: docker compose --profile payment up -d --wait && pnpm --filter @omni/payment run prisma:push && exec pnpm run start:nowatch:payment
+      command: ./scripts/run-service.sh payment "docker compose --profile payment up -d --wait && pnpm --filter @omni/payment run prisma:push && pnpm run start:nowatch:payment"
       availability:
          restart: on_failure
       depends_on:

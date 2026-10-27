@@ -20,6 +20,8 @@ async function bootstrap() {
       bufferLogs: true,
    });
 
+   app.enableShutdownHooks();
+
    const logger = app.get(Logger);
    app.useLogger(logger);
 

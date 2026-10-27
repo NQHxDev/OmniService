@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { createGrpcRetryChannelOptions } from '@common';
+import { CacheModule, createGrpcRetryChannelOptions } from '@common';
 import {
    PRODUCT_V1_GRPC_CLIENT,
    PRODUCT_V1_GRPC_PACKAGE_NAME,
@@ -14,6 +14,7 @@ import { ProductsService } from './products.service';
 
 @Module({
    imports: [
+      CacheModule,
       ClientsModule.registerAsync([
          {
             name: PRODUCT_V1_GRPC_CLIENT,

@@ -4,6 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import {
    COMMAND_BUS,
    CommandBus,
+   CacheModule,
    GRPC_METRICS_COLLECTOR,
    GrpcHealthModule,
    GrpcLoggingInterceptor,
@@ -47,6 +48,7 @@ import { PRODUCT_EVENT_PUBLISHER, ProductEventPublisher } from '@product/publish
       UnitOfWorkModule,
       OutboxModule,
       RedisModule,
+      CacheModule,
       RmqModule,
       RmqModule.register({
          name: SERVICES.SEARCH_SERVICE,
