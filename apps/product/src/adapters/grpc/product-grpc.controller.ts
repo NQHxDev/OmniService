@@ -14,6 +14,8 @@ import {
    UnauthorizedException,
 } from '@common';
 import {
+   CURRENCY,
+   CurrencyType,
    PRODUCT_V1_GRPC_METHODS,
    PRODUCT_V1_GRPC_SERVICE_NAME,
    type IAdjustStockRequest,
@@ -71,7 +73,7 @@ export class ProductGrpcController implements IProductV1GrpcService {
 
    private extractAccountId(metadata?: Metadata, fallbackId?: string): string {
       const user = extractGrpcUser(metadata);
-      const resolved = user?.userId || fallbackId;
+      const resolved = fallbackId || user?.userId;
       if (!resolved) {
          throw new UnauthorizedException(COMMON_ERROR_CODES.UNAUTHORIZED);
       }
@@ -164,6 +166,7 @@ export class ProductGrpcController implements IProductV1GrpcService {
          this.commandBus
             .execute(
                new CreateProductCommand(supplierId, {
+                  supplierId,
                   whoCategoryCode: data.whoCategoryCode as never,
                   productName: data.productName,
                   description: data.description,
@@ -178,7 +181,7 @@ export class ProductGrpcController implements IProductV1GrpcService {
                      packSize: v.packSize,
                      price: v.price,
                      originalPrice: v.originalPrice,
-                     currency: (v.currency as never) || 'VND',
+                     currency: (v.currency as CurrencyType) || CURRENCY.VND,
                      stockQuantity: v.stockQuantity,
                      lowStockThreshold: v.lowStockThreshold,
                      isDefault: v.isDefault,

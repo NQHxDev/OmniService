@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@common';
-import type { ListSuppliersResponseDto, SupplierStatusType } from '@contracts/supplier';
+import type { ListSuppliersResponseDto } from '@contracts/supplier';
 import { SupplierService } from '@supplier/services/supplier.service';
 import { ListSuppliersQuery } from '@supplier/queries/list-suppliers.query';
+import { mapSupplierEntityToDto } from '@supplier/utils';
 
 @Injectable()
 @CommandHandler(ListSuppliersQuery)
@@ -18,20 +19,7 @@ export class ListSuppliersHandler implements ICommandHandler<ListSuppliersQuery,
       });
 
       return {
-         items: items.map((s) => ({
-            supplierId: s.supplierId,
-            supplierName: s.supplierName,
-            supplierSlug: s.supplierSlug,
-            supplierCode: s.supplierCode,
-            contactEmail: s.contactEmail || undefined,
-            contactPhone: s.contactPhone || undefined,
-            address: s.address || undefined,
-            city: s.city || undefined,
-            rating: s.rating,
-            isVerified: s.isVerified,
-            supplierStatus: s.supplierStatus as SupplierStatusType,
-            supplierLogoUrl: s.supplierLogoUrl || undefined,
-         })),
+         items: items.map((s) => mapSupplierEntityToDto(s)),
          total,
          limit: query.dto.limit ?? 20,
          offset: query.dto.offset ?? 0,

@@ -1,5 +1,4 @@
 import { WhoCategoryRepository } from './who-category.repository';
-import { WHO_FOOD_GROUPS } from '@contracts/product';
 
 describe('WhoCategoryRepository', () => {
    let repository: WhoCategoryRepository;
@@ -17,7 +16,7 @@ describe('WhoCategoryRepository', () => {
    });
 
    describe('findAll', () => {
-      it('should return records from database if present', async () => {
+      it('should return records from database ordered by order asc', async () => {
          const dbCategories = [
             {
                code: 'STAPLES',
@@ -39,13 +38,15 @@ describe('WhoCategoryRepository', () => {
          expect(result).toBe(dbCategories);
       });
 
-      it('should fallback to WHO_FOOD_GROUPS if database table is empty', async () => {
+      it('should return empty array if database table is empty without fallback', async () => {
          mockPrisma.whoCategory.findMany.mockResolvedValue([]);
 
          const result = await repository.findAll();
 
-         expect(result).toHaveLength(8);
-         expect(result[0].code).toBe(WHO_FOOD_GROUPS[0].code);
+         expect(mockPrisma.whoCategory.findMany).toHaveBeenCalledWith({
+            orderBy: { order: 'asc' },
+         });
+         expect(result).toEqual([]);
       });
    });
 
@@ -64,23 +65,20 @@ describe('WhoCategoryRepository', () => {
 
          const result = await repository.findByCode('DAIRY');
 
+         expect(mockPrisma.whoCategory.findUnique).toHaveBeenCalledWith({
+            where: { code: 'DAIRY' },
+         });
          expect(result).toBe(dbCategory);
       });
 
-      it('should fallback to WHO_FOOD_GROUPS if not found in database', async () => {
+      it('should return null if not found in database without fallback', async () => {
          mockPrisma.whoCategory.findUnique.mockResolvedValue(null);
 
-         const result = await repository.findByCode('DAIRY');
+         const result = await repository.findByCode('NON_EXISTENT');
 
-         expect(result).not.toBeNull();
-         expect(result?.code).toBe('DAIRY');
-      });
-
-      it('should return null if code is invalid and not found in fallback', async () => {
-         mockPrisma.whoCategory.findUnique.mockResolvedValue(null);
-
-         const result = await repository.findByCode('INVALID_CODE');
-
+         expect(mockPrisma.whoCategory.findUnique).toHaveBeenCalledWith({
+            where: { code: 'NON_EXISTENT' },
+         });
          expect(result).toBeNull();
       });
    });

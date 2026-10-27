@@ -46,26 +46,32 @@ enum OutboxStatus {
 }
 
 model Order {
-  orderId         String            @id @default(uuid()) @map("order_id") @db.Uuid
-  orderNumber     String            @unique @map("order_number") @db.VarChar(50)
-  userId          String            @map("user_id") @db.Uuid
-  orderStatus     OrderStatusEnum   @default(AWAITING_PAYMENT) @map("order_status")
-  paymentMethod   PaymentMethodEnum @default(COD) @map("payment_method")
-  paymentStatus   PaymentStatusEnum @default(PENDING) @map("payment_status")
-  totalAmount     Decimal           @map("total_amount") @db.Decimal(14, 2)
-  shippingFee     Decimal           @default(0) @map("shipping_fee") @db.Decimal(12, 2)
-  shippingAddress String            @map("shipping_address") @db.Text
-  receiverName    String            @map("receiver_name") @db.VarChar(100)
-  receiverPhone   String            @map("receiver_phone") @db.VarChar(20)
-  note            String?           @map("note") @db.Text
-  version         Int               @default(1)
-  deletedAt       DateTime?         @map("deleted_at")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  orderId             String            @id @default(uuid()) @map("order_id") @db.Uuid
+  orderNumber         String            @unique @map("order_number") @db.VarChar(50)
+  userId              String            @map("user_id") @db.Uuid
+  supplierId          String?           @map("supplier_id") @db.Uuid
+  orderStatus         OrderStatusEnum   @default(AWAITING_PAYMENT) @map("order_status")
+  paymentMethod       PaymentMethodEnum @default(COD) @map("payment_method")
+  paymentStatus       PaymentStatusEnum @default(PENDING) @map("payment_status")
+  shippingMethod      String            @default("DELIVERY") @map("shipping_method") @db.VarChar(50)
+  shipperTrackingCode String?           @map("shipper_tracking_code") @db.VarChar(100)
+  cancelReason        String?           @map("cancel_reason") @db.Text
+  totalAmount         Decimal           @map("total_amount") @db.Decimal(14, 2)
+  shippingFee         Decimal           @default(0) @map("shipping_fee") @db.Decimal(12, 2)
+  shippingAddress     String            @map("shipping_address") @db.Text
+  receiverName        String            @map("receiver_name") @db.VarChar(100)
+  receiverPhone       String            @map("receiver_phone") @db.VarChar(20)
+  note                String?           @map("note") @db.Text
+  version             Int               @default(1)
+  deletedAt           DateTime?         @map("deleted_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
 
-  items           OrderItem[]
+  items               OrderItem[]
+  timelines           OrderTimeline[]
 
   @@index([userId])
+  @@index([supplierId])
   @@index([orderStatus])
   @@index([paymentStatus])
   @@index([createdAt])
@@ -77,6 +83,7 @@ model OrderItem {
   orderId     String   @map("order_id") @db.Uuid
   productId   String   @map("product_id") @db.Uuid
   productName String   @map("product_name") @db.VarChar(200)
+  imageUrl    String?  @map("image_url") @db.Text
   quantity    Int      @map("quantity")
   unitPrice   Decimal  @map("unit_price") @db.Decimal(14, 2)
   totalPrice  Decimal  @map("total_price") @db.Decimal(14, 2)
@@ -88,6 +95,20 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
+}
+
+model OrderTimeline {
+  timelineId  String   @id @default(uuid()) @map("timeline_id") @db.Uuid
+  orderId     String   @map("order_id") @db.Uuid
+  status      String   @map("status") @db.VarChar(50)
+  description String?  @map("description") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  order       Order    @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("order_timelines")
 }
 
 model OutboxEvent {

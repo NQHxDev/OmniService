@@ -11,6 +11,7 @@ import {
    PRODUCT_FIELDS,
    PRODUCT_OUTBOX_EVENTS,
    PRODUCT_STATUS,
+   WhoCategoryCode,
    type CreateProductDto,
    type CurrencyType,
    type ListProductsQueryDto,
@@ -19,12 +20,13 @@ import {
    type ProductItemDto,
    type ProductModeratedEventPayload,
    type ProductModerationHistoryDto,
+   type ProductRegisteredEventPayload,
    type ProductStatusType,
    type UpdateProductDto,
    type UpdateProductStatusDto,
 } from '@contracts/product';
 import { ProductModerationStateMachine, ProductSlug, Sku } from '@product/domain';
-import { ProductEntity, WhoCategoryEntity } from '@product/entities';
+import { ProductEntity, ProductVariantEntity, WhoCategoryEntity } from '@product/entities';
 import { PRODUCT_EVENT_PUBLISHER, type IProductEventPublisher } from '@product/publishers';
 import { PRODUCT_UNIT_OF_WORK, type IProductUnitOfWork } from '@product/unit-of-work';
 import { OutboxService } from '@product/outbox';
@@ -47,7 +49,7 @@ export class ProductService {
       return {
          productId: entity.productId,
          supplierId: entity.supplierId,
-         whoCategoryCode: entity.whoCategoryCode as never,
+         whoCategoryCode: entity.whoCategoryCode as WhoCategoryCode,
          productName: entity.productName,
          productSlug: entity.productSlug,
          description: entity.description,
@@ -55,8 +57,8 @@ export class ProductService {
          storageCondition: entity.storageCondition || undefined,
          shelfLifeDays: entity.shelfLifeDays || undefined,
          images: entity.images,
-         status: entity.status as never,
-         moderationStatus: entity.moderationStatus as never,
+         status: entity.status as ProductStatusType,
+         moderationStatus: entity.moderationStatus as ModerationStatusType,
          rejectionReason: entity.rejectionReason || undefined,
          pendingEditData: entity.pendingEditData || undefined,
          variants: (entity.variants || []).map((v) => ({
@@ -84,6 +86,43 @@ export class ProductService {
       };
    }
 
+   private buildProductRegisteredEventPayload(
+      product: ProductEntity,
+      variants?: ProductVariantEntity[],
+   ): ProductRegisteredEventPayload {
+      const targetVariants = variants || product.variants || [];
+      return {
+         productId: product.productId,
+         supplierId: product.supplierId,
+         whoCategoryCode: product.whoCategoryCode,
+         productName: product.productName,
+         normalizedName: product.normalizedName,
+         productSlug: product.productSlug,
+         description: product.description,
+         origin: product.origin || undefined,
+         storageCondition: product.storageCondition || undefined,
+         shelfLifeDays: product.shelfLifeDays || undefined,
+         images: product.images || [],
+         status: product.status,
+         moderationStatus: product.moderationStatus,
+         variants: targetVariants.map((v) => ({
+            variantId: v.variantId,
+            sku: v.sku,
+            variantName: v.variantName,
+            unit: v.unit,
+            packSize: v.packSize || undefined,
+            price: v.price,
+            originalPrice: v.originalPrice || undefined,
+            currency: v.currency,
+            stockQuantity: v.stockQuantity,
+            lowStockThreshold: v.lowStockThreshold,
+            isDefault: v.isDefault,
+            status: v.status,
+         })),
+         createdAt: product.createdAt.toISOString(),
+      };
+   }
+
    async createProduct(supplierId: string, dto: CreateProductDto): Promise<ProductItemDto> {
       // 1. Verify WHO category exists
       return this.uow.runInTransaction(async (repos) => {
@@ -105,7 +144,12 @@ export class ProductService {
 
          // Validate SKUs
          for (const v of dto.variants) {
-            Sku.create(v.sku);
+            const skuResult = Sku.create(v.sku);
+            if (skuResult.isFailure()) {
+               throw new BadRequestException(PRODUCT_ERROR_CODES.VARIANT_INVALID, {
+                  params: { sku: v.sku },
+               });
+            }
          }
 
          const createdProduct = await repos.productRepository.create({
@@ -144,69 +188,18 @@ export class ProductService {
 
          createdProduct.variants = createdVariants;
          const resultDto = this.mapEntityToDto(createdProduct);
+         const eventPayload = this.buildProductRegisteredEventPayload(createdProduct, createdVariants);
 
          // Write transactional outbox
          await this.outboxService.emitEvent({
             aggregateId: productId,
-            aggregateType: 'PRODUCT',
-            eventType: 'PRODUCT_REGISTERED',
-            payload: {
-               productId,
-               supplierId,
-               whoCategoryCode: dto.whoCategoryCode,
-               productName: dto.productName,
-               productSlug: slugVo.value,
-               description: dto.description,
-               origin: dto.origin,
-               images: dto.images || [],
-               status: PRODUCT_STATUS.DRAFT,
-               moderationStatus: MODERATION_STATUS.PENDING_APPROVAL,
-               variants: createdVariants.map((v) => ({
-                  variantId: v.variantId,
-                  sku: v.sku,
-                  variantName: v.variantName,
-                  unit: v.unit,
-                  packSize: v.packSize || undefined,
-                  price: v.price,
-                  originalPrice: v.originalPrice || undefined,
-                  currency: v.currency,
-                  stockQuantity: v.stockQuantity,
-                  lowStockThreshold: v.lowStockThreshold,
-                  isDefault: v.isDefault,
-                  status: v.status,
-               })),
-               createdAt: createdProduct.createdAt.toISOString(),
-            },
+            aggregateType: PRODUCT_AGGREGATE_TYPE,
+            eventType: PRODUCT_OUTBOX_EVENTS.REGISTERED,
+            payload: eventPayload as unknown as Record<string, unknown>,
          });
 
          // Sync immediately to Search Service (RabbitMQ) even though unapproved
-         await this.publisher.publishProductRegistered({
-            productId,
-            supplierId,
-            whoCategoryCode: dto.whoCategoryCode,
-            productName: dto.productName,
-            productSlug: slugVo.value,
-            description: dto.description,
-            origin: dto.origin,
-            images: dto.images || [],
-            status: PRODUCT_STATUS.DRAFT,
-            moderationStatus: MODERATION_STATUS.PENDING_APPROVAL,
-            variants: createdVariants.map((v) => ({
-               variantId: v.variantId,
-               sku: v.sku,
-               variantName: v.variantName,
-               unit: v.unit,
-               packSize: v.packSize || undefined,
-               price: v.price,
-               originalPrice: v.originalPrice || undefined,
-               currency: v.currency,
-               stockQuantity: v.stockQuantity,
-               lowStockThreshold: v.lowStockThreshold,
-               isDefault: v.isDefault,
-               status: v.status,
-            })),
-            createdAt: createdProduct.createdAt.toISOString(),
-         });
+         await this.publisher.publishProductRegistered(eventPayload);
 
          return resultDto;
       });

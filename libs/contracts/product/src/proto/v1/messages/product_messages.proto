@@ -5,7 +5,7 @@ package product.v1;
 import "models/product.proto";
 
 message GetProductByIdRequest {
-  string product_id = 1;
+  string productId = 1;
 }
 
 message GetProductByIdResponse {
@@ -13,7 +13,7 @@ message GetProductByIdResponse {
 }
 
 message GetProductsByIdsRequest {
-  repeated string product_ids = 1;
+  repeated string productIds = 1;
 }
 
 message GetProductsByIdsResponse {
@@ -21,10 +21,10 @@ message GetProductsByIdsResponse {
 }
 
 message ListProductsRequest {
-  string supplier_id = 1;
-  string who_category_code = 2;
+  string supplierId = 1;
+  string whoCategoryCode = 2;
   string status = 3;
-  string moderation_status = 4;
+  string moderationStatus = 4;
   string search = 5;
   int32 limit = 6;
   int32 offset = 7;
@@ -37,25 +37,25 @@ message ListProductsResponse {
 
 message CreateVariantInputProto {
   string sku = 1;
-  string variant_name = 2;
+  string variantName = 2;
   string unit = 3;
-  string pack_size = 4;
+  string packSize = 4;
   double price = 5;
-  double original_price = 6;
+  double originalPrice = 6;
   string currency = 7;
-  int32 stock_quantity = 8;
-  int32 low_stock_threshold = 9;
-  bool is_default = 10;
+  int32 stockQuantity = 8;
+  int32 lowStockThreshold = 9;
+  bool isDefault = 10;
 }
 
 message CreateProductRequest {
-  string supplier_id = 1;
-  string who_category_code = 2;
-  string product_name = 3;
+  string supplierId = 1;
+  string whoCategoryCode = 2;
+  string productName = 3;
   string description = 4;
   string origin = 5;
-  string storage_condition = 6;
-  int32 shelf_life_days = 7;
+  string storageCondition = 6;
+  int32 shelfLifeDays = 7;
   repeated string images = 8;
   repeated CreateVariantInputProto variants = 9;
 }
@@ -65,13 +65,13 @@ message CreateProductResponse {
 }
 
 message UpdateProductRequest {
-  string product_id = 1;
-  string supplier_id = 2;
-  string product_name = 3;
+  string productId = 1;
+  string supplierId = 2;
+  string productName = 3;
   string description = 4;
   string origin = 5;
-  string storage_condition = 6;
-  int32 shelf_life_days = 7;
+  string storageCondition = 6;
+  int32 shelfLifeDays = 7;
   repeated string images = 8;
 }
 
@@ -80,13 +80,13 @@ message UpdateProductResponse {
 }
 
 message ModerateProductRequest {
-  string product_id = 1;
-  string moderation_status = 2;
-  string rejection_reason = 3;
-  string moderated_by = 4;
+  string productId = 1;
+  string moderationStatus = 2;
+  string rejectionReason = 3;
+  string moderatedBy = 4;
   string action = 5;
-  string moderation_notes = 6;
-  string moderator_email = 7;
+  string moderationNotes = 6;
+  string moderatorEmail = 7;
 }
 
 message ModerateProductResponse {
@@ -94,8 +94,8 @@ message ModerateProductResponse {
 }
 
 message SubmitProductForReviewRequest {
-  string product_id = 1;
-  string supplier_id = 2;
+  string productId = 1;
+  string supplierId = 2;
 }
 
 message SubmitProductForReviewResponse {
@@ -103,7 +103,7 @@ message SubmitProductForReviewResponse {
 }
 
 message GetProductModerationHistoryRequest {
-  string product_id = 1;
+  string productId = 1;
 }
 
 message GetProductModerationHistoryResponse {
@@ -111,8 +111,8 @@ message GetProductModerationHistoryResponse {
 }
 
 message UpdateProductStatusRequest {
-  string product_id = 1;
-  string supplier_id = 2;
+  string productId = 1;
+  string supplierId = 2;
   string status = 3;
 }
 
@@ -121,30 +121,30 @@ message UpdateProductStatusResponse {
 }
 
 message StockItemRequest {
-  string variant_id = 1;
+  string variantId = 1;
   int32 quantity = 2;
 }
 
 message CheckAndReserveStockRequest {
-  string order_id = 1;
+  string orderId = 1;
   repeated StockItemRequest items = 2;
 }
 
 message ReservedItemResult {
-  string variant_id = 1;
+  string variantId = 1;
   string sku = 2;
   bool success = 3;
-  int32 available_stock = 4;
+  int32 availableStock = 4;
   string message = 5;
 }
 
 message CheckAndReserveStockResponse {
-  bool all_reserved = 1;
+  bool allReserved = 1;
   repeated ReservedItemResult results = 2;
 }
 
 message ReleaseStockRequest {
-  string order_id = 1;
+  string orderId = 1;
   repeated StockItemRequest items = 2;
 }
 
@@ -153,10 +153,10 @@ message ReleaseStockResponse {
 }
 
 message AdjustStockRequest {
-  string variant_id = 1;
-  string supplier_id = 2;
-  int32 quantity_delta = 3;
-  string movement_type = 4;
+  string variantId = 1;
+  string supplierId = 2;
+  int32 quantityDelta = 3;
+  string movementType = 4;
   string reason = 5;
 }
 
@@ -169,3 +169,4 @@ message ListWhoCategoriesRequest {}
 message ListWhoCategoriesResponse {
   repeated WhoCategoryProto categories = 1;
 }
+

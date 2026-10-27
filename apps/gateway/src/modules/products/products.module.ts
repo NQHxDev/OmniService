@@ -15,12 +15,14 @@ import {
 } from '@contracts/search';
 import { HEALTH_GRPC_PACKAGE_NAME, getHealthProtoPath } from '@contracts/health';
 import { GatewayConfigModule, GatewayConfigService } from '@/config';
+import { SuppliersModule } from '@/modules/suppliers/suppliers.module';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
 
 @Module({
    imports: [
       CacheModule,
+      SuppliersModule,
       ClientsModule.registerAsync([
          {
             name: PRODUCT_V1_GRPC_CLIENT,

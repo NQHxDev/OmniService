@@ -8,7 +8,7 @@ import {
    type ProductRegisteredEventPayload,
    type ProductStockAdjustedEventPayload,
 } from '@contracts/product';
-import type { IProductEventPublisher } from './product-event.publisher.interface';
+import type { IProductEventPublisher } from '@product/publishers/product-event.publisher.interface';
 
 @Injectable()
 export class ProductEventPublisher implements IProductEventPublisher {

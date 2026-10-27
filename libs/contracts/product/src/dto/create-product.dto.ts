@@ -12,10 +12,19 @@ import {
    MaxLength,
    ValidateNested,
 } from 'class-validator';
-import { WHO_CATEGORY_CODES, type WhoCategoryCode } from '../constants/product-categories.constant';
-import { CreateProductVariantDto } from './product-variant.dto';
+import { WHO_CATEGORY_CODES, type WhoCategoryCode } from '@contracts/product/constants/product-categories.constant';
+import { CreateProductVariantDto } from '@contracts/product/dto/product-variant.dto';
 
 export class CreateProductDto {
+   @ApiProperty({
+      description: 'Unique supplier store UUID owning this product',
+      example: 'aef05366-86a7-4c9a-8646-2bd26cd3a674',
+      required: true,
+   })
+   @IsNotEmpty()
+   @IsString()
+   supplierId!: string;
+
    @ApiProperty({
       description: 'Standard WHO food classification category code (1 of 8 groups)',
       enum: WHO_CATEGORY_CODES,

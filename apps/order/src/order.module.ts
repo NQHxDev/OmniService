@@ -15,8 +15,20 @@ import { OrderMetricsService } from '@order/services/order-metrics.service';
 import { OrderMetricsController } from '@order/order-metrics.controller';
 import { OrderGrpcController } from '@order/adapters/order-grpc.controller';
 import { PaymentSagaConsumer } from '@order/saga/payment-saga.consumer';
-import { CancelOrderCommandHandler, CreateOrderCommandHandler, UpdateOrderStatusCommandHandler } from '@order/commands';
-import { GetOrderByIdQueryHandler, GetOrdersByUserIdQueryHandler } from '@order/queries';
+import { OrderStateMachine } from '@order/services/order-state-machine.service';
+import {
+   CancelOrderCommandHandler,
+   CreateOrderCommandHandler,
+   UpdateOrderStatusCommandHandler,
+   UpdateSupplierOrderStatusCommandHandler,
+} from '@order/commands';
+import {
+   GetOrderByIdQueryHandler,
+   GetOrdersByUserIdQueryHandler,
+   GetSupplierOrderByIdQueryHandler,
+   ListSupplierOrdersQueryHandler,
+} from '@order/queries';
+import { ORDER_REPOSITORY, OrderRepository } from '@order/repositories';
 
 @Module({
    imports: [
@@ -29,6 +41,11 @@ import { GetOrderByIdQueryHandler, GetOrdersByUserIdQueryHandler } from '@order/
    ],
    controllers: [OrderGrpcController, OrderMetricsController, PaymentSagaConsumer],
    providers: [
+      OrderRepository,
+      {
+         provide: ORDER_REPOSITORY,
+         useExisting: OrderRepository,
+      },
       OrderMetricsService,
       {
          provide: GRPC_METRICS_COLLECTOR,
@@ -36,19 +53,29 @@ import { GetOrderByIdQueryHandler, GetOrdersByUserIdQueryHandler } from '@order/
       },
       GrpcLoggingInterceptor,
       GrpcMetricsInterceptor,
+      OrderStateMachine,
       CreateOrderCommandHandler,
       CancelOrderCommandHandler,
       UpdateOrderStatusCommandHandler,
+      UpdateSupplierOrderStatusCommandHandler,
       GetOrderByIdQueryHandler,
       GetOrdersByUserIdQueryHandler,
+      ListSupplierOrdersQueryHandler,
+      GetSupplierOrderByIdQueryHandler,
    ],
    exports: [
+      OrderRepository,
+      ORDER_REPOSITORY,
       OrderMetricsService,
+      OrderStateMachine,
       CreateOrderCommandHandler,
       CancelOrderCommandHandler,
       UpdateOrderStatusCommandHandler,
+      UpdateSupplierOrderStatusCommandHandler,
       GetOrderByIdQueryHandler,
       GetOrdersByUserIdQueryHandler,
+      ListSupplierOrdersQueryHandler,
+      GetSupplierOrderByIdQueryHandler,
    ],
 })
 export class OrderModule {}

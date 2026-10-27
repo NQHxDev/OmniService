@@ -119,13 +119,21 @@ export class ProductsController {
    @ApiOperation({
       operationId: 'listProducts',
       summary: 'List products with multi-attribute filtering and pagination',
-      description: 'Search and filter products by category, status, moderation, or keyword.',
+      description:
+         'Search and filter products with required operational status and moderation review status, category, or keyword.',
    })
    @ApiResponse({
       status: HttpStatus.OK,
       description: 'List of matching products.',
       type: ListProductsResponseDto,
    })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Missing or invalid status or query parameters',
+         errorCodes: [COMMON_ERROR_CODES.INVALID_REQUEST],
+      },
+   ])
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.LIST_PRODUCTS_SUCCESS)
    async listProducts(
       @Query() query: ListProductsQueryDto,

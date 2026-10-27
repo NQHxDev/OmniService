@@ -7,6 +7,8 @@ export const ORDER_EVENTS = {
 
 export type OrderEvent = (typeof ORDER_EVENTS)[keyof typeof ORDER_EVENTS];
 
+export const ORDER_AGGREGATE_TYPE = 'Order' as const;
+
 export interface IOrderCreatedEvent {
    orderId: string;
    userId: string;

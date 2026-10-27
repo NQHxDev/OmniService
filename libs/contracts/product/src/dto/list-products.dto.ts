@@ -1,14 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { WHO_CATEGORY_CODES, type WhoCategoryCode } from '../constants/product-categories.constant';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import { WHO_CATEGORY_CODES, type WhoCategoryCode } from '@contracts/product/constants/product-categories.constant';
 import {
    MODERATION_STATUS,
    type ModerationStatusType,
    PRODUCT_STATUS,
    type ProductStatusType,
-} from '../constants/status.constant';
-import { ProductItemDto } from './product-item.dto';
+} from '@contracts/product/constants/status.constant';
+import { ProductItemDto } from '@contracts/product/dto/product-item.dto';
 
 export class ListProductsQueryDto {
    @ApiPropertyOptional({
@@ -27,21 +27,25 @@ export class ListProductsQueryDto {
    @IsEnum(WHO_CATEGORY_CODES)
    whoCategoryCode?: WhoCategoryCode;
 
-   @ApiPropertyOptional({
-      description: 'Filter by operational status',
+   @ApiProperty({
+      description: `Filter by operational status. Supported statuses: ${Object.values(PRODUCT_STATUS).join(', ')}`,
       enum: PRODUCT_STATUS,
+      example: PRODUCT_STATUS.ACTIVE,
+      required: true,
    })
-   @IsOptional()
+   @IsNotEmpty()
    @IsEnum(PRODUCT_STATUS)
-   status?: ProductStatusType;
+   status!: ProductStatusType;
 
-   @ApiPropertyOptional({
-      description: 'Filter by moderation status',
+   @ApiProperty({
+      description: `Filter by moderation status. Supported statuses: ${Object.values(MODERATION_STATUS).join(', ')}`,
       enum: MODERATION_STATUS,
+      example: MODERATION_STATUS.APPROVED,
+      required: true,
    })
-   @IsOptional()
+   @IsNotEmpty()
    @IsEnum(MODERATION_STATUS)
-   moderationStatus?: ModerationStatusType;
+   moderationStatus!: ModerationStatusType;
 
    @ApiPropertyOptional({
       description: 'Keyword search in product title and description',

@@ -1,3 +1,4 @@
+import { formatIsoDate } from '@common';
 import type { SupplierItemDto, SupplierStatusType } from '@contracts/supplier';
 import type { SupplierEntity } from '@supplier/entities';
 
@@ -17,7 +18,7 @@ export function mapSupplierEntityToDto(entity: SupplierEntity): SupplierItemDto 
       supplierLogoUrl: entity.supplierLogoUrl || undefined,
       merchantType: entity.merchantType || undefined,
       citizenId: entity.citizenId || undefined,
-      citizenIdIssuedDate: entity.citizenIdIssuedDate ? entity.citizenIdIssuedDate.toISOString() : undefined,
+      citizenIdIssuedDate: formatIsoDate(entity.citizenIdIssuedDate),
       idCardFrontUrl: entity.idCardFrontUrl || undefined,
       idCardBackUrl: entity.idCardBackUrl || undefined,
       businessName: entity.businessName || undefined,
@@ -27,6 +28,6 @@ export function mapSupplierEntityToDto(entity: SupplierEntity): SupplierItemDto 
       bankAccountNumber: entity.bankAccountNumber || undefined,
       bankAccountHolder: entity.bankAccountHolder || undefined,
       rejectionReason: entity.rejectionReason || undefined,
-      verifiedAt: entity.verifiedAt ? entity.verifiedAt.toISOString() : undefined,
+      verifiedAt: formatIsoDate(entity.verifiedAt),
    };
 }

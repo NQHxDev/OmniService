@@ -10,12 +10,18 @@ import {
    withGrpcRetry,
 } from '@common';
 import {
+   DEFAULT_SHIPPING_METHOD,
    ORDER_V1_GRPC_CLIENT,
    ORDER_V1_GRPC_SERVICE_NAME,
    type CreateOrderDto,
    type IOrderProto,
    type IOrderV1GrpcService,
+   type ListSupplierOrdersQueryDto,
    type OrderResponseDto,
+   type SupplierOrderDetailDto,
+   type SupplierOrderListResponseDto,
+   type UpdateSupplierOrderStatusDto,
+   type UpdateSupplierOrderStatusResponseDto,
 } from '@contracts/order';
 
 @Injectable()
@@ -143,6 +149,182 @@ export class OrdersService implements OnModuleInit {
          );
 
          return response.order as unknown as OrderResponseDto;
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async listSupplierOrders(
+      supplierId: string,
+      query: ListSupplierOrdersQueryDto,
+      correlationId?: string,
+   ): Promise<SupplierOrderListResponseDto> {
+      try {
+         const metadata = createGrpcMetadata({ correlationId, supplierId });
+         const response = await this.bulkhead.execute(() =>
+            this.circuitBreaker.execute(() =>
+               firstValueFrom(
+                  defer(() =>
+                     this.orderGrpcService.listSupplierOrders(
+                        {
+                           supplierId,
+                           page: query.page,
+                           limit: query.limit,
+                           group: query.group,
+                           status: query.status,
+                           dateRange: query.dateRange,
+                           startDate: query.startDate,
+                           endDate: query.endDate,
+                           shippingMethod: query.shippingMethod,
+                           paymentStatus: query.paymentStatus,
+                           search: query.search,
+                           sortBy: query.sortBy,
+                           sortOrder: query.sortOrder,
+                        },
+                        metadata,
+                     ),
+                  ).pipe(withGrpcRetry(this.retryPolicy)),
+               ),
+            ),
+         );
+
+         return {
+            items: (response.items || []).map((item) => ({
+               orderId: item.orderId,
+               id: item.orderId,
+               orderNumber: item.orderNumber,
+               customerName: item.customerName,
+               customerPhone: item.customerPhone,
+               deliveryAddress: item.deliveryAddress,
+               shippingMethod: item.shippingMethod || DEFAULT_SHIPPING_METHOD,
+               totalAmount: item.totalAmount,
+               shippingFee: item.shippingFee,
+               status: item.status,
+               paymentMethod: item.paymentMethod,
+               paymentStatus: item.paymentStatus,
+               note: item.note || undefined,
+               createdAt: item.createdAt,
+               updatedAt: item.updatedAt,
+               items: (item.items || []).map((i) => ({
+                  orderItemId: i.orderItemId,
+                  id: i.orderItemId,
+                  productId: i.productId,
+                  title: i.title,
+                  quantity: i.quantity,
+                  price: i.price,
+                  totalPrice: i.totalPrice,
+                  imageUrl: i.imageUrl || undefined,
+               })),
+            })),
+            pagination: {
+               page: response.pagination.page,
+               limit: response.pagination.limit,
+               totalItems: response.pagination.totalItems,
+               totalPages: response.pagination.totalPages,
+            },
+            summary: {
+               shippingCount: response.summary.shippingCount,
+               needsActionCount: response.summary.needsActionCount,
+            },
+         };
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async getSupplierOrderById(
+      orderId: string,
+      supplierId: string,
+      correlationId?: string,
+   ): Promise<SupplierOrderDetailDto> {
+      try {
+         const metadata = createGrpcMetadata({ correlationId, supplierId });
+         const response = await this.bulkhead.execute(() =>
+            this.circuitBreaker.execute(() =>
+               firstValueFrom(
+                  defer(() => this.orderGrpcService.getSupplierOrderById({ orderId, supplierId }, metadata)).pipe(
+                     withGrpcRetry(this.retryPolicy),
+                  ),
+               ),
+            ),
+         );
+
+         const order = response.order;
+         return {
+            orderId: order.orderId,
+            id: order.orderId,
+            orderNumber: order.orderNumber,
+            customer: {
+               userId: order.customer.userId,
+               name: order.customer.name,
+               phone: order.customer.phone,
+               avatar: order.customer.avatar || undefined,
+            },
+            shippingAddress: order.shippingAddress,
+            shippingMethod: order.shippingMethod || DEFAULT_SHIPPING_METHOD,
+            status: order.status,
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+            totalAmount: order.totalAmount,
+            subTotal: order.subTotal,
+            shippingFee: order.shippingFee,
+            discountAmount: order.discountAmount,
+            note: order.note || undefined,
+            items: (order.items || []).map((i) => ({
+               orderItemId: i.orderItemId,
+               id: i.orderItemId,
+               productId: i.productId,
+               title: i.title,
+               quantity: i.quantity,
+               price: i.price,
+               totalPrice: i.totalPrice,
+               imageUrl: i.imageUrl || undefined,
+            })),
+            timeline: (order.timeline || []).map((t) => ({
+               status: t.status,
+               time: t.time,
+               description: t.description,
+            })),
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+         };
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async updateSupplierOrderStatus(
+      orderId: string,
+      supplierId: string,
+      dto: UpdateSupplierOrderStatusDto,
+      correlationId?: string,
+   ): Promise<UpdateSupplierOrderStatusResponseDto> {
+      try {
+         const metadata = createGrpcMetadata({ correlationId, supplierId });
+         const response = await this.bulkhead.execute(() =>
+            this.circuitBreaker.execute(() =>
+               firstValueFrom(
+                  defer(() =>
+                     this.orderGrpcService.updateSupplierOrderStatus(
+                        {
+                           orderId,
+                           supplierId,
+                           status: dto.status,
+                           reason: dto.reason,
+                           shipperTrackingCode: dto.shipperTrackingCode,
+                        },
+                        metadata,
+                     ),
+                  ).pipe(withGrpcRetry(this.retryPolicy)),
+               ),
+            ),
+         );
+
+         return {
+            orderId: response.orderId,
+            status: response.status,
+            updatedAt: response.updatedAt,
+         };
       } catch (error: unknown) {
          return handleGrpcError(error);
       }

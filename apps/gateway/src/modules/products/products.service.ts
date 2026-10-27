@@ -220,7 +220,7 @@ export class ProductsService implements OnModuleInit {
 
          return await this.productGrpcBreaker.execute(async () => {
             const request: ICreateProductRequest = {
-               supplierId: accountId || '',
+               supplierId: dto.supplierId,
                whoCategoryCode: dto.whoCategoryCode,
                productName: dto.productName,
                description: dto.description,

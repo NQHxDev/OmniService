@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@common';
-import type { SupplierStatusType } from '@contracts/supplier';
 import { SUPPLIER_MEMBER_REPOSITORY, type ISupplierMemberRepository } from '@supplier/repositories';
 import { SupplierService } from '@supplier/services/supplier.service';
 import { GetMySupplierQuery, type MySupplierQueryResult } from '@supplier/queries/get-my-supplier.query';
+import { mapSupplierEntityToDto } from '@supplier/utils';
 
 @Injectable()
 @CommandHandler(GetMySupplierQuery)
@@ -38,20 +38,7 @@ export class GetMySupplierHandler implements ICommandHandler<GetMySupplierQuery,
          const supplier = await this.supplierService.getSupplierById(member.supplierId);
          return {
             hasSupplier: true,
-            supplier: {
-               supplierId: supplier.supplierId,
-               supplierName: supplier.supplierName,
-               supplierSlug: supplier.supplierSlug,
-               supplierCode: supplier.supplierCode,
-               contactEmail: supplier.contactEmail || undefined,
-               contactPhone: supplier.contactPhone || undefined,
-               address: supplier.address || undefined,
-               city: supplier.city || undefined,
-               rating: supplier.rating,
-               isVerified: supplier.isVerified,
-               supplierStatus: supplier.supplierStatus as SupplierStatusType,
-               supplierLogoUrl: supplier.supplierLogoUrl || undefined,
-            },
+            supplier: mapSupplierEntityToDto(supplier),
             role: member.role,
             memberStatus: member.memberStatus,
          };
