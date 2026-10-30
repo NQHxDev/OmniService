@@ -8,4 +8,5 @@ export enum CacheNamespace {
    GATEWAY = 'gateway',
    SESSION = 'session',
    RATE_LIMIT = 'rate_limit',
+   PRODUCT = 'product',
 }

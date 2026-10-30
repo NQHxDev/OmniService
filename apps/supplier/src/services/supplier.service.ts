@@ -6,13 +6,16 @@ import {
    SUPPLIER_EVENTS,
    SUPPLIER_STATUS,
    type RegisterSupplierDto,
+   type SubmitKybDto,
    type SupplierStatusType,
    type UpdateSupplierDto,
 } from '@contracts/supplier';
 import { SUPPLIER_REPOSITORY, type FindSuppliersParams, type ISupplierRepository } from '@supplier/repositories';
 import { Slug, SupplierCode } from '@supplier/domain/value-objects';
 import {
+   SupplierKybSubmittedEvent,
    SupplierRegisteredEvent,
+   SupplierRejectedEvent,
    SupplierStatusChangedEvent,
    SupplierUpdatedEvent,
    SupplierVerifiedEvent,
@@ -76,16 +79,11 @@ export class SupplierService {
       }
 
       const slugVo = new Slug(dto.supplierName);
-      const existingBySlug = await this.supplierRepository.findBySlug(slugVo.value);
-      if (existingBySlug) {
-         throw new ConflictException(SUPPLIER_ERROR_CODES.SUPPLIER_SLUG_ALREADY_EXISTS, {
-            params: { slug: slugVo.value },
-         });
-      }
+      const supplierSlug = await this.generateUniqueSlug(slugVo.value);
 
       const created = await this.supplierRepository.create({
          supplierName: dto.supplierName.trim(),
-         supplierSlug: slugVo.value,
+         supplierSlug,
          supplierCode: codeVo.value,
          contactEmail: dto.contactEmail?.trim(),
          contactPhone: dto.contactPhone?.trim(),
@@ -93,7 +91,7 @@ export class SupplierService {
          city: dto.city?.trim(),
          supplierLogoUrl: dto.supplierLogoUrl,
          isVerified: false,
-         supplierStatus: SUPPLIER_STATUS.ACTIVE,
+         supplierStatus: SUPPLIER_STATUS.PENDING,
       });
 
       this.eventEmitter.emit(
@@ -114,13 +112,8 @@ export class SupplierService {
 
       let newSlug: string | undefined;
       if (dto.supplierName && dto.supplierName.trim() !== existing.supplierName) {
-         newSlug = new Slug(dto.supplierName).value;
-         const existingBySlug = await this.supplierRepository.findBySlug(newSlug);
-         if (existingBySlug && existingBySlug.supplierId !== supplierId) {
-            throw new ConflictException(SUPPLIER_ERROR_CODES.SUPPLIER_SLUG_ALREADY_EXISTS, {
-               params: { slug: newSlug },
-            });
-         }
+         const baseSlug = new Slug(dto.supplierName).value;
+         newSlug = await this.generateUniqueSlug(baseSlug, supplierId);
       }
 
       const updated = await this.supplierRepository.update(supplierId, {
@@ -180,6 +173,55 @@ export class SupplierService {
       return updated;
    }
 
+   async submitKyb(supplierId: string, dto: SubmitKybDto): Promise<SupplierEntity> {
+      const existing = await this.supplierRepository.findById(supplierId);
+      if (!existing) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      if (existing.supplierStatus !== SUPPLIER_STATUS.PENDING && existing.supplierStatus !== SUPPLIER_STATUS.REJECTED) {
+         if (existing.supplierStatus === SUPPLIER_STATUS.UNDER_REVIEW) {
+            throw new BadRequestException(SUPPLIER_ERROR_CODES.KYB_ALREADY_SUBMITTED, {
+               params: { status: existing.supplierStatus },
+            });
+         }
+         throw new BadRequestException(SUPPLIER_ERROR_CODES.CANNOT_SUBMIT_KYB, {
+            params: { status: existing.supplierStatus },
+         });
+      }
+
+      const updated = await this.supplierRepository.update(supplierId, {
+         supplierStatus: SUPPLIER_STATUS.UNDER_REVIEW,
+         merchantType: dto.merchantType,
+         citizenId: dto.citizenId?.trim() || undefined,
+         citizenIdIssuedDate: dto.citizenIdIssuedDate ? new Date(dto.citizenIdIssuedDate) : undefined,
+         idCardFrontUrl: dto.idCardFrontUrl?.trim() || undefined,
+         idCardBackUrl: dto.idCardBackUrl?.trim() || undefined,
+         businessName: dto.businessName?.trim() || undefined,
+         taxCode: dto.taxCode?.trim() || undefined,
+         businessLicenseUrl: dto.businessLicenseUrl?.trim() || undefined,
+         bankName: dto.bankName?.trim() || undefined,
+         bankAccountNumber: dto.bankAccountNumber?.trim() || undefined,
+         bankAccountHolder: dto.bankAccountHolder?.trim() || undefined,
+         rejectionReason: null,
+      });
+
+      if (!updated) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      this.eventEmitter.emit(
+         SUPPLIER_EVENTS.SUPPLIER_KYB_SUBMITTED,
+         new SupplierKybSubmittedEvent(supplierId, dto.merchantType),
+      );
+
+      return updated;
+   }
+
    async verifySupplier(supplierId: string, isVerified: boolean): Promise<SupplierEntity> {
       const existing = await this.supplierRepository.findById(supplierId);
       if (!existing) {
@@ -188,7 +230,15 @@ export class SupplierService {
          });
       }
 
-      const updated = await this.supplierRepository.update(supplierId, { isVerified });
+      const newStatus = isVerified ? SUPPLIER_STATUS.ACTIVE : SUPPLIER_STATUS.PENDING;
+      const verifiedAt = isVerified ? new Date() : null;
+
+      const updated = await this.supplierRepository.update(supplierId, {
+         isVerified,
+         supplierStatus: newStatus,
+         verifiedAt,
+         rejectionReason: null,
+      });
       if (!updated) {
          throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
             params: { supplierId },
@@ -198,5 +248,48 @@ export class SupplierService {
       this.eventEmitter.emit(SUPPLIER_EVENTS.SUPPLIER_VERIFIED, new SupplierVerifiedEvent(supplierId, isVerified));
 
       return updated;
+   }
+
+   async rejectSupplier(supplierId: string, reason: string): Promise<SupplierEntity> {
+      if (!reason || !reason.trim()) {
+         throw new BadRequestException(SUPPLIER_ERROR_CODES.REJECTION_REASON_REQUIRED);
+      }
+
+      const existing = await this.supplierRepository.findById(supplierId);
+      if (!existing) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      const updated = await this.supplierRepository.update(supplierId, {
+         isVerified: false,
+         supplierStatus: SUPPLIER_STATUS.REJECTED,
+         rejectionReason: reason.trim(),
+      });
+      if (!updated) {
+         throw new NotFoundException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_FOUND, {
+            params: { supplierId },
+         });
+      }
+
+      this.eventEmitter.emit(SUPPLIER_EVENTS.SUPPLIER_REJECTED, new SupplierRejectedEvent(supplierId, reason.trim()));
+
+      return updated;
+   }
+
+   private async generateUniqueSlug(baseSlug: string, excludeSupplierId?: string): Promise<string> {
+      const trimmedBase = baseSlug.length > 160 ? baseSlug.slice(0, 160) : baseSlug;
+      let candidate = trimmedBase;
+      let counter = 1;
+
+      while (true) {
+         const existing = await this.supplierRepository.findBySlug(candidate);
+         if (!existing || (excludeSupplierId && existing.supplierId === excludeSupplierId)) {
+            return candidate;
+         }
+         candidate = `${trimmedBase}-${counter}`;
+         counter++;
+      }
    }
 }

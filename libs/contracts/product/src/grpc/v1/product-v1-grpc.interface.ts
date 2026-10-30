@@ -9,6 +9,8 @@ import type {
    ICreateProductResponse,
    IGetProductByIdRequest,
    IGetProductByIdResponse,
+   IGetProductModerationHistoryRequest,
+   IGetProductModerationHistoryResponse,
    IGetProductsByIdsRequest,
    IGetProductsByIdsResponse,
    IListProductsRequest,
@@ -19,6 +21,8 @@ import type {
    IModerateProductResponse,
    IReleaseStockRequest,
    IReleaseStockResponse,
+   ISubmitProductForReviewRequest,
+   ISubmitProductForReviewResponse,
    IUpdateProductRequest,
    IUpdateProductResponse,
    IUpdateProductStatusRequest,
@@ -32,6 +36,14 @@ export interface IProductV1GrpcService {
    createProduct(data: ICreateProductRequest, metadata?: Metadata): Observable<ICreateProductResponse>;
    updateProduct(data: IUpdateProductRequest, metadata?: Metadata): Observable<IUpdateProductResponse>;
    moderateProduct(data: IModerateProductRequest, metadata?: Metadata): Observable<IModerateProductResponse>;
+   submitProductForReview(
+      data: ISubmitProductForReviewRequest,
+      metadata?: Metadata,
+   ): Observable<ISubmitProductForReviewResponse>;
+   getProductModerationHistory(
+      data: IGetProductModerationHistoryRequest,
+      metadata?: Metadata,
+   ): Observable<IGetProductModerationHistoryResponse>;
    updateProductStatus(
       data: IUpdateProductStatusRequest,
       metadata?: Metadata,

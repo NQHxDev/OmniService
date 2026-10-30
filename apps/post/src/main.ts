@@ -15,6 +15,7 @@ async function bootstrap() {
    const rmqService = app.get(RmqService);
    const configService = app.get(PostConfigService);
 
+   app.enableShutdownHooks();
    app.useLogger(logger);
 
    app.useGlobalFilters(new AllRpcExceptionsFilter());

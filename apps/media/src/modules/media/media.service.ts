@@ -60,7 +60,7 @@ export class MediaService {
          url: uploadResult.publicUrl,
          key: fullKey,
          mimeType: dto.mimeType,
-         size: dto.size || 0,
+         size: dto.size ? Number(dto.size) : 0,
          status: MEDIA_STATUSES.PENDING,
       });
 
@@ -131,7 +131,7 @@ export class MediaService {
       const existingMetadata = (media.metadata as Record<string, unknown>) || {};
       const updated = await this.mediaRepository.update(dto.mediaId, {
          status: MEDIA_STATUSES.READY,
-         size: dto.size ?? media.size,
+         size: dto.size !== undefined ? Number(dto.size) : media.size,
          metadata: {
             ...existingMetadata,
             ...(dto.width !== undefined && { width: dto.width }),
@@ -165,7 +165,7 @@ export class MediaService {
          url: publicUrl,
          key: fullKey,
          mimeType: dto.mimeType,
-         size: dto.fileSize || 0,
+         size: dto.fileSize ? Number(dto.fileSize) : 0,
          status: MEDIA_STATUSES.PENDING,
          metadata: {
             uploadId,

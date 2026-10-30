@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostsController } from '@/modules/posts/posts.controller';
 import { PostsService } from '@/modules/posts/posts.service';
-import type { PostFeedResponseDto, PostIngredientDto, PostItemDto } from '@contracts/post';
+import type { CreatePostDto, PostFeedResponseDto, PostIngredientDto, PostItemDto } from '@contracts/post';
 
 describe('PostsController', () => {
    let controller: PostsController;
@@ -10,6 +10,7 @@ describe('PostsController', () => {
       getFeed: jest.fn(),
       getPostById: jest.fn(),
       getIngredients: jest.fn(),
+      createPost: jest.fn(),
    };
 
    beforeEach(async () => {
@@ -21,6 +22,45 @@ describe('PostsController', () => {
       }).compile();
 
       controller = module.get<PostsController>(PostsController);
+   });
+
+   describe('createPost', () => {
+      it('should delegate createPost to PostsService with user sub and dto', async () => {
+         const mockCreatedPost: PostItemDto = {
+            postId: 'p-1',
+            userId: 'user-1',
+            title: 'Pho Bo',
+            videoUrl: 'https://cdn.example.com/v.mp4',
+            thumbnailUrl: 'https://cdn.example.com/t.jpg',
+            duration: 30,
+            viewCount: 0,
+            likeCount: 0,
+            commentCount: 0,
+            shareCount: 0,
+            saveCount: 0,
+            allowComments: true,
+            allowDuet: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ingredients: [],
+         };
+         mockPostsService.createPost.mockResolvedValue(mockCreatedPost);
+
+         const dto: CreatePostDto = {
+            title: 'Pho Bo',
+            videoUrl: 'https://cdn.example.com/v.mp4',
+            thumbnailUrl: 'https://cdn.example.com/t.jpg',
+            duration: 30,
+         };
+
+         const result = await controller.createPost(dto, {
+            sub: 'user-1',
+            email: 'test@example.com',
+         });
+
+         expect(mockPostsService.createPost).toHaveBeenCalledWith('user-1', dto);
+         expect(result).toBe(mockCreatedPost);
+      });
    });
 
    describe('getFeed', () => {

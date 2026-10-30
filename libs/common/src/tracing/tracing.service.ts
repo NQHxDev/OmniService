@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import { TracingSDK } from '@common/tracing/tracing.sdk';
 import {
    context,
    propagation,
@@ -18,8 +19,15 @@ import { TRACING_ATTRIBUTES, TRACING_HEADERS, TRACING_SERVICES } from '@common/t
  * for creating spans, extracting/injecting context, and correlating traces.
  */
 @Injectable()
-export class TracingService {
+export class TracingService implements OnApplicationShutdown {
    private readonly defaultTracer: Tracer;
+
+   async onApplicationShutdown(): Promise<void> {
+      const sdk = TracingSDK.getInstance();
+      if (sdk) {
+         await sdk.shutdown();
+      }
+   }
 
    constructor() {
       this.defaultTracer = trace.getTracer(TRACING_SERVICES.TRACER_NAME);

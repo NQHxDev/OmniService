@@ -80,6 +80,28 @@ describe('RmqService & RmqErrorClassifier', () => {
       });
    });
 
+   describe('getClientOptions', () => {
+      it('should default noAck to true for client RMQ options', () => {
+         const options = service.getClientOptions('NOTIFICATION');
+
+         expect(options.options).toBeDefined();
+         expect(options.options?.queue).toBe('notification_queue');
+         expect(options.options?.noAck).toBe(true);
+      });
+
+      it('should preserve custom options while keeping noAck true if not specified', () => {
+         const options = service.getClientOptions('NOTIFICATION', {
+            withDlx: false,
+            maxPriority: 5,
+         });
+
+         expect(options.options?.noAck).toBe(true);
+         expect(options.options?.queueOptions?.arguments).toEqual({
+            'x-max-priority': 5,
+         });
+      });
+   });
+
    describe('getRetryCount & getEventId', () => {
       it('should extract retry count from number, string, or x-death header', () => {
          const makeCtx = (headers: Record<string, unknown>) =>

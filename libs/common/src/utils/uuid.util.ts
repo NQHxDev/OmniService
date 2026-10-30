@@ -15,6 +15,17 @@ export const isValidUuidV7 = (value: unknown): value is string =>
 export const isUuidV7 = isValidUuidV7;
 
 /**
+ * Checks whether a given value is a valid UUID format (v1-v7).
+ * Functions as a TypeScript type guard (value is string).
+ */
+export const isValidUuid = (value: unknown): value is string => typeof value === 'string' && validate(value);
+
+/**
+ * Ergonomic alias for isValidUuid used across services.
+ */
+export const isUuid = isValidUuid;
+
+/**
  * Generates an RFC 9562 compliant UUIDv7 string using the official standard 'uuid' library.
  */
 export const uuidv7 = v7;

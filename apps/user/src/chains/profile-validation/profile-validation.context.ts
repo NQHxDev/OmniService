@@ -12,6 +12,7 @@ export interface ProfileValidationContext {
    readonly coverImage?: string | null;
    readonly website?: string | null;
    readonly location?: string | null;
+   readonly address?: string | null;
    readonly dateOfBirth?: Date | string | number | null;
    readonly gender?: Gender | null;
    readonly actorAccountId?: string;

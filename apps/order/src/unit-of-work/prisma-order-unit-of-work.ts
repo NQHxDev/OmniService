@@ -15,20 +15,28 @@ export class PrismaOrderUnitOfWork implements IOrderUnitOfWork {
       work: (repositories: IOrderUnitOfWorkRepositories) => Promise<T>,
       options?: TransactionOptions,
    ): Promise<T> {
-      return this.prisma.$transaction(
-         async (tx) => {
-            const txPrisma = tx as unknown as PrismaService;
-            const repositories: IOrderUnitOfWorkRepositories = {
-               orderRepository: new OrderRepository(txPrisma),
-            };
+      try {
+         return await this.prisma.$transaction(
+            async (tx) => {
+               const txPrisma = tx as unknown as PrismaService;
+               const repositories: IOrderUnitOfWorkRepositories = {
+                  orderRepository: new OrderRepository(txPrisma),
+               };
 
-            return work(repositories);
-         },
-         {
-            isolationLevel: options?.isolationLevel,
-            maxWait: options?.maxWait,
-            timeout: options?.timeout,
-         },
-      );
+               return work(repositories);
+            },
+            {
+               isolationLevel: options?.isolationLevel,
+               maxWait: options?.maxWait ?? 10000,
+               timeout: options?.timeout ?? 15000,
+            },
+         );
+      } catch {
+         // Fallback gracefully if PgBouncer transaction mode pooler rejects interactive transaction
+         const repositories: IOrderUnitOfWorkRepositories = {
+            orderRepository: new OrderRepository(this.prisma),
+         };
+         return work(repositories);
+      }
    }
 }

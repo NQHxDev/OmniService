@@ -21,6 +21,9 @@ export class OrderItemResponseDto {
    @ApiProperty({ description: 'Name of the product' })
    productName!: string;
 
+   @ApiPropertyOptional({ description: 'Image URL of the product' })
+   imageUrl?: string;
+
    @ApiProperty({ description: 'Quantity ordered' })
    quantity!: number;
 

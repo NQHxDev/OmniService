@@ -77,3 +77,14 @@ export const WHO_FOOD_GROUPS: readonly WhoCategoryDefinition[] = [
       order: 8,
    },
 ] as const;
+
+export const PRODUCT_CACHE_KEYS = {
+   WHO_CATEGORIES_ALL: 'who-categories:all',
+   whoCategoryDetail: (code: string): string => `who-categories:${code}`,
+   productDetail: (productId: string): string => `products:${productId}`,
+} as const;
+
+export const PRODUCT_CACHE_TTL = {
+   /** 12 hours in seconds (12 * 60 * 60) for WHO nutrition categories */
+   WHO_CATEGORIES_SECONDS: 43200,
+} as const;

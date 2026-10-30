@@ -80,4 +80,14 @@ export class CreateUserProfileDto {
    @IsOptional()
    @IsString()
    location?: string;
+
+   @ApiProperty({
+      example: '123 Nguyen Trai, Thanh Xuan, Hanoi',
+      description: 'Physical living address of user (min 3, max 255 characters)',
+   })
+   @IsString({ message: 'Address must be a string' })
+   @IsNotEmpty({ message: 'Address must not be empty' })
+   @MinLength(3, { message: 'Address must be at least 3 characters' })
+   @MaxLength(255, { message: 'Address cannot exceed 255 characters' })
+   address!: string;
 }

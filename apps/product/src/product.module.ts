@@ -4,6 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import {
    COMMAND_BUS,
    CommandBus,
+   CacheModule,
    GRPC_METRICS_COLLECTOR,
    GrpcHealthModule,
    GrpcLoggingInterceptor,
@@ -27,6 +28,8 @@ import {
    StockMovementRepository,
    WHO_CATEGORY_REPOSITORY,
    WhoCategoryRepository,
+   PRODUCT_MODERATION_HISTORY_REPOSITORY,
+   ProductModerationHistoryRepository,
 } from '@product/repositories';
 import { PRODUCT_METRICS_SERVICE, ProductMetricsService, ProductService, StockService } from '@product/services';
 import { PRODUCT_QUERY_HANDLERS } from '@product/queries';
@@ -47,9 +50,13 @@ import { PRODUCT_EVENT_PUBLISHER, ProductEventPublisher } from '@product/publish
       UnitOfWorkModule,
       OutboxModule,
       RedisModule,
+      CacheModule,
       RmqModule,
       RmqModule.register({
          name: SERVICES.SEARCH_SERVICE,
+      }),
+      RmqModule.register({
+         name: SERVICES.NOTIFICATION_SERVICE,
       }),
       GrpcHealthModule,
    ],
@@ -75,6 +82,11 @@ import { PRODUCT_EVENT_PUBLISHER, ProductEventPublisher } from '@product/publish
       {
          provide: STOCK_MOVEMENT_REPOSITORY,
          useExisting: StockMovementRepository,
+      },
+      ProductModerationHistoryRepository,
+      {
+         provide: PRODUCT_MODERATION_HISTORY_REPOSITORY,
+         useExisting: ProductModerationHistoryRepository,
       },
 
       // Services
@@ -118,6 +130,7 @@ import { PRODUCT_EVENT_PUBLISHER, ProductEventPublisher } from '@product/publish
       PRODUCT_VARIANT_REPOSITORY,
       WHO_CATEGORY_REPOSITORY,
       STOCK_MOVEMENT_REPOSITORY,
+      PRODUCT_MODERATION_HISTORY_REPOSITORY,
       PRODUCT_EVENT_PUBLISHER,
    ],
 })

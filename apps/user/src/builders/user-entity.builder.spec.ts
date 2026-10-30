@@ -19,6 +19,7 @@ describe('UserEntityBuilder', () => {
          .withCoverImage('https://cdn.example.com/cover.jpg')
          .withWebsite('https://example.com')
          .withLocation('San Francisco, CA')
+         .withAddress('123 Main St')
          .withFollowersCount(150)
          .withFollowingCount(75)
          .withPostsCount(20)
@@ -38,6 +39,7 @@ describe('UserEntityBuilder', () => {
       expect(user.coverImage).toBe('https://cdn.example.com/cover.jpg');
       expect(user.website).toBe('https://example.com');
       expect(user.location).toBe('San Francisco, CA');
+      expect(user.address).toBe('123 Main St');
       expect(user.followersCount).toBe(150);
       expect(user.followingCount).toBe(75);
       expect(user.postsCount).toBe(20);

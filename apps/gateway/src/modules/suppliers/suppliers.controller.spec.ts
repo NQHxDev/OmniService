@@ -33,6 +33,8 @@ describe('SuppliersController', () => {
          updateSupplier: jest.fn(),
          updateSupplierStatus: jest.fn(),
          verifySupplier: jest.fn(),
+         submitKyb: jest.fn(),
+         rejectSupplier: jest.fn(),
       } as unknown as jest.Mocked<SuppliersService>;
 
       const module: TestingModule = await Test.createTestingModule({
@@ -245,5 +247,82 @@ describe('SuppliersController', () => {
          }),
       );
       expect(result).toEqual(statusUpdatedSupplier);
+   });
+
+   it('should delegate submitSupplierKyb to SuppliersService with merchant supplierId', async () => {
+      const kybSupplier = { ...mockSupplier, supplierStatus: SUPPLIER_STATUS.UNDER_REVIEW };
+      mockSuppliersService.getMySupplier.mockResolvedValue({
+         hasSupplier: true,
+         supplier: mockSupplier,
+      });
+      mockSuppliersService.submitKyb.mockResolvedValue(kybSupplier);
+
+      const mockRequest = {
+         headers: {
+            [CORRELATION_ID_HEADER]: 'corr-456',
+         },
+      } as unknown as Request;
+
+      const mockUser = {
+         sub: 'user-1',
+         roles: [DEFAULT_ROLES.USER],
+      } as never;
+
+      const dto = {
+         merchantType: 'INDIVIDUAL' as const,
+         citizenId: '079090001234',
+      };
+
+      const result = await controller.submitSupplierKyb(dto, mockRequest, mockUser);
+
+      expect(mockSuppliersService.getMySupplier).toHaveBeenCalledWith(
+         expect.objectContaining({
+            accountId: 'user-1',
+         }),
+      );
+      expect(mockSuppliersService.submitKyb).toHaveBeenCalledWith(
+         mockSupplier.supplierId,
+         dto,
+         expect.objectContaining({
+            accountId: 'user-1',
+         }),
+      );
+      expect(result).toEqual(kybSupplier);
+   });
+
+   it('should delegate rejectSupplier to SuppliersService (Admin operation)', async () => {
+      const rejectedSupplier = {
+         ...mockSupplier,
+         supplierStatus: SUPPLIER_STATUS.REJECTED,
+         rejectionReason: 'Bad doc',
+      };
+      mockSuppliersService.rejectSupplier.mockResolvedValue(rejectedSupplier);
+
+      const mockRequest = {
+         headers: {
+            [CORRELATION_ID_HEADER]: 'corr-456',
+         },
+      } as unknown as Request;
+
+      const mockUser = {
+         sub: 'admin-1',
+         roles: [DEFAULT_ROLES.ADMIN],
+      } as never;
+
+      const result = await controller.rejectSupplier(
+         mockSupplier.supplierId,
+         { reason: 'Bad doc' },
+         mockRequest,
+         mockUser,
+      );
+
+      expect(mockSuppliersService.rejectSupplier).toHaveBeenCalledWith(
+         mockSupplier.supplierId,
+         { reason: 'Bad doc' },
+         expect.objectContaining({
+            accountId: 'admin-1',
+         }),
+      );
+      expect(result).toEqual(rejectedSupplier);
    });
 });

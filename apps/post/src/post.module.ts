@@ -17,6 +17,12 @@ import { PrismaModule } from '@post/prisma';
       RmqModule.register({
          name: SERVICES.USER_SERVICE,
       }),
+      RmqModule.register({
+         name: SERVICES.SEARCH_SERVICE,
+      }),
+      RmqModule.register({
+         name: SERVICES.NOTIFICATION_SERVICE,
+      }),
    ],
    controllers: [PostController, PostGrpcController],
    providers: [

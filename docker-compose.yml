@@ -12,6 +12,7 @@ include:
    - apps/order/docker-compose.yml
    - apps/payment/docker-compose.yml
    - apps/product/docker-compose.yml
+   - apps/analyze/docker-compose.yml
 
 services:
    redis:

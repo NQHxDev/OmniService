@@ -62,6 +62,77 @@ export interface ISearchIngredientsResponse {
    offset: number;
 }
 
+export interface IProductVariantSearchProto {
+   variantId: string;
+   sku: string;
+   variantName: string;
+   unit: string;
+   packSize?: string;
+   price: number;
+   originalPrice?: number;
+   currency: string;
+   stockQuantity: number;
+   isDefault: boolean;
+   status: string;
+}
+
+export interface IProductSearchHitProto {
+   productId: string;
+   supplierId: string;
+   whoCategoryCode: string;
+   productName: string;
+   productSlug: string;
+   description: string;
+   origin?: string;
+   images: string[];
+   status: string;
+   moderationStatus: string;
+   variants: IProductVariantSearchProto[];
+   minPrice?: number;
+   maxPrice?: number;
+   currency?: string;
+   createdAt: string;
+   updatedAt: string;
+}
+
+export interface IProductSuggestionProto {
+   productId: string;
+   productName: string;
+   productSlug: string;
+   whoCategoryCode: string;
+   origin?: string;
+   images: string[];
+   defaultUnit?: string;
+   minPrice?: number;
+   maxPrice?: number;
+   currency?: string;
+}
+
+export interface ISearchProductsRequest {
+   query?: string;
+   whoCategoryCode?: string;
+   supplierId?: string;
+   status?: string;
+   limit?: number;
+   offset?: number;
+}
+
+export interface ISearchProductsResponse {
+   items: IProductSearchHitProto[];
+   total: number;
+   limit: number;
+   offset: number;
+}
+
+export interface ISuggestProductsRequest {
+   query: string;
+   limit?: number;
+}
+
+export interface ISuggestProductsResponse {
+   items: IProductSuggestionProto[];
+}
+
 export interface IGlobalSearchRequest {
    query: string;
    limit?: number;
@@ -152,6 +223,8 @@ export interface IGetPostDetailResponse {
 export interface ISearchV1GrpcService {
    searchUsers(request: ISearchUsersRequest, metadata?: Metadata): Observable<ISearchUsersResponse>;
    searchIngredients(request: ISearchIngredientsRequest, metadata?: Metadata): Observable<ISearchIngredientsResponse>;
+   searchProducts(request: ISearchProductsRequest, metadata?: Metadata): Observable<ISearchProductsResponse>;
+   suggestProducts(request: ISuggestProductsRequest, metadata?: Metadata): Observable<ISuggestProductsResponse>;
    globalSearch(request: IGlobalSearchRequest, metadata?: Metadata): Observable<IGlobalSearchResponse>;
    getPostFeed(request: IGetPostFeedRequest, metadata?: Metadata): Observable<IGetPostFeedResponse>;
    getPostDetail(request: IGetPostDetailRequest, metadata?: Metadata): Observable<IGetPostDetailResponse>;

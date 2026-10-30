@@ -25,7 +25,7 @@ export class UploadUrlResponseDto {
    @ApiPropertyOptional({
       description: 'Direct upload URL endpoint (e.g., presigned S3/R2 PUT URL or Cloudinary API URL)',
       example:
-         'https://omnicoonect.8c105792348723be568e322d01a2de79.r2.cloudflarestorage.com/omni/posts/videos/video_123.mp4',
+         'https://omniconnect.8c105792348723be568e322d01a2de79.r2.cloudflarestorage.com/omni/posts/videos/video_123.mp4',
    })
    uploadUrl?: string;
 

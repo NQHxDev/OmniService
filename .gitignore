@@ -1,5 +1,7 @@
 # Compiled output
 /dist
+.next/
+**/.next/
 /build
 *.tsbuildinfo
 **/src/generated/

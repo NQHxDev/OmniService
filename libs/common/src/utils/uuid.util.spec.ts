@@ -1,5 +1,5 @@
 import { v4 } from 'uuid';
-import { isValidUuidV7, isUuidV7, UUID_V7_REGEX, uuidv7 } from '@common/utils/uuid.util';
+import { isValidUuid, isValidUuidV7, isUuid, isUuidV7, UUID_V7_REGEX, uuidv7 } from '@common/utils/uuid.util';
 
 describe('UUID Utility', () => {
    describe('uuidv7', () => {
@@ -42,6 +42,27 @@ describe('UUID Utility', () => {
          expect(isValidUuidV7(undefined)).toBe(false);
          expect(isValidUuidV7(123)).toBe(false);
          expect(isValidUuidV7({})).toBe(false);
+      });
+   });
+
+   describe('isValidUuid', () => {
+      it('should return true for valid UUIDv7 and UUIDv4 strings', () => {
+         const id7 = uuidv7();
+         const id4 = v4();
+         expect(isValidUuid(id7)).toBe(true);
+         expect(isUuid(id7)).toBe(true);
+         expect(isValidUuid(id4)).toBe(true);
+         expect(isUuid(id4)).toBe(true);
+      });
+
+      it('should return false for invalid formats or empty values', () => {
+         expect(isValidUuid('')).toBe(false);
+         expect(isValidUuid('prod_1793345065775')).toBe(false);
+         expect(isValidUuid('invalid-uuid')).toBe(false);
+         expect(isValidUuid(null)).toBe(false);
+         expect(isValidUuid(undefined)).toBe(false);
+         expect(isValidUuid(123)).toBe(false);
+         expect(isValidUuid({})).toBe(false);
       });
    });
 });

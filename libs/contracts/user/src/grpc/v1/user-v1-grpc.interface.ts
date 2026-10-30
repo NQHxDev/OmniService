@@ -10,6 +10,7 @@ export interface IUserProfileProto {
    coverImage?: string;
    website?: string;
    location?: string;
+   address?: string;
    createdAt: string;
    updatedAt: string;
 }
@@ -45,6 +46,7 @@ export interface IUserProto {
    displayName?: string;
    avatar?: string;
    bio?: string;
+   address?: string;
 }
 
 export interface IUserSuggestionItemProto {
@@ -105,6 +107,7 @@ export interface ICreateProfileRequest {
    coverImage?: string;
    website?: string;
    location?: string;
+   address?: string;
    accountId?: string;
    userId?: string;
 }
@@ -116,6 +119,7 @@ export interface IUpdateUserProfileRequest {
    dateOfBirth?: string;
    gender?: string;
    location?: string;
+   address?: string;
    website?: string;
    coverImage?: string;
 }

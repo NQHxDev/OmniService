@@ -11,9 +11,12 @@ import { HEALTH_GRPC_PACKAGE_NAME, getHealthProtoPath } from '@contracts/health'
 import { GatewayConfigModule, GatewayConfigService } from '@/config';
 import { OrdersController } from '@/modules/orders/orders.controller';
 import { OrdersService } from '@/modules/orders/orders.service';
+import { SupplierOrdersController } from '@/modules/orders/supplier-orders.controller';
+import { SuppliersModule } from '@/modules/suppliers/suppliers.module';
 
 @Module({
    imports: [
+      SuppliersModule,
       ClientsModule.registerAsync([
          {
             name: ORDER_V1_GRPC_CLIENT,
@@ -34,7 +37,7 @@ import { OrdersService } from '@/modules/orders/orders.service';
          },
       ]),
    ],
-   controllers: [OrdersController],
+   controllers: [OrdersController, SupplierOrdersController],
    providers: [OrdersService],
    exports: [OrdersService],
 })

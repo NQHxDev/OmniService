@@ -7,6 +7,7 @@ import type {
    IngredientDocument,
 } from '@search/domains/ingredient-search/ingredient-search.service';
 import type { PostSearchService, HydratedPostHit } from '@search/domains/post-search/post-search.service';
+import type { ProductSearchService, ProductDocument } from '@search/domains/product-search';
 
 describe('SearchGrpcController', () => {
    let controller: SearchGrpcController;
@@ -24,6 +25,11 @@ describe('SearchGrpcController', () => {
       getPostDetail: jest.fn(),
    };
 
+   const mockProductSearchService = {
+      searchProducts: jest.fn(),
+      suggestProducts: jest.fn(),
+   };
+
    beforeEach(() => {
       jest.clearAllMocks();
 
@@ -31,6 +37,7 @@ describe('SearchGrpcController', () => {
          mockUserSearchService as unknown as UserSearchService,
          mockIngredientSearchService as unknown as IngredientSearchService,
          mockPostSearchService as unknown as PostSearchService,
+         mockProductSearchService as unknown as ProductSearchService,
       );
    });
 
@@ -274,6 +281,99 @@ describe('SearchGrpcController', () => {
 
          const response$ = controller.getPostDetail({ postId: 'non-existent' });
          await expect(firstValueFrom(response$)).rejects.toThrow();
+      });
+   });
+
+   describe('searchProducts', () => {
+      it('should search products and map response to proto format', async () => {
+         const mockProduct: ProductDocument = {
+            productId: 'p-123',
+            supplierId: 's-456',
+            whoCategoryCode: 'STAPLES',
+            productName: 'ST25 Rice',
+            productSlug: 'st25-rice',
+            description: 'Premium rice',
+            origin: 'Soc Trang',
+            images: ['https://example.com/rice.jpg'],
+            status: 'ACTIVE',
+            moderationStatus: 'APPROVED',
+            variants: [
+               {
+                  variantId: 'v-1',
+                  sku: 'ST25-5KG',
+                  variantName: '5kg Bag',
+                  unit: 'kg',
+                  price: 180000,
+                  currency: 'VND',
+                  stockQuantity: 50,
+                  isDefault: true,
+                  status: 'ACTIVE',
+               },
+            ],
+            minPrice: 180000,
+            maxPrice: 180000,
+            currency: 'VND',
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+         };
+
+         mockProductSearchService.searchProducts.mockResolvedValue({
+            items: [mockProduct],
+            total: 1,
+            limit: 20,
+            offset: 0,
+         });
+
+         const response$ = controller.searchProducts({ query: 'rice', limit: 20, offset: 0 });
+         const result = await firstValueFrom(response$);
+
+         expect(mockProductSearchService.searchProducts).toHaveBeenCalledWith({
+            query: 'rice',
+            whoCategoryCode: undefined,
+            supplierId: undefined,
+            status: undefined,
+            limit: 20,
+            offset: 0,
+         });
+         expect(result.items).toHaveLength(1);
+         expect(result.items[0].productId).toBe('p-123');
+         expect(result.items[0].productName).toBe('ST25 Rice');
+         expect(result.items[0].variants).toHaveLength(1);
+         expect(result.items[0].variants[0].sku).toBe('ST25-5KG');
+         expect(result.total).toBe(1);
+      });
+   });
+
+   describe('suggestProducts', () => {
+      it('should suggest products and map response to proto format', async () => {
+         mockProductSearchService.suggestProducts.mockResolvedValue({
+            items: [
+               {
+                  productId: 'p-123',
+                  productName: 'ST25 Rice',
+                  productSlug: 'st25-rice',
+                  whoCategoryCode: 'STAPLES',
+                  origin: 'Soc Trang',
+                  images: ['https://example.com/rice.jpg'],
+                  defaultUnit: 'kg',
+                  minPrice: 180000,
+                  maxPrice: 180000,
+                  currency: 'VND',
+               },
+            ],
+         });
+
+         const response$ = controller.suggestProducts({ query: 'st2', limit: 5 });
+         const result = await firstValueFrom(response$);
+
+         expect(mockProductSearchService.suggestProducts).toHaveBeenCalledWith({
+            query: 'st2',
+            limit: 5,
+         });
+         expect(result.items).toHaveLength(1);
+         expect(result.items[0].productId).toBe('p-123');
+         expect(result.items[0].productName).toBe('ST25 Rice');
+         expect(result.items[0].defaultUnit).toBe('kg');
       });
    });
 });

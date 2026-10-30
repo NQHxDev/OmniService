@@ -63,7 +63,7 @@ export class SupplierItemDto {
    isVerified!: boolean;
 
    @ApiProperty({
-      description: 'Supplier status (ACTIVE, SUSPENDED, PENDING)',
+      description: 'Supplier status (ACTIVE, PENDING, UNDER_REVIEW, REJECTED, SUSPENDED)',
       enum: SUPPLIER_STATUS,
       example: SUPPLIER_STATUS.ACTIVE,
    })
@@ -74,4 +74,82 @@ export class SupplierItemDto {
       example: 'https://cdn.omniservices.com/suppliers/mega-market.png',
    })
    supplierLogoUrl?: string;
+
+   @ApiPropertyOptional({
+      description: 'Business entity structure of merchant (INDIVIDUAL or ENTERPRISE)',
+      example: 'ENTERPRISE',
+   })
+   merchantType?: string;
+
+   @ApiPropertyOptional({
+      description: 'National identity / passport number of merchant owner',
+      example: '079090001234',
+   })
+   citizenId?: string;
+
+   @ApiPropertyOptional({
+      description: 'Date of identity document issuance',
+      example: '2021-05-15T00:00:00.000Z',
+   })
+   citizenIdIssuedDate?: string;
+
+   @ApiPropertyOptional({
+      description: 'Public URL to ID card front image',
+      example: 'https://cdn.omniservices.com/kyb/id-front.jpg',
+   })
+   idCardFrontUrl?: string;
+
+   @ApiPropertyOptional({
+      description: 'Public URL to ID card back image',
+      example: 'https://cdn.omniservices.com/kyb/id-back.jpg',
+   })
+   idCardBackUrl?: string;
+
+   @ApiPropertyOptional({
+      description: 'Registered enterprise business name',
+      example: 'Công Ty Cổ Phần Thương Mại Thực Phẩm Mega',
+   })
+   businessName?: string;
+
+   @ApiPropertyOptional({
+      description: 'Enterprise tax code',
+      example: '0312345678',
+   })
+   taxCode?: string;
+
+   @ApiPropertyOptional({
+      description: 'Public URL to scanned business registration certificate',
+      example: 'https://cdn.omniservices.com/kyb/business-license.pdf',
+   })
+   businessLicenseUrl?: string;
+
+   @ApiPropertyOptional({
+      description: 'Settlement bank name',
+      example: 'Vietcombank',
+   })
+   bankName?: string;
+
+   @ApiPropertyOptional({
+      description: 'Settlement bank account number',
+      example: '0071001234567',
+   })
+   bankAccountNumber?: string;
+
+   @ApiPropertyOptional({
+      description: 'Settlement bank account holder name',
+      example: 'NGUYEN VAN A',
+   })
+   bankAccountHolder?: string;
+
+   @ApiPropertyOptional({
+      description: 'Admin rejection reason if KYB was reviewed and rejected',
+      example: 'Invalid business license document provided.',
+   })
+   rejectionReason?: string;
+
+   @ApiPropertyOptional({
+      description: 'Timestamp when supplier was verified by platform compliance',
+      example: '2026-10-27T10:00:00.000Z',
+   })
+   verifiedAt?: string;
 }

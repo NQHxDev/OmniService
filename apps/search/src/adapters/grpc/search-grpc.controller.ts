@@ -15,11 +15,17 @@ import {
    type IGlobalSearchResponse,
    type IIngredientSearchHitProto,
    type IPostSearchHitProto,
+   type IProductSearchHitProto,
+   type IProductSuggestionProto,
    type ISearchIngredientsRequest,
    type ISearchIngredientsResponse,
+   type ISearchProductsRequest,
+   type ISearchProductsResponse,
    type ISearchUsersRequest,
    type ISearchUsersResponse,
    type ISearchV1GrpcService,
+   type ISuggestProductsRequest,
+   type ISuggestProductsResponse,
    type IUserSearchHitProto,
 } from '@contracts/search';
 import { UserSearchService, type UserDocument } from '@search/domains/user-search/user-search.service';
@@ -28,6 +34,7 @@ import {
    type IngredientDocument,
 } from '@search/domains/ingredient-search/ingredient-search.service';
 import { PostSearchService, type HydratedPostHit } from '@search/domains/post-search/post-search.service';
+import { ProductSearchService, type ProductDocument, type ProductSuggestionItem } from '@search/domains/product-search';
 
 /**
  * Inbound Adapter (Hexagonal Architecture) handling incoming gRPC requests for SearchService.
@@ -41,6 +48,7 @@ export class SearchGrpcController implements ISearchV1GrpcService {
       private readonly userSearchService: UserSearchService,
       private readonly ingredientSearchService: IngredientSearchService,
       private readonly postSearchService: PostSearchService,
+      private readonly productSearchService: ProductSearchService,
    ) {}
 
    private mapUserToProto(user: UserDocument): IUserSearchHitProto {
@@ -88,6 +96,54 @@ export class SearchGrpcController implements ISearchV1GrpcService {
          currency: doc.currency,
          createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
          updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
+      };
+   }
+
+   private mapProductToProto(doc: ProductDocument): IProductSearchHitProto {
+      return {
+         productId: doc.productId,
+         supplierId: doc.supplierId,
+         whoCategoryCode: doc.whoCategoryCode,
+         productName: doc.productName,
+         productSlug: doc.productSlug,
+         description: doc.description,
+         origin: doc.origin ?? undefined,
+         images: doc.images || [],
+         status: doc.status,
+         moderationStatus: doc.moderationStatus,
+         variants: (doc.variants || []).map((v) => ({
+            variantId: v.variantId,
+            sku: v.sku,
+            variantName: v.variantName,
+            unit: v.unit,
+            packSize: v.packSize ?? undefined,
+            price: v.price,
+            originalPrice: v.originalPrice ?? undefined,
+            currency: v.currency,
+            stockQuantity: v.stockQuantity,
+            isDefault: v.isDefault,
+            status: v.status,
+         })),
+         minPrice: doc.minPrice ?? undefined,
+         maxPrice: doc.maxPrice ?? undefined,
+         currency: doc.currency ?? undefined,
+         createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : String(doc.createdAt),
+         updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt.toISOString() : String(doc.updatedAt),
+      };
+   }
+
+   private mapSuggestionToProto(item: ProductSuggestionItem): IProductSuggestionProto {
+      return {
+         productId: item.productId,
+         productName: item.productName,
+         productSlug: item.productSlug,
+         whoCategoryCode: item.whoCategoryCode,
+         origin: item.origin ?? undefined,
+         images: item.images || [],
+         defaultUnit: item.defaultUnit ?? undefined,
+         minPrice: item.minPrice ?? undefined,
+         maxPrice: item.maxPrice ?? undefined,
+         currency: item.currency ?? undefined,
       };
    }
 
@@ -168,6 +224,41 @@ export class SearchGrpcController implements ISearchV1GrpcService {
                total: res.total,
                limit: res.limit,
                offset: res.offset,
+            })),
+      );
+   }
+
+   @GrpcMethod(SEARCH_V1_GRPC_SERVICE_NAME, SEARCH_V1_GRPC_METHODS.SEARCH_PRODUCTS)
+   searchProducts(request: ISearchProductsRequest, _metadata?: Metadata): Observable<ISearchProductsResponse> {
+      return from(
+         this.productSearchService
+            .searchProducts({
+               query: request.query,
+               whoCategoryCode: request.whoCategoryCode,
+               supplierId: request.supplierId,
+               status: request.status,
+               limit: request.limit,
+               offset: request.offset,
+            })
+            .then((res) => ({
+               items: res.items.map((item) => this.mapProductToProto(item)),
+               total: res.total,
+               limit: res.limit,
+               offset: res.offset,
+            })),
+      );
+   }
+
+   @GrpcMethod(SEARCH_V1_GRPC_SERVICE_NAME, SEARCH_V1_GRPC_METHODS.SUGGEST_PRODUCTS)
+   suggestProducts(request: ISuggestProductsRequest, _metadata?: Metadata): Observable<ISuggestProductsResponse> {
+      return from(
+         this.productSearchService
+            .suggestProducts({
+               query: request.query,
+               limit: request.limit,
+            })
+            .then((res) => ({
+               items: res.items.map((item) => this.mapSuggestionToProto(item)),
             })),
       );
    }

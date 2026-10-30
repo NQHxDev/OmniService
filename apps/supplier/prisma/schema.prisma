@@ -13,6 +13,8 @@ generator client {
 enum SupplierStatus {
   ACTIVE
   PENDING
+  UNDER_REVIEW
+  REJECTED
   SUSPENDED
 }
 
@@ -23,22 +25,35 @@ enum MemberStatus {
 }
 
 model Supplier {
-  supplierId      String           @id @default(uuid()) @map("supplier_id")
-  supplierName    String           @map("supplier_name") @db.VarChar(150)
-  supplierSlug    String           @unique @map("supplier_slug") @db.VarChar(180)
-  supplierCode    String           @unique @map("supplier_code") @db.VarChar(50)
-  contactEmail    String?          @map("contact_email") @db.VarChar(100)
-  contactPhone    String?          @map("contact_phone") @db.VarChar(30)
-  address         String?          @db.VarChar(255)
-  city            String?          @db.VarChar(100)
-  rating          Float            @default(5.0)
-  isVerified      Boolean          @default(false) @map("is_verified")
-  supplierStatus  SupplierStatus   @default(ACTIVE) @map("supplier_status")
-  supplierLogoUrl String?          @map("supplier_logo_url")
-  version         Int              @default(1)
-  deletedAt       DateTime?        @map("deleted_at")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
+  supplierId          String           @id @default(uuid()) @map("supplier_id")
+  supplierName        String           @map("supplier_name") @db.VarChar(150)
+  supplierSlug        String           @unique @map("supplier_slug") @db.VarChar(180)
+  supplierCode        String           @unique @map("supplier_code") @db.VarChar(50)
+  contactEmail        String?          @map("contact_email") @db.VarChar(100)
+  contactPhone        String?          @map("contact_phone") @db.VarChar(30)
+  address             String?          @db.VarChar(255)
+  city                String?          @db.VarChar(100)
+  rating              Float            @default(5.0)
+  isVerified          Boolean          @default(false) @map("is_verified")
+  supplierStatus      SupplierStatus   @default(PENDING) @map("supplier_status")
+  supplierLogoUrl     String?          @map("supplier_logo_url")
+  merchantType        String?          @map("merchant_type") @db.VarChar(20)
+  citizenId           String?          @map("citizen_id") @db.VarChar(50)
+  citizenIdIssuedDate DateTime?        @map("citizen_id_issued_date")
+  idCardFrontUrl      String?          @map("id_card_front_url")
+  idCardBackUrl       String?          @map("id_card_back_url")
+  businessName        String?          @map("business_name") @db.VarChar(200)
+  taxCode             String?          @map("tax_code") @db.VarChar(50)
+  businessLicenseUrl  String?          @map("business_license_url")
+  bankName            String?          @map("bank_name") @db.VarChar(100)
+  bankAccountNumber   String?          @map("bank_account_number") @db.VarChar(50)
+  bankAccountHolder   String?          @map("bank_account_holder") @db.VarChar(150)
+  rejectionReason     String?          @map("rejection_reason") @db.VarChar(500)
+  verifiedAt          DateTime?        @map("verified_at")
+  version             Int              @default(1)
+  deletedAt           DateTime?        @map("deleted_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
 
   members         SupplierMember[]
 

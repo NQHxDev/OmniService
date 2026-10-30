@@ -29,6 +29,8 @@ describe('Search gRPC Constants and Proto Resolution', () => {
    it('should define all RPC methods in SEARCH_V1_GRPC_METHODS', () => {
       expect(SEARCH_V1_GRPC_METHODS.SEARCH_USERS).toBe('SearchUsers');
       expect(SEARCH_V1_GRPC_METHODS.SEARCH_INGREDIENTS).toBe('SearchIngredients');
+      expect(SEARCH_V1_GRPC_METHODS.SEARCH_PRODUCTS).toBe('SearchProducts');
+      expect(SEARCH_V1_GRPC_METHODS.SUGGEST_PRODUCTS).toBe('SuggestProducts');
       expect(SEARCH_V1_GRPC_METHODS.GLOBAL_SEARCH).toBe('GlobalSearch');
       expect(SEARCH_V1_GRPC_METHODS.GET_POST_FEED).toBe('GetPostFeed');
       expect(SEARCH_V1_GRPC_METHODS.GET_POST_DETAIL).toBe('GetPostDetail');

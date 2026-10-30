@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isUuid } from '@common';
 import { PrismaService } from '@product/prisma';
 import { ProductVariantEntity } from '@product/entities';
 import type { Prisma } from '@product/prisma-client';
@@ -36,6 +37,9 @@ export class ProductVariantRepository implements IProductVariantRepository {
    }
 
    async findById(variantId: string): Promise<ProductVariantEntity | null> {
+      if (!isUuid(variantId)) {
+         return null;
+      }
       const found = await this.prisma.productVariant.findFirst({
          where: { variantId, deletedAt: null },
       });
@@ -43,12 +47,13 @@ export class ProductVariantRepository implements IProductVariantRepository {
    }
 
    async findByIds(variantIds: string[]): Promise<ProductVariantEntity[]> {
-      if (!variantIds.length) {
+      const validIds = variantIds.filter((id) => isUuid(id));
+      if (!validIds.length) {
          return [];
       }
       const found = await this.prisma.productVariant.findMany({
          where: {
-            variantId: { in: variantIds },
+            variantId: { in: validIds },
             deletedAt: null,
          },
       });
@@ -63,6 +68,9 @@ export class ProductVariantRepository implements IProductVariantRepository {
    }
 
    async findByProductId(productId: string): Promise<ProductVariantEntity[]> {
+      if (!isUuid(productId)) {
+         return [];
+      }
       const found = await this.prisma.productVariant.findMany({
          where: { productId, deletedAt: null },
          orderBy: { isDefault: 'desc' },

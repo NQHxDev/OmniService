@@ -8,4 +8,5 @@ service PostService {
   rpc GetFeed (GetPostFeedRequest) returns (GetPostFeedResponse);
   rpc GetPostById (GetPostByIdRequest) returns (GetPostByIdResponse);
   rpc GetIngredientsByPostId (GetIngredientsByPostIdRequest) returns (GetIngredientsByPostIdResponse);
+  rpc CreatePost (CreatePostRequest) returns (CreatePostResponse);
 }

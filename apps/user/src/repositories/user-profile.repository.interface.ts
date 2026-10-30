@@ -10,6 +10,7 @@ export interface CreateUserData {
    coverImage?: string | null;
    website?: string | null;
    location?: string | null;
+   address?: string | null;
    dateOfBirth?: Date | null;
    gender?: Gender | null;
    isPrivate?: boolean;
@@ -26,6 +27,7 @@ export interface UpdateUserData {
    coverImage?: string;
    website?: string;
    location?: string;
+   address?: string;
    dateOfBirth?: Date;
    gender?: Gender;
    isPrivate?: boolean;

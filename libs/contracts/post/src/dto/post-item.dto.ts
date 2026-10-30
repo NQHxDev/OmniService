@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PostAuthorDto } from '@contracts/post/dto/post-author.dto';
 import { PostIngredientDto } from '@contracts/post/dto/post-ingredient.dto';
+import { RecipeDto } from '@contracts/post/dto/recipe.dto';
 
 export class PostItemDto {
    @ApiProperty({
@@ -13,6 +15,13 @@ export class PostItemDto {
       example: 'user-1234-uuid',
    })
    userId!: string;
+
+   @ApiPropertyOptional({
+      description: 'Author profile summary (including display name) of the user who created the post',
+      type: PostAuthorDto,
+      nullable: true,
+   })
+   author?: PostAuthorDto | null;
 
    @ApiProperty({
       description: 'Title of recipe or post video',
@@ -139,4 +148,25 @@ export class PostItemDto {
       type: [PostIngredientDto],
    })
    ingredients!: PostIngredientDto[];
+
+   @ApiPropertyOptional({
+      description: 'Detailed recipe instructions for cooking the dish',
+      type: RecipeDto,
+      nullable: true,
+   })
+   recipe?: RecipeDto | null;
+
+   @ApiPropertyOptional({
+      description: 'List of hashtags associated with this post',
+      type: [String],
+      example: ['phobo', 'monngon'],
+   })
+   tags?: string[];
+
+   @ApiPropertyOptional({
+      description: 'List of mentioned user UUIDs in this post',
+      type: [String],
+      example: ['0192e21b-0002-7000-8000-000000000010'],
+   })
+   mentionedUserIds?: string[];
 }

@@ -49,6 +49,7 @@ message CreateProfileRequest {
   optional string location = 9;
   optional string accountId = 10;
   optional string userId = 11;
+  optional string address = 12;
 }
 
 message UpdateUserProfileRequest {
@@ -60,6 +61,7 @@ message UpdateUserProfileRequest {
   optional string location = 6;
   optional string website = 7;
   optional string coverImage = 8;
+  optional string address = 9;
 }
 
 message UpdateUsernameRequest {

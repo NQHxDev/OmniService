@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 import { BulkheadRegistry, CircuitBreakerRegistry, RedisService } from '@common';
+import { USER_V1_GRPC_CLIENT } from '@contracts/user';
 import { SEARCH_V1_GRPC_CLIENT, type IPostSearchHitProto } from '@contracts/search';
 import {
    POST_CACHE_KEYS,
@@ -27,10 +28,21 @@ describe('PostsService (CQRS Read-Model Single-Hop Delegation & Resilience)', ()
       getFeed: jest.fn(),
       getPostById: jest.fn(),
       getIngredientsByPostId: jest.fn(),
+      createPost: jest.fn(),
    };
 
    const mockPostClient = {
       getService: jest.fn().mockReturnValue(mockPostGrpcService),
+   };
+
+   const mockUserGrpcService = {
+      getUserById: jest
+         .fn()
+         .mockReturnValue(of({ user: { displayName: 'Chef Anh', avatar: 'https://cdn.example.com/a.jpg' } })),
+   };
+
+   const mockUserClient = {
+      getService: jest.fn().mockReturnValue(mockUserGrpcService),
    };
 
    const mockRedisService = {
@@ -105,6 +117,7 @@ describe('PostsService (CQRS Read-Model Single-Hop Delegation & Resilience)', ()
             PostsService,
             { provide: SEARCH_V1_GRPC_CLIENT, useValue: mockSearchClient },
             { provide: POST_V1_GRPC_CLIENT, useValue: mockPostClient },
+            { provide: USER_V1_GRPC_CLIENT, useValue: mockUserClient },
             { provide: RedisService, useValue: mockRedisService },
          ],
       }).compile();
@@ -286,6 +299,41 @@ describe('PostsService (CQRS Read-Model Single-Hop Delegation & Resilience)', ()
          expect(mockPostGrpcService.getIngredientsByPostId).toHaveBeenCalledWith({ postId: 'post-100' });
          expect(result).toHaveLength(1);
          expect(result[0].name).toBe('Ginger');
+      });
+   });
+
+   describe('createPost', () => {
+      it('should call createPost on Post gRPC microservice and mark recent author cache', async () => {
+         mockPostGrpcService.createPost.mockReturnValue(
+            of({
+               post: {
+                  ...mockMasterPostProto,
+                  postId: 'post-created-1',
+                  title: 'Brand New Post',
+               },
+            }),
+         );
+
+         const result = await service.createPost('user-1', {
+            title: 'Brand New Post',
+            videoUrl: 'https://cdn.example.com/video.mp4',
+            thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+            duration: 40,
+         });
+
+         expect(mockPostGrpcService.createPost).toHaveBeenCalledWith(
+            expect.objectContaining({
+               userId: 'user-1',
+               title: 'Brand New Post',
+            }),
+         );
+         expect(mockRedisService.set).toHaveBeenCalledWith(
+            POST_CACHE_KEYS.recentAuthor('post-created-1', 'user-1'),
+            '1',
+            POST_CACHE_TTL.RECENT_AUTHOR_SECONDS,
+         );
+         expect(result.postId).toBe('post-created-1');
+         expect(result.title).toBe('Brand New Post');
       });
    });
 });

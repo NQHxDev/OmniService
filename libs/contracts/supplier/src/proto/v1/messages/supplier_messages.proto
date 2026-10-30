@@ -88,3 +88,31 @@ message UpdateSupplierStatusRequest {
 message UpdateSupplierStatusResponse {
   SupplierProto supplier = 1;
 }
+
+message SubmitKybRequest {
+  string supplierId = 1;
+  string merchantType = 2;
+  optional string citizenId = 3;
+  optional string citizenIdIssuedDate = 4;
+  optional string idCardFrontUrl = 5;
+  optional string idCardBackUrl = 6;
+  optional string businessName = 7;
+  optional string taxCode = 8;
+  optional string businessLicenseUrl = 9;
+  optional string bankName = 10;
+  optional string bankAccountNumber = 11;
+  optional string bankAccountHolder = 12;
+}
+
+message SubmitKybResponse {
+  SupplierProto supplier = 1;
+}
+
+message RejectSupplierRequest {
+  string supplierId = 1;
+  string reason = 2;
+}
+
+message RejectSupplierResponse {
+  SupplierProto supplier = 1;
+}

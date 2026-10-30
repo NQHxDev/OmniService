@@ -8,6 +8,28 @@ export interface IPostIngredientProto {
    catalogIngredientId?: string;
 }
 
+export interface IRecipeStepProto {
+   stepId: string;
+   stepNumber: number;
+   title?: string;
+   instruction: string;
+   timestampSeconds?: number;
+   imageUrl?: string;
+   mediaId?: string;
+}
+
+export interface IRecipeProto {
+   recipeId: string;
+   prepTimeMinutes: number;
+   cookTimeMinutes: number;
+   servings: number;
+   difficulty: string;
+   calories?: number;
+   cuisine?: string;
+   chefTips?: string;
+   steps?: IRecipeStepProto[];
+}
+
 export interface IPostItemProto {
    postId: string;
    userId: string;
@@ -31,4 +53,7 @@ export interface IPostItemProto {
    createdAt: string;
    updatedAt: string;
    ingredients?: IPostIngredientProto[];
+   recipe?: IRecipeProto;
+   tags?: string[];
+   mentionedUserIds?: string[];
 }

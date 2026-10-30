@@ -109,7 +109,13 @@ export class AuthController {
 
    private extractCurrentJti(req?: Request): string | undefined {
       const cookies = req?.cookies as Record<string, string> | undefined;
-      const refreshToken = cookies?.[this.config.refreshTokenCookieName] || cookies?.[AUTH_COOKIES.REFRESH_TOKEN];
+      const refreshToken =
+         cookies?.[this.config.refreshTokenCookieName] ||
+         cookies?.[AUTH_COOKIES.REFRESH_TOKEN] ||
+         cookies?.['refresh_token'] ||
+         cookies?.['refreshToken'] ||
+         cookies?.['RT'] ||
+         cookies?.['rt'];
 
       if (refreshToken) {
          try {
@@ -633,6 +639,10 @@ export class AuthController {
       const token =
          cookies?.[this.config.refreshTokenCookieName] ||
          cookies?.[AUTH_COOKIES.REFRESH_TOKEN] ||
+         cookies?.['refresh_token'] ||
+         cookies?.['refreshToken'] ||
+         cookies?.['RT'] ||
+         cookies?.['rt'] ||
          headerRefreshToken ||
          body?.refreshToken;
 
@@ -696,6 +706,14 @@ export class AuthController {
          cookies?.[AUTH_COOKIES.REFRESH_TOKEN] ||
          cookies?.[this.config.accessTokenCookieName] ||
          cookies?.[AUTH_COOKIES.ACCESS_TOKEN] ||
+         cookies?.['refresh_token'] ||
+         cookies?.['refreshToken'] ||
+         cookies?.['access_token'] ||
+         cookies?.['accessToken'] ||
+         cookies?.['RT'] ||
+         cookies?.['rt'] ||
+         cookies?.['AT'] ||
+         cookies?.['at'] ||
          headerRefreshToken ||
          body?.token;
 
@@ -740,7 +758,13 @@ export class AuthController {
       @Headers('authorization') authHeader?: string,
    ): Promise<SimpleSuccessResponseDto> {
       const cookies = req.cookies as Record<string, string> | undefined;
-      let refreshToken = cookies?.[this.config.refreshTokenCookieName] || cookies?.[AUTH_COOKIES.REFRESH_TOKEN];
+      let refreshToken =
+         cookies?.[this.config.refreshTokenCookieName] ||
+         cookies?.[AUTH_COOKIES.REFRESH_TOKEN] ||
+         cookies?.['refresh_token'] ||
+         cookies?.['refreshToken'] ||
+         cookies?.['RT'] ||
+         cookies?.['rt'];
 
       // Extract from Authorization: Bearer header if no cookie
       if (!refreshToken && authHeader?.startsWith('Bearer ')) {
@@ -1114,7 +1138,7 @@ export class AuthController {
       return this.authService.getEmail(accountId);
    }
 
-   @Get('me')
+   @Get(['me', 'profile'])
    @ApiCookieAuth()
    @ApiBearerAuth()
    @ApiOperation({

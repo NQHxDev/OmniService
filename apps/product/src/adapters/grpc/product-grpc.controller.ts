@@ -14,6 +14,8 @@ import {
    UnauthorizedException,
 } from '@common';
 import {
+   CURRENCY,
+   CurrencyType,
    PRODUCT_V1_GRPC_METHODS,
    PRODUCT_V1_GRPC_SERVICE_NAME,
    type IAdjustStockRequest,
@@ -24,6 +26,8 @@ import {
    type ICreateProductResponse,
    type IGetProductByIdRequest,
    type IGetProductByIdResponse,
+   type IGetProductModerationHistoryRequest,
+   type IGetProductModerationHistoryResponse,
    type IGetProductsByIdsRequest,
    type IGetProductsByIdsResponse,
    type IListProductsRequest,
@@ -36,22 +40,27 @@ import {
    type IProductV1GrpcService,
    type IReleaseStockRequest,
    type IReleaseStockResponse,
+   type ISubmitProductForReviewRequest,
+   type ISubmitProductForReviewResponse,
    type IUpdateProductRequest,
    type IUpdateProductResponse,
    type IUpdateProductStatusRequest,
    type IUpdateProductStatusResponse,
    type ProductItemDto,
+   type ProductModerationHistoryDto,
 } from '@contracts/product';
 import {
    AdjustStockCommand,
    CheckAndReserveStockCommand,
    CreateProductCommand,
    GetProductByIdQuery,
+   GetProductModerationHistoryQuery,
    GetProductsByIdsQuery,
    ListProductsQuery,
    ListWhoCategoriesQuery,
    ModerateProductCommand,
    ReleaseStockCommand,
+   SubmitProductForReviewCommand,
    UpdateProductCommand,
    UpdateProductStatusCommand,
 } from '@product/commands';
@@ -64,7 +73,7 @@ export class ProductGrpcController implements IProductV1GrpcService {
 
    private extractAccountId(metadata?: Metadata, fallbackId?: string): string {
       const user = extractGrpcUser(metadata);
-      const resolved = user?.userId || fallbackId;
+      const resolved = fallbackId || user?.userId;
       if (!resolved) {
          throw new UnauthorizedException(COMMON_ERROR_CODES.UNAUTHORIZED);
       }
@@ -105,6 +114,7 @@ export class ProductGrpcController implements IProductV1GrpcService {
          version: product.version,
          createdAt: product.createdAt,
          updatedAt: product.updatedAt,
+         pendingEditData: product.pendingEditData ? JSON.stringify(product.pendingEditData) : '',
       };
    }
 
@@ -156,6 +166,7 @@ export class ProductGrpcController implements IProductV1GrpcService {
          this.commandBus
             .execute(
                new CreateProductCommand(supplierId, {
+                  supplierId,
                   whoCategoryCode: data.whoCategoryCode as never,
                   productName: data.productName,
                   description: data.description,
@@ -170,7 +181,7 @@ export class ProductGrpcController implements IProductV1GrpcService {
                      packSize: v.packSize,
                      price: v.price,
                      originalPrice: v.originalPrice,
-                     currency: (v.currency as never) || 'VND',
+                     currency: (v.currency as CurrencyType) || CURRENCY.VND,
                      stockQuantity: v.stockQuantity,
                      lowStockThreshold: v.lowStockThreshold,
                      isDefault: v.isDefault,
@@ -208,18 +219,69 @@ export class ProductGrpcController implements IProductV1GrpcService {
    @GrpcMethod(PRODUCT_V1_GRPC_SERVICE_NAME, PRODUCT_V1_GRPC_METHODS.MODERATE_PRODUCT)
    moderateProduct(data: IModerateProductRequest, metadata?: Metadata): Observable<IModerateProductResponse> {
       checkRoles(metadata, [DEFAULT_ROLES.ADMIN]);
+      const user = extractGrpcUser(metadata);
       const moderatorId = this.extractAccountId(metadata, data.moderatedBy);
+      const moderatorEmail = user?.email || data.moderatorEmail;
 
       return from(
          this.commandBus
             .execute(
-               new ModerateProductCommand(data.productId, moderatorId, {
-                  moderationStatus: data.moderationStatus as never,
-                  rejectionReason: data.rejectionReason,
-               }),
+               new ModerateProductCommand(
+                  data.productId,
+                  moderatorId,
+                  {
+                     moderationStatus: data.moderationStatus as never,
+                     action: data.action as never,
+                     rejectionReason: data.rejectionReason,
+                     moderationNotes: data.moderationNotes,
+                  },
+                  moderatorEmail,
+               ),
             )
             .then((product) => ({
                product: this.mapProductToProto(product),
+            })),
+      );
+   }
+
+   @GrpcMethod(PRODUCT_V1_GRPC_SERVICE_NAME, PRODUCT_V1_GRPC_METHODS.SUBMIT_PRODUCT_FOR_REVIEW)
+   submitProductForReview(
+      data: ISubmitProductForReviewRequest,
+      metadata?: Metadata,
+   ): Observable<ISubmitProductForReviewResponse> {
+      const supplierId = this.extractAccountId(metadata, data.supplierId);
+
+      return from(
+         this.commandBus.execute(new SubmitProductForReviewCommand(data.productId, supplierId)).then((product) => ({
+            product: this.mapProductToProto(product),
+         })),
+      );
+   }
+
+   @GrpcMethod(PRODUCT_V1_GRPC_SERVICE_NAME, PRODUCT_V1_GRPC_METHODS.GET_PRODUCT_MODERATION_HISTORY)
+   getProductModerationHistory(
+      data: IGetProductModerationHistoryRequest,
+      metadata?: Metadata,
+   ): Observable<IGetProductModerationHistoryResponse> {
+      checkRoles(metadata, [DEFAULT_ROLES.ADMIN]);
+
+      return from(
+         this.commandBus
+            .execute(new GetProductModerationHistoryQuery(data.productId))
+            .then((items: ProductModerationHistoryDto[]) => ({
+               items: items.map((h) => ({
+                  historyId: h.historyId,
+                  productId: h.productId,
+                  moderatorId: h.moderatorId,
+                  moderatorEmail: h.moderatorEmail || '',
+                  action: h.action,
+                  previousStatus: h.previousStatus,
+                  newStatus: h.newStatus,
+                  rejectionReason: h.rejectionReason || '',
+                  moderationNotes: h.moderationNotes || '',
+                  snapshot: h.snapshot ? JSON.stringify(h.snapshot) : '',
+                  createdAt: h.createdAt,
+               })),
             })),
       );
    }

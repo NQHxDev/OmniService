@@ -18,6 +18,7 @@ describe('UsersController', () => {
       updateBio: jest.fn(),
       updatePersonalInfo: jest.fn(),
       updateLocation: jest.fn(),
+      updateAddress: jest.fn(),
       updateWebsite: jest.fn(),
       updateCoverImage: jest.fn(),
       getMyProfile: jest.fn(),
@@ -72,6 +73,7 @@ describe('UsersController', () => {
          const createProfileDto = {
             displayName: 'John Doe',
             username: 'johndoe',
+            address: '123 Nguyen Trai, Hanoi',
          };
          mockUsersService.createProfile.mockResolvedValue({ id: 'u1', ...createProfileDto });
 
@@ -182,6 +184,15 @@ describe('UsersController', () => {
       const result = await controller.searchUsers({ q: 'alex', limit: 10, cursor: 'cur_1' }, mockUser);
       expect(mockUsersService.searchUsers).toHaveBeenCalledWith('alex', 10, 'cur_1', mockUser);
       expect(result).toEqual(mockSearchRes);
+   });
+
+   it('should update address via updateMyAddress', async () => {
+      const address = '123 Nguyen Trai, Hanoi';
+      mockUsersService.updateAddress.mockResolvedValue({ id: 'u1', address });
+
+      const result = await controller.updateMyAddress({ address }, mockUser);
+      expect(mockUsersService.updateAddress).toHaveBeenCalledWith(mockUser.sub, address, mockUser);
+      expect(result).toEqual({ id: 'u1', address });
    });
 
    it('should get follow suggestions via getFollowSuggestions endpoint', async () => {

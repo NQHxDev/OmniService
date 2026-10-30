@@ -1,9 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { Inject, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ThrottlerGuard, type ThrottlerModuleOptions, ThrottlerStorage } from '@nestjs/throttler';
+import { THROTTLER_OPTIONS } from '@nestjs/throttler/dist/throttler.constants';
 import { Request } from 'express';
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
+   constructor(
+      @Inject(THROTTLER_OPTIONS) options: ThrottlerModuleOptions,
+      storageService: ThrottlerStorage,
+      reflector: Reflector,
+   ) {
+      super(options, storageService, reflector);
+   }
+
    protected override getTracker(req: Record<string, unknown>): Promise<string> {
       const rawReq = req as unknown as Request;
       const forwarded = rawReq.headers?.['x-forwarded-for'];

@@ -14,6 +14,7 @@ describe('UserProfileDataBuilder', () => {
          .withCoverImage('https://cdn.example.com/cover.png')
          .withWebsite('https://alice.dev')
          .withLocation('London, UK')
+         .withAddress('Baker Street 221B')
          .withGender(Gender.FEMALE)
          .withDateOfBirth(dob)
          .asVerified(true)
@@ -29,6 +30,7 @@ describe('UserProfileDataBuilder', () => {
       expect(data.coverImage).toBe('https://cdn.example.com/cover.png');
       expect(data.website).toBe('https://alice.dev');
       expect(data.location).toBe('London, UK');
+      expect(data.address).toBe('Baker Street 221B');
       expect(data.gender).toBe(Gender.FEMALE);
       expect(data.dateOfBirth).toBe(dob);
       expect(data.isVerified).toBe(true);
@@ -85,12 +87,14 @@ describe('UserProfileDataBuilder', () => {
       const updateData = UserProfileDataBuilder.create()
          .withDisplayName('New Name')
          .withBio('New Bio')
+         .withAddress('456 Elm St')
          .asVerified(true)
          .buildUpdate();
 
       expect(updateData).toEqual({
          displayName: 'New Name',
          bio: 'New Bio',
+         address: '456 Elm St',
          isVerified: true,
       });
       expect(updateData.username).toBeUndefined();

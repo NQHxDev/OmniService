@@ -3,6 +3,8 @@ import { UpdateSupplierHandler } from '@supplier/commands/update-supplier.handle
 import { UpdateSupplierStatusHandler } from '@supplier/commands/update-supplier-status.handler';
 import { VerifySupplierHandler } from '@supplier/commands/verify-supplier.handler';
 import { HandleSupplierRegisteredHandler } from '@supplier/commands/handle-supplier-registered.handler';
+import { SubmitKybHandler } from '@supplier/commands/submit-kyb.handler';
+import { RejectSupplierHandler } from '@supplier/commands/reject-supplier.handler';
 
 export * from '@supplier/commands/register-supplier.command';
 export * from '@supplier/commands/register-supplier.handler';
@@ -14,6 +16,10 @@ export * from '@supplier/commands/verify-supplier.command';
 export * from '@supplier/commands/verify-supplier.handler';
 export * from '@supplier/commands/handle-supplier-registered.command';
 export * from '@supplier/commands/handle-supplier-registered.handler';
+export * from '@supplier/commands/submit-kyb.command';
+export * from '@supplier/commands/submit-kyb.handler';
+export * from '@supplier/commands/reject-supplier.command';
+export * from '@supplier/commands/reject-supplier.handler';
 
 export const SUPPLIER_COMMAND_HANDLERS = [
    RegisterSupplierHandler,
@@ -21,4 +27,6 @@ export const SUPPLIER_COMMAND_HANDLERS = [
    UpdateSupplierStatusHandler,
    VerifySupplierHandler,
    HandleSupplierRegisteredHandler,
+   SubmitKybHandler,
+   RejectSupplierHandler,
 ];

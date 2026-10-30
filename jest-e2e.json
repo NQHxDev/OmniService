@@ -1,0 +1,36 @@
+{
+   "moduleFileExtensions": ["js", "json", "ts"],
+   "rootDir": ".",
+   "testEnvironment": "node",
+   "testRegex": ".*\\.e2e-spec\\.ts$",
+   "transform": {
+      "^.+\\.(t|j)sx?$": "ts-jest"
+   },
+   "moduleDirectories": ["node_modules", "<rootDir>/node_modules"],
+   "modulePaths": ["<rootDir>/node_modules"],
+   "moduleNameMapper": {
+      "^@nestjs/core$": "<rootDir>/node_modules/@nestjs/core",
+      "^@nestjs/common$": "<rootDir>/node_modules/@nestjs/common",
+      "^amqp-connection-manager$": "<rootDir>/node_modules/amqp-connection-manager/dist/cjs/index.js",
+      "^amqplib$": "<rootDir>/node_modules/amqplib",
+      "^@/(.*)$": "<rootDir>/apps/gateway/src/$1",
+      "^@gateway/(.*)$": "<rootDir>/apps/gateway/src/$1",
+      "^@([^/]+)/prisma-client$": "<rootDir>/apps/$1/src/generated/prisma-client",
+      "^@([^/]+)/prisma-client/(.*)$": "<rootDir>/apps/$1/src/generated/prisma-client/$2",
+      "^@auth/(.*)$": "<rootDir>/apps/auth/src/$1",
+      "^@user/(.*)$": "<rootDir>/apps/user/src/$1",
+      "^@media/(.*)$": "<rootDir>/apps/media/src/$1",
+      "^@notification/(.*)$": "<rootDir>/apps/notification/src/$1",
+      "^@post/(.*)$": "<rootDir>/apps/post/src/$1",
+      "^@search/(.*)$": "<rootDir>/apps/search/src/$1",
+      "^@commerce/(.*)$": "<rootDir>/apps/commerce/src/$1",
+      "^@supplier/(.*)$": "<rootDir>/apps/supplier/src/$1",
+      "^@common$": "<rootDir>/libs/common/src",
+      "^@common/(.*)$": "<rootDir>/libs/common/src/$1",
+      "^@contracts/([^/]+)/(.*)$": "<rootDir>/libs/contracts/$1/src/$2",
+      "^@contracts/([^/]+)$": "<rootDir>/libs/contracts/$1/src",
+      "^@order/(.*)$": "<rootDir>/apps/order/src/$1",
+      "^@payment/(.*)$": "<rootDir>/apps/payment/src/$1",
+      "^@product/(.*)$": "<rootDir>/apps/product/src/$1"
+   }
+}

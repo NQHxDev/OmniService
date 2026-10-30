@@ -1,8 +1,18 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsInt, IsOptional, IsPositive, IsString, MaxLength } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsPositive, IsString, MaxLength } from 'class-validator';
+import { WHO_CATEGORY_CODES, type WhoCategoryCode } from '@contracts/product/constants/product-categories.constant';
 
 export class UpdateProductDto {
+   @ApiPropertyOptional({
+      description: 'Standard WHO food classification category code (1 of 8 groups)',
+      enum: WHO_CATEGORY_CODES,
+      example: WHO_CATEGORY_CODES.STAPLES,
+   })
+   @IsOptional()
+   @IsEnum(WHO_CATEGORY_CODES)
+   whoCategoryCode?: WhoCategoryCode;
+
    @ApiPropertyOptional({
       description: 'Updated product name',
       example: 'Gạo ST25 Thượng Hạng Sóc Trăng',
@@ -19,6 +29,7 @@ export class UpdateProductDto {
    })
    @IsOptional()
    @IsString()
+   @MaxLength(2000)
    description?: string;
 
    @ApiPropertyOptional({

@@ -23,10 +23,14 @@ import {
    type IUpdateSupplierRequest,
    type IUpdateSupplierStatusRequest,
    type IVerifySupplierRequest,
+   type ISubmitKybRequest,
+   type IRejectSupplierRequest,
    type ListSuppliersQueryDto,
    type ListSuppliersResponseDto,
    type MySupplierResponseDto,
    type RegisterSupplierDto,
+   type RejectSupplierDto,
+   type SubmitKybDto,
    type SupplierItemDto,
    type SupplierMemberStatusType,
    type SupplierRole,
@@ -79,6 +83,19 @@ export class SuppliersService implements OnModuleInit {
          isVerified: supp.isVerified,
          supplierStatus: supp.supplierStatus as SupplierStatusType,
          supplierLogoUrl: supp.supplierLogoUrl || undefined,
+         merchantType: supp.merchantType || undefined,
+         citizenId: supp.citizenId || undefined,
+         citizenIdIssuedDate: supp.citizenIdIssuedDate || undefined,
+         idCardFrontUrl: supp.idCardFrontUrl || undefined,
+         idCardBackUrl: supp.idCardBackUrl || undefined,
+         businessName: supp.businessName || undefined,
+         taxCode: supp.taxCode || undefined,
+         businessLicenseUrl: supp.businessLicenseUrl || undefined,
+         bankName: supp.bankName || undefined,
+         bankAccountNumber: supp.bankAccountNumber || undefined,
+         bankAccountHolder: supp.bankAccountHolder || undefined,
+         rejectionReason: supp.rejectionReason || undefined,
+         verifiedAt: supp.verifiedAt || undefined,
       };
    }
 
@@ -347,6 +364,88 @@ export class SuppliersService implements OnModuleInit {
 
             const res = await firstValueFrom(
                defer(() => this.supplierGrpcService.verifySupplier(request, metadata)).pipe(
+                  withGrpcRetry(this.supplierGrpcRetryPolicy),
+               ),
+            );
+
+            return this.mapProtoToDto(res.supplier);
+         });
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   /**
+    * Submits merchant legal identification / KYB documents via gRPC.
+    */
+   async submitKyb(supplierId: string, dto: SubmitKybDto, options?: SupplierCallOptions): Promise<SupplierItemDto> {
+      try {
+         const metadata = createGrpcMetadata({
+            correlationId: options?.correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: options?.accountId,
+            accountId: options?.accountId,
+            roles: options?.roles,
+            permissions: options?.permissions,
+            email: options?.email,
+         });
+
+         return await this.supplierGrpcBreaker.execute(async () => {
+            const request: ISubmitKybRequest = {
+               supplierId,
+               merchantType: dto.merchantType,
+               citizenId: dto.citizenId,
+               citizenIdIssuedDate: dto.citizenIdIssuedDate,
+               idCardFrontUrl: dto.idCardFrontUrl,
+               idCardBackUrl: dto.idCardBackUrl,
+               businessName: dto.businessName,
+               taxCode: dto.taxCode,
+               businessLicenseUrl: dto.businessLicenseUrl,
+               bankName: dto.bankName,
+               bankAccountNumber: dto.bankAccountNumber,
+               bankAccountHolder: dto.bankAccountHolder,
+            };
+
+            const res = await firstValueFrom(
+               defer(() => this.supplierGrpcService.submitKyb(request, metadata)).pipe(
+                  withGrpcRetry(this.supplierGrpcRetryPolicy),
+               ),
+            );
+
+            return this.mapProtoToDto(res.supplier);
+         });
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   /**
+    * Rejects supplier KYB verification documents with reason via gRPC (Admin operation).
+    */
+   async rejectSupplier(
+      supplierId: string,
+      dto: RejectSupplierDto,
+      options?: SupplierCallOptions,
+   ): Promise<SupplierItemDto> {
+      try {
+         const metadata = createGrpcMetadata({
+            correlationId: options?.correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: options?.accountId,
+            accountId: options?.accountId,
+            roles: options?.roles,
+            permissions: options?.permissions,
+            email: options?.email,
+         });
+
+         return await this.supplierGrpcBreaker.execute(async () => {
+            const request: IRejectSupplierRequest = {
+               supplierId,
+               reason: dto.reason,
+            };
+
+            const res = await firstValueFrom(
+               defer(() => this.supplierGrpcService.rejectSupplier(request, metadata)).pipe(
                   withGrpcRetry(this.supplierGrpcRetryPolicy),
                ),
             );

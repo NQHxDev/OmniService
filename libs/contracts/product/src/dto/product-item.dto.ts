@@ -1,7 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { WhoCategoryCode } from '../constants/product-categories.constant';
-import type { ModerationStatusType, ProductStatusType } from '../constants/status.constant';
-import { ProductVariantDto } from './product-variant.dto';
+import { WHO_CATEGORY_CODES, type WhoCategoryCode } from '@contracts/product/constants/product-categories.constant';
+import type { ModerationStatusType, ProductStatusType } from '@contracts/product/constants/status.constant';
+import { ProductVariantDto } from '@contracts/product/dto/product-variant.dto';
+import { ProductSupplierSummaryDto } from './product-supplier-summary.dto';
+import { ProductPendingEditDto, type ProductPendingEditData } from './product-pending-edit.dto';
 
 export class ProductItemDto {
    @ApiProperty({
@@ -18,7 +20,8 @@ export class ProductItemDto {
 
    @ApiProperty({
       description: 'Standard WHO nutrition group code',
-      example: 'STAPLES',
+      enum: WHO_CATEGORY_CODES,
+      example: WHO_CATEGORY_CODES.STAPLES,
    })
    whoCategoryCode!: WhoCategoryCode;
 
@@ -83,11 +86,40 @@ export class ProductItemDto {
    })
    rejectionReason?: string;
 
+   @ApiPropertyOptional({
+      description: 'Pending draft edit changes waiting for administrator approval',
+      type: () => ProductPendingEditDto,
+   })
+   pendingEditData?: ProductPendingEditData | null;
+
    @ApiProperty({
       description: 'Product packaging variants and stock levels',
       type: [ProductVariantDto],
    })
    variants!: ProductVariantDto[];
+
+   @ApiPropertyOptional({
+      description:
+         'Public summary of the store (supplier) selling this product. Only populated by the product detail endpoint.',
+      type: () => ProductSupplierSummaryDto,
+   })
+   supplier?: ProductSupplierSummaryDto;
+
+   @ApiPropertyOptional({
+      description:
+         'Number of distinct orders containing this product that were delivered or completed. Only populated by the product detail endpoint.',
+      example: 128,
+      minimum: 0,
+   })
+   orderCount?: number;
+
+   @ApiPropertyOptional({
+      description:
+         'Total quantity of this product sold across delivered or completed orders. Only populated by the product detail endpoint.',
+      example: 542,
+      minimum: 0,
+   })
+   soldCount?: number;
 
    @ApiProperty({
       description: 'Entity version for optimistic locking',

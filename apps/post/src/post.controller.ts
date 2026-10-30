@@ -3,6 +3,7 @@ import { Ctx, MessagePattern, Payload, RmqContext } from '@nestjs/microservices'
 import { QUEUES, RmqService, type IServiceMessage } from '@common';
 import {
    POST_PATTERNS,
+   type CreatePostDto,
    type GetPostFeedDto,
    type PostFeedResponseDto,
    type PostIngredientDto,
@@ -69,6 +70,27 @@ export class PostController {
                : (payload as { postId: string });
 
          const result = await this.postService.getIngredientsByPostId(data.postId);
+         this.rmqService.ack(context);
+         return result;
+      } catch (error) {
+         await this.rmqService.handleError(error, context, { queue: QUEUES.POST });
+         throw error;
+      }
+   }
+
+   @MessagePattern({ cmd: POST_PATTERNS.CREATE })
+   async createPost(
+      @Payload()
+      payload: { userId: string; dto: CreatePostDto } | IServiceMessage<{ userId: string; dto: CreatePostDto }>,
+      @Ctx() context: RmqContext,
+   ): Promise<PostItemDto> {
+      try {
+         const data =
+            payload && typeof payload === 'object' && 'data' in payload && payload.data
+               ? payload.data
+               : (payload as { userId: string; dto: CreatePostDto });
+
+         const result = await this.postService.createPost(data.userId, data.dto);
          this.rmqService.ack(context);
          return result;
       } catch (error) {

@@ -11,6 +11,7 @@ export const SERVICE_NAMES = {
    SUPPLIER: 'supplier-service',
    PAYMENT: 'payment-service',
    PRODUCT: 'product-service',
+   ANALYZE: 'analyze-service',
 } as const;
 
 export type ServiceName = (typeof SERVICE_NAMES)[keyof typeof SERVICE_NAMES];
@@ -26,6 +27,7 @@ export const GRPC_CLIENTS = {
    PAYMENT_V1: 'PAYMENT_V1_GRPC_CLIENT',
    PRODUCT_V1: 'PRODUCT_V1_GRPC_CLIENT',
    HEALTH_V1: 'HEALTH_V1_GRPC_CLIENT',
+   ANALYZE_V1: 'ANALYZE_V1_GRPC_CLIENT',
 } as const;
 
 export type GrpcClientToken = (typeof GRPC_CLIENTS)[keyof typeof GRPC_CLIENTS];
@@ -41,6 +43,7 @@ export const GRPC_SERVICE_NAMES = {
    PAYMENT: 'PaymentService',
    PRODUCT: 'ProductService',
    HEALTH: 'HealthService',
+   ANALYZE: 'AnalyzeService',
 } as const;
 
 export type GrpcServiceName = (typeof GRPC_SERVICE_NAMES)[keyof typeof GRPC_SERVICE_NAMES];

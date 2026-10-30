@@ -12,6 +12,9 @@ export const ORDER_STATUS = {
 
 export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
 
+/** Order statuses whose items are counted as successfully sold for product statistics. */
+export const SOLD_ORDER_STATUSES: readonly OrderStatus[] = [ORDER_STATUS.DELIVERED, ORDER_STATUS.COMPLETED];
+
 export const PAYMENT_METHODS = {
    COD: 'COD',
    CREDIT_CARD: 'CREDIT_CARD',
@@ -31,3 +34,39 @@ export const PAYMENT_STATUS = {
 } as const;
 
 export type PaymentStatus = (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS];
+
+export const ORDER_TERMINAL_STATUSES: readonly OrderStatus[] = [
+   ORDER_STATUS.COMPLETED,
+   ORDER_STATUS.CANCELLED,
+   ORDER_STATUS.REFUNDED,
+] as const;
+
+export const ORDER_TIMELINE_KEYS = {
+   ORDER_CREATED: 'ORDER.TIMELINE.ORDER_CREATED',
+   AWAITING_PAYMENT: 'ORDER.TIMELINE.AWAITING_PAYMENT',
+   CONFIRMED: 'ORDER.TIMELINE.CONFIRMED',
+   PROCESSING: 'ORDER.TIMELINE.PROCESSING',
+   SHIPPING: 'ORDER.TIMELINE.SHIPPING',
+   DELIVERED: 'ORDER.TIMELINE.DELIVERED',
+   COMPLETED: 'ORDER.TIMELINE.COMPLETED',
+   CANCELLED: 'ORDER.TIMELINE.CANCELLED',
+   REFUNDED: 'ORDER.TIMELINE.REFUNDED',
+} as const;
+
+export type OrderTimelineKey = (typeof ORDER_TIMELINE_KEYS)[keyof typeof ORDER_TIMELINE_KEYS];
+
+export const SHIPPING_METHODS = {
+   DELIVERY: 'DELIVERY',
+   PICKUP: 'PICKUP',
+} as const;
+
+export type ShippingMethod = (typeof SHIPPING_METHODS)[keyof typeof SHIPPING_METHODS];
+export const DEFAULT_SHIPPING_METHOD: ShippingMethod = SHIPPING_METHODS.DELIVERY;
+
+export const SORT_ORDERS = {
+   ASC: 'asc',
+   DESC: 'desc',
+} as const;
+
+export type SortOrder = (typeof SORT_ORDERS)[keyof typeof SORT_ORDERS];
+export const DEFAULT_SORT_ORDER: SortOrder = SORT_ORDERS.DESC;

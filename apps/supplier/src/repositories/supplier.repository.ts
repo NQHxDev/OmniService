@@ -22,6 +22,19 @@ export class SupplierRepository implements ISupplierRepository {
       isVerified: boolean;
       supplierStatus: string;
       supplierLogoUrl: string | null;
+      merchantType?: string | null;
+      citizenId?: string | null;
+      citizenIdIssuedDate?: Date | null;
+      idCardFrontUrl?: string | null;
+      idCardBackUrl?: string | null;
+      businessName?: string | null;
+      taxCode?: string | null;
+      businessLicenseUrl?: string | null;
+      bankName?: string | null;
+      bankAccountNumber?: string | null;
+      bankAccountHolder?: string | null;
+      rejectionReason?: string | null;
+      verifiedAt?: Date | null;
       version: number;
       deletedAt: Date | null;
       createdAt: Date;
@@ -40,6 +53,19 @@ export class SupplierRepository implements ISupplierRepository {
          isVerified: record.isVerified,
          supplierStatus: record.supplierStatus,
          supplierLogoUrl: record.supplierLogoUrl,
+         merchantType: record.merchantType,
+         citizenId: record.citizenId,
+         citizenIdIssuedDate: record.citizenIdIssuedDate,
+         idCardFrontUrl: record.idCardFrontUrl,
+         idCardBackUrl: record.idCardBackUrl,
+         businessName: record.businessName,
+         taxCode: record.taxCode,
+         businessLicenseUrl: record.businessLicenseUrl,
+         bankName: record.bankName,
+         bankAccountNumber: record.bankAccountNumber,
+         bankAccountHolder: record.bankAccountHolder,
+         rejectionReason: record.rejectionReason,
+         verifiedAt: record.verifiedAt,
          version: record.version,
          deletedAt: record.deletedAt,
          createdAt: record.createdAt,
@@ -114,7 +140,7 @@ export class SupplierRepository implements ISupplierRepository {
    }
 
    async create(data: CreateSupplierData): Promise<SupplierEntity> {
-      const status: SupplierStatusType = (data.supplierStatus as SupplierStatusType) ?? SUPPLIER_STATUS.ACTIVE;
+      const status: SupplierStatusType = (data.supplierStatus as SupplierStatusType) ?? SUPPLIER_STATUS.PENDING;
 
       const record = await this.prisma.supplier.create({
          data: {
@@ -129,6 +155,19 @@ export class SupplierRepository implements ISupplierRepository {
             isVerified: data.isVerified ?? false,
             supplierStatus: status,
             supplierLogoUrl: data.supplierLogoUrl,
+            merchantType: data.merchantType,
+            citizenId: data.citizenId,
+            citizenIdIssuedDate: data.citizenIdIssuedDate,
+            idCardFrontUrl: data.idCardFrontUrl,
+            idCardBackUrl: data.idCardBackUrl,
+            businessName: data.businessName,
+            taxCode: data.taxCode,
+            businessLicenseUrl: data.businessLicenseUrl,
+            bankName: data.bankName,
+            bankAccountNumber: data.bankAccountNumber,
+            bankAccountHolder: data.bankAccountHolder,
+            rejectionReason: data.rejectionReason,
+            verifiedAt: data.verifiedAt,
          },
       });
       return this.mapPrismaToEntity(record);
@@ -148,6 +187,19 @@ export class SupplierRepository implements ISupplierRepository {
             ...(data.isVerified !== undefined ? { isVerified: data.isVerified } : {}),
             ...(data.supplierStatus ? { supplierStatus: data.supplierStatus as PrismaSupplierStatus } : {}),
             ...(data.supplierLogoUrl !== undefined ? { supplierLogoUrl: data.supplierLogoUrl } : {}),
+            ...(data.merchantType !== undefined ? { merchantType: data.merchantType } : {}),
+            ...(data.citizenId !== undefined ? { citizenId: data.citizenId } : {}),
+            ...(data.citizenIdIssuedDate !== undefined ? { citizenIdIssuedDate: data.citizenIdIssuedDate } : {}),
+            ...(data.idCardFrontUrl !== undefined ? { idCardFrontUrl: data.idCardFrontUrl } : {}),
+            ...(data.idCardBackUrl !== undefined ? { idCardBackUrl: data.idCardBackUrl } : {}),
+            ...(data.businessName !== undefined ? { businessName: data.businessName } : {}),
+            ...(data.taxCode !== undefined ? { taxCode: data.taxCode } : {}),
+            ...(data.businessLicenseUrl !== undefined ? { businessLicenseUrl: data.businessLicenseUrl } : {}),
+            ...(data.bankName !== undefined ? { bankName: data.bankName } : {}),
+            ...(data.bankAccountNumber !== undefined ? { bankAccountNumber: data.bankAccountNumber } : {}),
+            ...(data.bankAccountHolder !== undefined ? { bankAccountHolder: data.bankAccountHolder } : {}),
+            ...(data.rejectionReason !== undefined ? { rejectionReason: data.rejectionReason } : {}),
+            ...(data.verifiedAt !== undefined ? { verifiedAt: data.verifiedAt } : {}),
             version: { increment: 1 },
          },
       });

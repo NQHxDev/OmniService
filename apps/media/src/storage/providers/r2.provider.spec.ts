@@ -19,7 +19,7 @@ describe('CloudflareR2Provider', () => {
             accountId: 'test-acc',
             accessKeyId: 'test-key',
             secretAccessKey: 'test-secret',
-            bucketName: 'omnicoonect',
+            bucketName: 'omniconnect',
             endpoint: 'https://test-acc.r2.cloudflarestorage.com',
             publicUrl: 'https://pub-test.r2.dev',
          },

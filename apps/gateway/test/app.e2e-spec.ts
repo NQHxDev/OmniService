@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
-import { AllExceptionsFilter, DEFAULT_DEV_EC_PRIVATE_KEY, DEFAULT_ROLES, JwtUtil, SERVICES } from '@common';
-import { AUTH_PATTERNS, DEFAULT_JWT_ALGORITHM, DEFAULT_JWT_KEY_ID } from '@contracts/auth';
+import { AllExceptionsFilter, DEFAULT_DEV_EC_PRIVATE_KEY, DEFAULT_ROLES, JwtUtil } from '@common';
+import { AUTH_V1_GRPC_CLIENT, DEFAULT_JWT_ALGORITHM, DEFAULT_JWT_KEY_ID } from '@contracts/auth';
 import { GatewayConfigService } from '@/config';
 import { GatewayModule } from '@/gateway.module';
 import { App } from 'supertest/types';
@@ -12,55 +12,75 @@ describe('GatewayController (e2e)', () => {
    let app: ReturnType<TestingModule['createNestApplication']>;
    let configService: GatewayConfigService;
 
-   const mockAuthClient = {
-      send: jest.fn((pattern: { cmd: string }, data: unknown) => {
-         if (pattern.cmd === AUTH_PATTERNS.GET_JWKS) {
-            return of({
+   const mockAuthGrpcService = {
+      getJwks: jest.fn().mockReturnValue(
+         of({
+            keysJson: JSON.stringify({
                keys: [
                   {
-                     kty: 'RSA',
+                     kty: 'EC',
                      use: 'sig',
                      alg: DEFAULT_JWT_ALGORITHM,
                      kid: DEFAULT_JWT_KEY_ID,
-                     n: 'mock_n',
-                     e: 'AQAB',
+                     crv: 'P-256',
+                     x: 'mock_x',
+                     y: 'mock_y',
                   },
                ],
-            });
-         }
-         if (pattern.cmd === AUTH_PATTERNS.REGISTER) {
-            const dto = data as { email: string };
-            return of({
-               user: {
-                  id: 'usr_mock_123',
-                  email: dto.email,
-                  createdAt: new Date().toISOString(),
-               },
+            }),
+         }),
+      ),
+      register: jest.fn().mockImplementation((dto: { email: string }) =>
+         of({
+            user: {
+               userId: 'usr_mock_123',
+               email: dto.email,
+               roles: [DEFAULT_ROLES.USER],
+               status: 'ACTIVE',
+               isEmailVerified: true,
+               createdAt: new Date().toISOString(),
+            },
+            accessToken: 'mock.access.token',
+            refreshToken: 'mock.refresh.token',
+            tokens: {
                accessToken: 'mock.access.token',
                refreshToken: 'mock.refresh.token',
-            });
-         }
-         if (pattern.cmd === 'auth.login') {
-            const dto = data as { email: string };
-            return of({
-               user: {
-                  id: 'usr_mock_123',
-                  email: dto.email,
-                  createdAt: new Date().toISOString(),
-               },
+               tokenType: 'Bearer',
+               expiresIn: 900,
+            },
+         }),
+      ),
+      login: jest.fn().mockImplementation((dto: { email: string }) =>
+         of({
+            user: {
+               userId: 'usr_mock_123',
+               email: dto.email,
+               roles: [DEFAULT_ROLES.USER],
+               status: 'ACTIVE',
+               isEmailVerified: true,
+               createdAt: new Date().toISOString(),
+            },
+            accessToken: 'mock.access.token',
+            refreshToken: 'mock.refresh.token',
+            tokens: {
                accessToken: 'mock.access.token',
                refreshToken: 'mock.refresh.token',
-            });
-         }
-         return of(null);
-      }),
+               tokenType: 'Bearer',
+               expiresIn: 900,
+            },
+         }),
+      ),
+   };
+
+   const mockAuthClient = {
+      getService: jest.fn().mockReturnValue(mockAuthGrpcService),
    };
 
    beforeEach(async () => {
       const moduleFixture: TestingModule = await Test.createTestingModule({
          imports: [GatewayModule],
       })
-         .overrideProvider(SERVICES.AUTH_SERVICE)
+         .overrideProvider(AUTH_V1_GRPC_CLIENT)
          .useValue(mockAuthClient)
          .compile();
 
@@ -134,8 +154,8 @@ describe('GatewayController (e2e)', () => {
             .post('/auth/register')
             .send({
                email: 'john@example.com',
-               password: 'password123',
-               confirmPassword: 'password123',
+               password: 'Password123!',
+               confirmPassword: 'Password123!',
             })
             .expect(201);
 
@@ -164,7 +184,7 @@ describe('GatewayController (e2e)', () => {
             .post('/auth/login')
             .send({
                email: 'john@example.com',
-               password: 'password123',
+               password: 'Password123!',
             })
             .expect(200);
 
@@ -193,8 +213,8 @@ describe('GatewayController (e2e)', () => {
             .set('X-Device-Id', 'device-uuid-123')
             .send({
                email: 'mobile@example.com',
-               password: 'password123',
-               confirmPassword: 'password123',
+               password: 'Password123!',
+               confirmPassword: 'Password123!',
             })
             .expect(201);
 

@@ -75,7 +75,7 @@ export class MediaGrpcController implements IMediaV1GrpcService {
             .getUploadUrl(user.userId, {
                fileName: data.fileName,
                mimeType: data.mimeType,
-               size: data.size,
+               size: data.size !== undefined ? Number(data.size) : undefined,
                type: data.type as never,
                folder: data.folder,
                provider: data.provider as never,
@@ -130,7 +130,7 @@ export class MediaGrpcController implements IMediaV1GrpcService {
          this.mediaService
             .confirmUpload(user.userId, {
                mediaId: data.mediaId,
-               size: data.size,
+               size: data.size !== undefined ? Number(data.size) : undefined,
                width: data.width,
                height: data.height,
                duration: data.duration,
@@ -176,7 +176,7 @@ export class MediaGrpcController implements IMediaV1GrpcService {
                fileName: data.fileName,
                mimeType: data.mimeType,
                partsCount: data.partsCount,
-               fileSize: data.fileSize,
+               fileSize: data.fileSize !== undefined ? Number(data.fileSize) : undefined,
                folder: data.folder,
             })
             .then((res) => ({
