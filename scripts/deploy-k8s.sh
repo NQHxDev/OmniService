@@ -45,8 +45,11 @@ else
    # Replace placeholders in template if exists
    if [ -f "infra/k8s/templates/service-deployment.yaml" ]; then
       sed -e "s|{{SERVICE_NAME}}|$SERVICE_NAME|g" \
+          -e "s|{ { SERVICE_NAME } }|$SERVICE_NAME|g" \
           -e "s|{{IMAGE_TAG}}|$IMAGE_TAG|g" \
+          -e "s|{ { IMAGE_TAG } }|$IMAGE_TAG|g" \
           -e "s|{{NAMESPACE}}|$NAMESPACE|g" \
+          -e "s|{ { NAMESPACE } }|$NAMESPACE|g" \
           infra/k8s/templates/service-deployment.yaml | kubectl apply -n "$NAMESPACE" -f -
    else
       echo "⚠ No template found in infra/k8s/templates/service-deployment.yaml. Please ensure manifests exist."
