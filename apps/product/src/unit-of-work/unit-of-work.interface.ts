@@ -1,5 +1,6 @@
 import type { Prisma } from '@product/prisma-client';
 import type {
+   IProductModerationHistoryRepository,
    IProductRepository,
    IProductVariantRepository,
    IStockMovementRepository,
@@ -13,6 +14,7 @@ export interface IProductUnitOfWorkRepositories {
    readonly productVariantRepository: IProductVariantRepository;
    readonly whoCategoryRepository: IWhoCategoryRepository;
    readonly stockMovementRepository: IStockMovementRepository;
+   readonly moderationHistoryRepository: IProductModerationHistoryRepository;
 }
 
 export interface TransactionOptions {

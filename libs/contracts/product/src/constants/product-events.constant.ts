@@ -2,6 +2,7 @@ export const PRODUCT_EVENTS = {
    REGISTERED: 'product.event.registered',
    APPROVED: 'product.event.approved',
    REJECTED: 'product.event.rejected',
+   SUSPENDED: 'product.event.suspended',
    UPDATED: 'product.event.updated',
    STATUS_CHANGED: 'product.event.status_changed',
    DELETED: 'product.event.deleted',
@@ -9,6 +10,18 @@ export const PRODUCT_EVENTS = {
    STOCK_RELEASED: 'product.event.stock_released',
    STOCK_ADJUSTED: 'product.event.stock_adjusted',
 } as const;
+
+export const PRODUCT_AGGREGATE_TYPE = 'PRODUCT' as const;
+
+export const PRODUCT_OUTBOX_EVENTS = {
+   APPROVED: 'PRODUCT_APPROVED',
+   REJECTED: 'PRODUCT_REJECTED',
+   SUSPENDED: 'PRODUCT_SUSPENDED',
+   REGISTERED: 'PRODUCT_REGISTERED',
+   STATUS_CHANGED: 'PRODUCT_STATUS_CHANGED',
+} as const;
+
+export type ProductOutboxEventType = (typeof PRODUCT_OUTBOX_EVENTS)[keyof typeof PRODUCT_OUTBOX_EVENTS];
 
 export type ProductEvent = (typeof PRODUCT_EVENTS)[keyof typeof PRODUCT_EVENTS];
 
@@ -50,10 +63,27 @@ export interface ProductRegisteredEventPayload {
 export interface ProductModeratedEventPayload {
    productId: string;
    supplierId: string;
+   productName?: string;
    moderationStatus: string;
+   action?: string;
    rejectionReason?: string;
+   moderationNotes?: string;
    moderatedBy?: string;
+   moderatorEmail?: string;
    moderatedAt: string;
+   whoCategoryCode?: string;
+   productSlug?: string;
+   description?: string;
+   origin?: string;
+   storageCondition?: string;
+   shelfLifeDays?: number;
+   images?: string[];
+   status?: string;
+   variants?: ProductVariantPayload[];
+   minPrice?: number;
+   maxPrice?: number;
+   currency?: string;
+   createdAt?: string;
 }
 
 export interface ProductStockAdjustedEventPayload {

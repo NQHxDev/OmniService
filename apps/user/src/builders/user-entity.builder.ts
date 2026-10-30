@@ -47,6 +47,7 @@ export class UserEntityBuilder implements IBuilder<UserEntity> {
    private coverImage: string | null = null;
    private website: string | null = null;
    private location: string | null = null;
+   private address: string | null = null;
    private followersCount: number = 0;
    private followingCount: number = 0;
    private postsCount: number = 0;
@@ -170,6 +171,7 @@ export class UserEntityBuilder implements IBuilder<UserEntity> {
          if (profile.coverImage !== undefined) this.coverImage = profile.coverImage ?? null;
          if (profile.website !== undefined) this.website = profile.website ?? null;
          if (profile.location !== undefined) this.location = profile.location ?? null;
+         if (profile.address !== undefined) this.address = profile.address ?? null;
       } else {
          this.profile = null;
       }
@@ -206,6 +208,11 @@ export class UserEntityBuilder implements IBuilder<UserEntity> {
 
    withLocation(location?: string | null): this {
       this.location = location ?? null;
+      return this;
+   }
+
+   withAddress(address?: string | null): this {
+      this.address = address ?? null;
       return this;
    }
 
@@ -299,6 +306,7 @@ export class UserEntityBuilder implements IBuilder<UserEntity> {
       if (input.coverImage !== undefined) this.coverImage = input.coverImage;
       if (input.website !== undefined) this.website = input.website;
       if (input.location !== undefined) this.location = input.location;
+      if (input.address !== undefined) this.address = input.address;
 
       if (input.followersCount !== undefined) this.followersCount = input.followersCount;
       if (input.followingCount !== undefined) this.followingCount = input.followingCount;
@@ -359,6 +367,7 @@ export class UserEntityBuilder implements IBuilder<UserEntity> {
          coverImage: this.coverImage,
          website: this.website,
          location: this.location,
+         address: this.address,
          followersCount: this.followersCount,
          followingCount: this.followingCount,
          postsCount: this.postsCount,

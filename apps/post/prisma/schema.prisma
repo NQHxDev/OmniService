@@ -70,6 +70,7 @@ model Post {
   ingredients   PostIngredient[]
   tags          PostTag[]
   categories    PostCategory[]
+  mentions      PostMention[]
   likes         PostLike[]
   saves         PostSave[]
 
@@ -124,20 +125,22 @@ model RecipeIngredient {
 }
 
 model PostIngredient {
-  ingredientId String   @id @default(uuid()) @map("ingredient_id")
-  postId       String   @map("post_id")
-  name         String   @db.VarChar(100)
-  amount       Decimal? @db.Decimal(10, 2)
-  unit         String?  @db.VarChar(30)
-  group        String?  @db.VarChar(50)
-  sortOrder    Int      @default(0) @map("sort_order")
+  ingredientId        String   @id @default(uuid()) @map("ingredient_id")
+  postId              String   @map("post_id")
+  name                String   @db.VarChar(100)
+  amount              Decimal? @db.Decimal(10, 2)
+  unit                String?  @db.VarChar(30)
+  group               String?  @db.VarChar(50)
+  sortOrder           Int      @default(0) @map("sort_order")
+  catalogIngredientId String?  @map("catalog_ingredient_id")
 
-  post         Post     @relation(fields: [postId], references: [postId], onDelete: Cascade)
+  post                Post     @relation(fields: [postId], references: [postId], onDelete: Cascade)
 
   // Foreign key and lookup indexes
   @@index([postId])
   @@index([postId, sortOrder])
   @@index([name])
+  @@index([catalogIngredientId])
   @@map("post_ingredients")
 }
 
@@ -244,4 +247,16 @@ model PostSave {
   @@index([userId])
   @@index([userId, createdAt(sort: Desc)])
   @@map("post_saves")
+}
+
+model PostMention {
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post      Post     @relation(fields: [postId], references: [postId], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@index([userId])
+  @@map("post_mentions")
 }

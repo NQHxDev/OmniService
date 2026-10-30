@@ -57,6 +57,8 @@ describe('SuppliersService', () => {
          updateSupplier: jest.fn(),
          updateSupplierStatus: jest.fn(),
          verifySupplier: jest.fn(),
+         submitKyb: jest.fn(),
+         rejectSupplier: jest.fn(),
       };
 
       const mockClientGrpc: jest.Mocked<ClientGrpc> = {
@@ -255,5 +257,72 @@ describe('SuppliersService', () => {
          expect.any(Object),
       );
       expect(result.supplierStatus).toBe(SUPPLIER_STATUS.SUSPENDED);
+   });
+
+   it('should call supplier gRPC submitKyb and map response', async () => {
+      mockGrpcService.submitKyb.mockReturnValue(
+         of({
+            supplier: {
+               ...mockSupplierProto,
+               supplierStatus: SUPPLIER_STATUS.UNDER_REVIEW,
+               merchantType: 'INDIVIDUAL',
+               citizenId: '079090001234',
+            },
+         }),
+      );
+
+      const result = await service.submitKyb(
+         mockSupplier.supplierId,
+         {
+            merchantType: 'INDIVIDUAL',
+            citizenId: '079090001234',
+         },
+         {
+            correlationId: 'req-123',
+            accountId: 'acc-1',
+         },
+      );
+
+      expect(mockGrpcService.submitKyb).toHaveBeenCalledWith(
+         expect.objectContaining({
+            supplierId: mockSupplier.supplierId,
+            merchantType: 'INDIVIDUAL',
+            citizenId: '079090001234',
+         }),
+         expect.any(Object),
+      );
+      expect(result.supplierStatus).toBe(SUPPLIER_STATUS.UNDER_REVIEW);
+      expect(result.citizenId).toBe('079090001234');
+   });
+
+   it('should call supplier gRPC rejectSupplier and map response', async () => {
+      mockGrpcService.rejectSupplier.mockReturnValue(
+         of({
+            supplier: {
+               ...mockSupplierProto,
+               supplierStatus: SUPPLIER_STATUS.REJECTED,
+               rejectionReason: 'Blurry document',
+            },
+         }),
+      );
+
+      const result = await service.rejectSupplier(
+         mockSupplier.supplierId,
+         { reason: 'Blurry document' },
+         {
+            correlationId: 'req-123',
+            roles: [DEFAULT_ROLES.ADMIN],
+         },
+      );
+
+      expect(mockGrpcService.rejectSupplier).toHaveBeenCalledWith(
+         {
+            supplierId: mockSupplier.supplierId,
+            reason: 'Blurry document',
+         },
+         expect.any(Object),
+      );
+      expect(result.supplierStatus).toBe(SUPPLIER_STATUS.REJECTED);
+      expect(result.rejectionReason).toBe('Blurry document');
    });
 });

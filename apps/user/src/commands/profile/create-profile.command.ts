@@ -11,6 +11,7 @@ export interface CreateProfileDto {
    coverImage?: string;
    website?: string;
    location?: string;
+   address?: string;
    accountId?: string;
    userId?: string;
 }

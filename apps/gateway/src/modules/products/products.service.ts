@@ -1,7 +1,9 @@
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional, type OnModuleInit } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { defer, firstValueFrom } from 'rxjs';
 import {
+   CacheNamespace,
+   CacheService,
    CircuitBreakerRegistry,
    createGrpcMetadata,
    handleGrpcError,
@@ -13,6 +15,8 @@ import {
 import {
    CURRENCY,
    type CurrencyType,
+   PRODUCT_CACHE_KEYS,
+   PRODUCT_CACHE_TTL,
    PRODUCT_ERROR_CODES,
    PRODUCT_V1_GRPC_CLIENT,
    PRODUCT_V1_GRPC_SERVICE_NAME,
@@ -24,22 +28,44 @@ import {
    type ICheckAndReserveStockRequest,
    type ICreateProductRequest,
    type IGetProductByIdRequest,
+   type IGetProductModerationHistoryRequest,
    type IListProductsRequest,
    type IModerateProductRequest,
    type IProductProto,
    type IProductV1GrpcService,
    type IReleaseStockRequest,
+   type ISubmitProductForReviewRequest,
    type IUpdateProductRequest,
    type IUpdateProductStatusRequest,
    type ListProductsQueryDto,
    type ListProductsResponseDto,
    type ModerateProductDto,
    type ProductItemDto,
+   type ProductModerationHistoryDto,
+   type ProductSupplierSummaryDto,
+   type ProductSearchItemDto,
+   type ProductSuggestionItemDto,
    type ReleaseStockDto,
+   type SearchProductsQueryDto,
+   type SearchProductsResponseDto,
+   type SuggestProductsQueryDto,
+   type SuggestProductsResponseDto,
    type UpdateProductDto,
    type UpdateProductStatusDto,
    type WhoCategoryDto,
 } from '@contracts/product';
+import {
+   SEARCH_V1_GRPC_CLIENT,
+   SEARCH_V1_GRPC_SERVICE_NAME,
+   type IProductSearchHitProto,
+   type IProductSuggestionProto,
+   type ISearchProductsRequest,
+   type ISearchV1GrpcService,
+   type ISuggestProductsRequest,
+} from '@contracts/search';
+
+import { OrdersService } from '@/modules/orders/orders.service';
+import { SuppliersService } from '@/modules/suppliers/suppliers.service';
 
 export interface ProductCallOptions {
    authHeader?: string;
@@ -52,7 +78,9 @@ export interface ProductCallOptions {
 
 @Injectable()
 export class ProductsService implements OnModuleInit {
+   private readonly logger = new Logger(ProductsService.name);
    private productGrpcService!: IProductV1GrpcService;
+   private searchGrpcService!: ISearchV1GrpcService;
    private readonly productGrpcBreaker = CircuitBreakerRegistry.getOrCreate(PRODUCT_V1_GRPC_SERVICE_NAME, {
       timeout: 5000,
       failureThreshold: 5,
@@ -64,11 +92,29 @@ export class ProductsService implements OnModuleInit {
       multiplier: 2,
       maxDelayMs: 2000,
    });
+   private readonly searchGrpcBreaker = CircuitBreakerRegistry.getOrCreate(`${SEARCH_V1_GRPC_SERVICE_NAME}_products`, {
+      timeout: 5000,
+      failureThreshold: 5,
+      resetTimeout: 10000,
+   });
+   private readonly searchGrpcRetryPolicy = RetryPolicyRegistry.getOrCreate(`${SEARCH_V1_GRPC_SERVICE_NAME}_products`, {
+      maxAttempts: 3,
+      initialDelayMs: 100,
+      multiplier: 2,
+      maxDelayMs: 2000,
+   });
 
-   constructor(@Inject(PRODUCT_V1_GRPC_CLIENT) private readonly productGrpcClient: ClientGrpc) {}
+   constructor(
+      @Inject(PRODUCT_V1_GRPC_CLIENT) private readonly productGrpcClient: ClientGrpc,
+      @Inject(SEARCH_V1_GRPC_CLIENT) private readonly searchGrpcClient: ClientGrpc,
+      private readonly ordersService: OrdersService,
+      private readonly suppliersService: SuppliersService,
+      @Optional() private readonly cacheService?: CacheService,
+   ) {}
 
    onModuleInit(): void {
       this.productGrpcService = this.productGrpcClient.getService<IProductV1GrpcService>(PRODUCT_V1_GRPC_SERVICE_NAME);
+      this.searchGrpcService = this.searchGrpcClient.getService<ISearchV1GrpcService>(SEARCH_V1_GRPC_SERVICE_NAME);
    }
 
    private mapProtoToDto(p: IProductProto): ProductItemDto {
@@ -86,6 +132,7 @@ export class ProductsService implements OnModuleInit {
          status: p.status as never,
          moderationStatus: p.moderationStatus as never,
          rejectionReason: p.rejectionReason || undefined,
+         pendingEditData: p.pendingEditData ? (JSON.parse(p.pendingEditData) as Record<string, unknown>) : undefined,
          variants: (p.variants || []).map((v) => ({
             variantId: v.variantId,
             productId: v.productId,
@@ -111,6 +158,60 @@ export class ProductsService implements OnModuleInit {
       };
    }
 
+   private mapSearchHitProtoToDto(p: IProductSearchHitProto): ProductSearchItemDto {
+      return {
+         productId: p.productId,
+         supplierId: p.supplierId,
+         whoCategoryCode: p.whoCategoryCode as never,
+         productName: p.productName,
+         productSlug: p.productSlug,
+         description: p.description,
+         origin: p.origin || undefined,
+         images: p.images || [],
+         status: p.status as never,
+         moderationStatus: p.moderationStatus as never,
+         variants: (p.variants || []).map((v) => ({
+            variantId: v.variantId,
+            productId: p.productId,
+            sku: v.sku,
+            variantName: v.variantName,
+            unit: v.unit,
+            packSize: v.packSize || undefined,
+            price: v.price,
+            originalPrice: v.originalPrice || undefined,
+            currency: (v.currency as CurrencyType) || CURRENCY.VND,
+            stockQuantity: v.stockQuantity,
+            reservedQuantity: 0,
+            availableStock: v.stockQuantity,
+            lowStockThreshold: 5,
+            isDefault: v.isDefault,
+            status: v.status as never,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+         })),
+         minPrice: p.minPrice || undefined,
+         maxPrice: p.maxPrice || undefined,
+         currency: (p.currency as CurrencyType) || undefined,
+         createdAt: p.createdAt,
+         updatedAt: p.updatedAt,
+      };
+   }
+
+   private mapSuggestionProtoToDto(s: IProductSuggestionProto): ProductSuggestionItemDto {
+      return {
+         productId: s.productId,
+         productName: s.productName,
+         productSlug: s.productSlug,
+         whoCategoryCode: s.whoCategoryCode as never,
+         origin: s.origin || undefined,
+         images: s.images || [],
+         defaultUnit: s.defaultUnit || undefined,
+         minPrice: s.minPrice || undefined,
+         maxPrice: s.maxPrice || undefined,
+         currency: (s.currency as CurrencyType) || undefined,
+      };
+   }
+
    async createProduct(dto: CreateProductDto, options?: ProductCallOptions): Promise<ProductItemDto> {
       try {
          const accountId = options?.accountId;
@@ -126,7 +227,7 @@ export class ProductsService implements OnModuleInit {
 
          return await this.productGrpcBreaker.execute(async () => {
             const request: ICreateProductRequest = {
-               supplierId: accountId || '',
+               supplierId: dto.supplierId,
                whoCategoryCode: dto.whoCategoryCode,
                productName: dto.productName,
                description: dto.description,
@@ -173,7 +274,7 @@ export class ProductsService implements OnModuleInit {
             email: options?.email,
          });
 
-         return await this.productGrpcBreaker.execute(async () => {
+         const product = await this.productGrpcBreaker.execute(async () => {
             const request: IGetProductByIdRequest = { productId };
             const res = await firstValueFrom(
                defer(() => this.productGrpcService.getProductById(request, metadata)).pipe(
@@ -189,9 +290,51 @@ export class ProductsService implements OnModuleInit {
 
             return this.mapProtoToDto(res.product);
          });
+         return await this.enrichProductDetail(product, options);
       } catch (error: unknown) {
          return handleGrpcError(error);
       }
+   }
+
+   /**
+    * Best-effort enrichment of the product detail with the public store summary and order statistics.
+    * Failures of downstream services never break the product detail response.
+    */
+   private async enrichProductDetail(product: ProductItemDto, options?: ProductCallOptions): Promise<ProductItemDto> {
+      const [supplier, stats] = await Promise.all([
+         this.suppliersService
+            .getSupplierById(product.supplierId, { correlationId: options?.correlationId })
+            .then((s): ProductSupplierSummaryDto => ({
+               supplierId: s.supplierId,
+               supplierName: s.supplierName,
+               supplierSlug: s.supplierSlug,
+               supplierLogoUrl: s.supplierLogoUrl,
+               address: s.address,
+               city: s.city,
+               rating: s.rating,
+               isVerified: s.isVerified,
+            }))
+            .catch((error: unknown) => {
+               this.logger.warn(
+                  `Failed to load supplier ${product.supplierId} for product ${product.productId}: ${String(error)}`,
+               );
+               return undefined;
+            }),
+         this.ordersService
+            .getProductOrderStats([product.productId], options?.correlationId)
+            .then((list) => list[0])
+            .catch((error: unknown) => {
+               this.logger.warn(`Failed to load order stats for product ${product.productId}: ${String(error)}`);
+               return undefined;
+            }),
+      ]);
+
+      return {
+         ...product,
+         supplier,
+         orderCount: stats?.orderCount ?? 0,
+         soldCount: stats?.soldCount ?? 0,
+      };
    }
 
    async listProducts(query: ListProductsQueryDto, options?: ProductCallOptions): Promise<ListProductsResponseDto> {
@@ -226,6 +369,85 @@ export class ProductsService implements OnModuleInit {
             return {
                items: (res.items || []).map((item) => this.mapProtoToDto(item)),
                total: res.total,
+            };
+         });
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async searchProducts(
+      query: SearchProductsQueryDto,
+      options?: ProductCallOptions,
+   ): Promise<SearchProductsResponseDto> {
+      try {
+         const metadata = createGrpcMetadata({
+            correlationId: options?.correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: options?.accountId,
+            accountId: options?.accountId,
+            roles: options?.roles,
+            permissions: options?.permissions,
+            email: options?.email,
+         });
+
+         return await this.searchGrpcBreaker.execute(async () => {
+            const request: ISearchProductsRequest = {
+               query: query.query,
+               whoCategoryCode: query.whoCategoryCode,
+               supplierId: query.supplierId,
+               status: query.status,
+               limit: query.limit,
+               offset: query.offset,
+            };
+
+            const res = await firstValueFrom(
+               defer(() => this.searchGrpcService.searchProducts(request, metadata)).pipe(
+                  withGrpcRetry(this.searchGrpcRetryPolicy),
+               ),
+            );
+
+            return {
+               items: (res.items || []).map((item) => this.mapSearchHitProtoToDto(item)),
+               total: res.total,
+               limit: res.limit,
+               offset: res.offset,
+            };
+         });
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async suggestProducts(
+      query: SuggestProductsQueryDto,
+      options?: ProductCallOptions,
+   ): Promise<SuggestProductsResponseDto> {
+      try {
+         const metadata = createGrpcMetadata({
+            correlationId: options?.correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: options?.accountId,
+            accountId: options?.accountId,
+            roles: options?.roles,
+            permissions: options?.permissions,
+            email: options?.email,
+         });
+
+         return await this.searchGrpcBreaker.execute(async () => {
+            const request: ISuggestProductsRequest = {
+               query: query.query,
+               limit: query.limit,
+            };
+
+            const res = await firstValueFrom(
+               defer(() => this.searchGrpcService.suggestProducts(request, metadata)).pipe(
+                  withGrpcRetry(this.searchGrpcRetryPolicy),
+               ),
+            );
+
+            return {
+               items: (res.items || []).map((item) => this.mapSuggestionProtoToDto(item)),
             };
          });
       } catch (error: unknown) {
@@ -295,8 +517,11 @@ export class ProductsService implements OnModuleInit {
             const request: IModerateProductRequest = {
                productId,
                moderationStatus: dto.moderationStatus,
+               action: dto.action,
                rejectionReason: dto.rejectionReason,
+               moderationNotes: dto.moderationNotes,
                moderatedBy: options?.accountId,
+               moderatorEmail: options?.email,
             };
 
             const res = await firstValueFrom(
@@ -306,6 +531,82 @@ export class ProductsService implements OnModuleInit {
             );
 
             return this.mapProtoToDto(res.product);
+         });
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async submitProductForReview(productId: string, options?: ProductCallOptions): Promise<ProductItemDto> {
+      try {
+         const metadata = createGrpcMetadata({
+            correlationId: options?.correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: options?.accountId,
+            accountId: options?.accountId,
+            roles: options?.roles,
+            permissions: options?.permissions,
+            email: options?.email,
+         });
+
+         return await this.productGrpcBreaker.execute(async () => {
+            const request: ISubmitProductForReviewRequest = {
+               productId,
+               supplierId: options?.accountId || '',
+            };
+
+            const res = await firstValueFrom(
+               defer(() => this.productGrpcService.submitProductForReview(request, metadata)).pipe(
+                  withGrpcRetry(this.productGrpcRetryPolicy),
+               ),
+            );
+
+            return this.mapProtoToDto(res.product);
+         });
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async getProductModerationHistory(
+      productId: string,
+      options?: ProductCallOptions,
+   ): Promise<ProductModerationHistoryDto[]> {
+      try {
+         const metadata = createGrpcMetadata({
+            correlationId: options?.correlationId,
+            callerService: SERVICE_NAMES.GATEWAY,
+            userId: options?.accountId,
+            accountId: options?.accountId,
+            roles: options?.roles,
+            permissions: options?.permissions,
+            email: options?.email,
+         });
+
+         return await this.productGrpcBreaker.execute(async () => {
+            const request: IGetProductModerationHistoryRequest = {
+               productId,
+            };
+
+            const res = await firstValueFrom(
+               defer(() => this.productGrpcService.getProductModerationHistory(request, metadata)).pipe(
+                  withGrpcRetry(this.productGrpcRetryPolicy),
+               ),
+            );
+
+            return (res.items || []).map((h) => ({
+               historyId: h.historyId,
+               productId: h.productId,
+               moderatorId: h.moderatorId,
+               moderatorEmail: h.moderatorEmail || undefined,
+               action: h.action as never,
+               previousStatus: h.previousStatus as never,
+               newStatus: h.newStatus as never,
+               rejectionReason: h.rejectionReason || undefined,
+               moderationNotes: h.moderationNotes || undefined,
+               snapshot: h.snapshot ? (JSON.parse(h.snapshot) as Record<string, unknown>) : undefined,
+               createdAt: h.createdAt,
+            }));
          });
       } catch (error: unknown) {
          return handleGrpcError(error);
@@ -459,6 +760,18 @@ export class ProductsService implements OnModuleInit {
    }
 
    async listWhoCategories(options?: ProductCallOptions): Promise<WhoCategoryDto[]> {
+      const cacheKey = PRODUCT_CACHE_KEYS.WHO_CATEGORIES_ALL;
+      if (this.cacheService) {
+         try {
+            const cached = await this.cacheService.get<WhoCategoryDto[]>(CacheNamespace.GATEWAY, cacheKey);
+            if (cached && Array.isArray(cached) && cached.length > 0) {
+               return cached;
+            }
+         } catch {
+            // Degrade gracefully if cache is unreachable
+         }
+      }
+
       try {
          const metadata = createGrpcMetadata({
             correlationId: options?.correlationId,
@@ -470,7 +783,7 @@ export class ProductsService implements OnModuleInit {
             email: options?.email,
          });
 
-         return await this.productGrpcBreaker.execute(async () => {
+         const categories = await this.productGrpcBreaker.execute(async () => {
             const res = await firstValueFrom(
                defer(() => this.productGrpcService.listWhoCategories({}, metadata)).pipe(
                   withGrpcRetry(this.productGrpcRetryPolicy),
@@ -485,6 +798,21 @@ export class ProductsService implements OnModuleInit {
                order: c.order,
             }));
          });
+
+         if (this.cacheService && categories.length > 0) {
+            try {
+               await this.cacheService.set(
+                  CacheNamespace.GATEWAY,
+                  cacheKey,
+                  categories,
+                  PRODUCT_CACHE_TTL.WHO_CATEGORIES_SECONDS,
+               );
+            } catch {
+               // Degrade gracefully on cache write failure
+            }
+         }
+
+         return categories;
       } catch (error: unknown) {
          return handleGrpcError(error);
       }

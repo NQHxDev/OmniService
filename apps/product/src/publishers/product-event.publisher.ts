@@ -8,7 +8,7 @@ import {
    type ProductRegisteredEventPayload,
    type ProductStockAdjustedEventPayload,
 } from '@contracts/product';
-import type { IProductEventPublisher } from './product-event.publisher.interface';
+import type { IProductEventPublisher } from '@product/publishers/product-event.publisher.interface';
 
 @Injectable()
 export class ProductEventPublisher implements IProductEventPublisher {
@@ -17,13 +17,14 @@ export class ProductEventPublisher implements IProductEventPublisher {
    constructor(
       @Inject(SERVICES.SEARCH_SERVICE)
       private readonly searchClient: ClientProxy,
+      @Inject(SERVICES.NOTIFICATION_SERVICE)
+      private readonly notificationClient: ClientProxy,
       private readonly eventEmitter: EventEmitter2,
    ) {}
 
    publishProductRegistered(event: ProductRegisteredEventPayload): Promise<void> {
       try {
-         // Emit directly to search-service queue for immediate indexing into Elasticsearch
-         this.searchClient.emit(PRODUCT_EVENTS.REGISTERED, event);
+         // Do not publish to searchClient: unapproved products must wait for ADMIN approval before indexing into Elasticsearch
          this.eventEmitter.emit(PRODUCT_EVENTS.REGISTERED, event);
          this.logger.log(`Published ${PRODUCT_EVENTS.REGISTERED} for product ${event.productId}`);
          return Promise.resolve();
@@ -36,6 +37,7 @@ export class ProductEventPublisher implements IProductEventPublisher {
    publishProductApproved(event: ProductModeratedEventPayload): Promise<void> {
       try {
          this.searchClient.emit(PRODUCT_EVENTS.APPROVED, event);
+         this.notificationClient.emit(PRODUCT_EVENTS.APPROVED, event);
          this.eventEmitter.emit(PRODUCT_EVENTS.APPROVED, event);
          this.logger.log(`Published ${PRODUCT_EVENTS.APPROVED} for product ${event.productId}`);
          return Promise.resolve();
@@ -48,11 +50,25 @@ export class ProductEventPublisher implements IProductEventPublisher {
    publishProductRejected(event: ProductModeratedEventPayload): Promise<void> {
       try {
          this.searchClient.emit(PRODUCT_EVENTS.REJECTED, event);
+         this.notificationClient.emit(PRODUCT_EVENTS.REJECTED, event);
          this.eventEmitter.emit(PRODUCT_EVENTS.REJECTED, event);
          this.logger.log(`Published ${PRODUCT_EVENTS.REJECTED} for product ${event.productId}`);
          return Promise.resolve();
       } catch (error) {
          this.logger.error(`Failed to publish ${PRODUCT_EVENTS.REJECTED}: ${error}`);
+         return Promise.resolve();
+      }
+   }
+
+   publishProductSuspended(event: ProductModeratedEventPayload): Promise<void> {
+      try {
+         this.searchClient.emit(PRODUCT_EVENTS.SUSPENDED, event);
+         this.notificationClient.emit(PRODUCT_EVENTS.SUSPENDED, event);
+         this.eventEmitter.emit(PRODUCT_EVENTS.SUSPENDED, event);
+         this.logger.log(`Published ${PRODUCT_EVENTS.SUSPENDED} for product ${event.productId}`);
+         return Promise.resolve();
+      } catch (error) {
+         this.logger.error(`Failed to publish ${PRODUCT_EVENTS.SUSPENDED}: ${error}`);
          return Promise.resolve();
       }
    }

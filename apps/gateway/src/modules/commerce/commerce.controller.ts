@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import {
@@ -22,7 +22,9 @@ import {
    SearchIngredientsResponseDto,
    SupplierProductOfferDto,
 } from '@contracts/commerce';
+import { SUPPLIER_ERROR_CODES } from '@contracts/supplier';
 import { CommerceService } from '@/modules/commerce/commerce.service';
+import { VerifiedSupplierGuard } from '@/modules/suppliers/guards';
 
 @ApiTags('Commerce')
 @Controller('commerce')
@@ -236,13 +238,16 @@ export class CommerceController {
    @Post('products')
    @ApiBearerAuth()
    @ApiCookieAuth()
+   @UseGuards(VerifiedSupplierGuard)
    @HttpCode(HttpStatus.CREATED)
    @ApiOperation({
       operationId: 'createProductOffer',
       summary: 'Step 3/4: Create supplier product offer linking merchant inventory to standardized ingredient',
       description: `### Workflow: Culinary Supply Chain (Step 3 of 4)
 #### Prerequisites
-- Authenticated supplier owner or Administrator. Ingredient must exist in central catalog.
+- Authenticated store owner or platform Administrator.
+- Store profile must have completed legal compliance verification (\`isVerified: true\` and \`supplierStatus: ACTIVE\`). Unverified stores are prevented from publishing offers until KYB is approved.
+- Target ingredient must exist in the standardized catalog.
 
 #### Process Flow
 - Links merchant product SKU, pricing, packaging unit, stock availability, and online checkout URL to the standardized catalog ingredient.
@@ -277,8 +282,12 @@ export class CommerceController {
       },
       {
          status: HttpStatus.FORBIDDEN,
-         description: 'Caller is not the supplier owner or Administrator',
-         errorCodes: [COMMON_ERROR_CODES.FORBIDDEN, COMMON_ERROR_CODES.NOT_OWNER_OR_ADMIN],
+         description: 'Caller is not the store owner/Admin, or merchant store has not completed legal KYB verification',
+         errorCodes: [
+            COMMON_ERROR_CODES.FORBIDDEN,
+            COMMON_ERROR_CODES.NOT_OWNER_OR_ADMIN,
+            SUPPLIER_ERROR_CODES.SUPPLIER_NOT_VERIFIED,
+         ],
       },
       {
          status: HttpStatus.NOT_FOUND,

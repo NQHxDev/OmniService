@@ -1,20 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@common';
-import type { CheckAndReserveStockResponseDto, ProductItemDto, WhoCategoryDto } from '@contracts/product';
+import type {
+   CheckAndReserveStockResponseDto,
+   ProductItemDto,
+   ProductModerationHistoryDto,
+   WhoCategoryDto,
+} from '@contracts/product';
 import { ProductService, StockService } from '@product/services';
 import {
    AdjustStockCommand,
    CheckAndReserveStockCommand,
    CreateProductCommand,
    GetProductByIdQuery,
+   GetProductModerationHistoryQuery,
    GetProductsByIdsQuery,
    ListProductsQuery,
    ListWhoCategoriesQuery,
    ModerateProductCommand,
    ReleaseStockCommand,
+   SubmitProductForReviewCommand,
    UpdateProductCommand,
    UpdateProductStatusCommand,
-} from './product.commands';
+} from '@product/commands/product.commands';
 
 @Injectable()
 @CommandHandler(CreateProductCommand)
@@ -37,12 +44,27 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
 }
 
 @Injectable()
+@CommandHandler(SubmitProductForReviewCommand)
+export class SubmitProductForReviewHandler implements ICommandHandler<SubmitProductForReviewCommand, ProductItemDto> {
+   constructor(private readonly productService: ProductService) {}
+
+   async execute(command: SubmitProductForReviewCommand): Promise<ProductItemDto> {
+      return this.productService.submitProductForReview(command.productId, command.supplierId);
+   }
+}
+
+@Injectable()
 @CommandHandler(ModerateProductCommand)
 export class ModerateProductHandler implements ICommandHandler<ModerateProductCommand, ProductItemDto> {
    constructor(private readonly productService: ProductService) {}
 
    async execute(command: ModerateProductCommand): Promise<ProductItemDto> {
-      return this.productService.moderateProduct(command.productId, command.moderatorId, command.dto);
+      return this.productService.moderateProduct(
+         command.productId,
+         command.moderatorId,
+         command.dto,
+         command.moderatorEmail,
+      );
    }
 }
 
@@ -142,5 +164,18 @@ export class ListWhoCategoriesHandler implements ICommandHandler<ListWhoCategori
          examples: c.examples,
          order: c.order,
       }));
+   }
+}
+
+@Injectable()
+@CommandHandler(GetProductModerationHistoryQuery)
+export class GetProductModerationHistoryHandler implements ICommandHandler<
+   GetProductModerationHistoryQuery,
+   ProductModerationHistoryDto[]
+> {
+   constructor(private readonly productService: ProductService) {}
+
+   async execute(command: GetProductModerationHistoryQuery): Promise<ProductModerationHistoryDto[]> {
+      return this.productService.getProductModerationHistory(command.productId);
    }
 }

@@ -5,6 +5,7 @@ package search.v1;
 import "models/user_search.proto";
 import "models/ingredient_search.proto";
 import "models/post_search.proto";
+import "models/product_search.proto";
 
 message SearchUsersRequest {
   string query = 1;
@@ -31,6 +32,31 @@ message SearchIngredientsResponse {
   int32 total = 2;
   int32 limit = 3;
   int32 offset = 4;
+}
+
+message SearchProductsRequest {
+  optional string query = 1;
+  optional string whoCategoryCode = 2;
+  optional string supplierId = 3;
+  optional string status = 4;
+  optional int32 limit = 5;
+  optional int32 offset = 6;
+}
+
+message SearchProductsResponse {
+  repeated ProductSearchHitProto items = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message SuggestProductsRequest {
+  string query = 1;
+  optional int32 limit = 2;
+}
+
+message SuggestProductsResponse {
+  repeated ProductSuggestionProto items = 1;
 }
 
 message GlobalSearchRequest {
@@ -67,4 +93,3 @@ message GetPostDetailRequest {
 message GetPostDetailResponse {
   PostSearchHitProto post = 1;
 }
-

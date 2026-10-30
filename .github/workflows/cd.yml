@@ -1,0 +1,294 @@
+name: OmniServices CD Pipeline
+
+on:
+   # Trigger automatically ONLY after CI pipeline passes on staging/main
+   workflow_run:
+      workflows: ['OmniServices CI Pipeline']
+      branches:
+         - main
+         - staging
+      types:
+         - completed
+   # Trigger on new semantic release tag
+   push:
+      tags:
+         - 'v*.*.*'
+   # Support manual trigger with parameter overrides
+   workflow_dispatch:
+      inputs:
+         environment:
+            description: 'Deployment Target Environment'
+            required: true
+            default: 'staging'
+            type: choice
+            options:
+               - staging
+               - production
+         service:
+            description: 'Microservice to deploy (select "all" or specific name: auth, gateway, user, etc.)'
+            required: true
+            default: 'all'
+            type: string
+         force_deploy:
+            description: 'Force deploy without change detection'
+            required: false
+            default: false
+            type: boolean
+
+permissions:
+   contents: read
+   packages: write
+   id-token: write
+
+concurrency:
+   group: cd-${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref }}-${{ inputs.environment || 'auto' }}
+   cancel-in-progress: false
+
+env:
+   REGISTRY: ghcr.io
+
+jobs:
+   # ---------------------------------------------------------------------------
+   # Phase 1: Changed Services & Environment Discovery
+   # ---------------------------------------------------------------------------
+   discovery:
+      name: Detect Affected Microservices & Environment
+      runs-on: ubuntu-latest
+      # Quality Gate: If triggered by workflow_run, CI MUST have succeeded
+      if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+      outputs:
+         services_json: ${{ steps.detect.outputs.services_json }}
+         has_changes: ${{ steps.detect.outputs.has_changes }}
+         environment: ${{ steps.env_info.outputs.environment }}
+         image_tag: ${{ steps.env_info.outputs.image_tag }}
+         image_repo: ${{ steps.env_info.outputs.image_repo }}
+         short_sha: ${{ steps.env_info.outputs.short_sha }}
+      steps:
+         - name: Checkout Code
+           uses: actions/checkout@v4
+           with:
+              ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+              fetch-depth: 0
+
+         - name: Resolve Environment & Image Tags
+           id: env_info
+           shell: bash
+           run: |
+              SHORT_SHA=$(git rev-parse --short=8 HEAD)
+              echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
+              # Determine environment
+              if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                 ENV_TARGET="${{ inputs.environment }}"
+              elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+                 if [ "${{ github.event.workflow_run.head_branch }}" = "main" ]; then
+                    ENV_TARGET="production"
+                 else
+                    ENV_TARGET="staging"
+                 fi
+              elif [[ "${{ github.ref }}" == refs/tags/v* ]] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
+                 ENV_TARGET="production"
+              else
+                 ENV_TARGET="staging"
+              fi
+              echo "environment=$ENV_TARGET" >> "$GITHUB_OUTPUT"
+
+              if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+                 VERSION_TAG="${GITHUB_REF#refs/tags/}"
+                 echo "image_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+              else
+                 echo "image_tag=$ENV_TARGET-$SHORT_SHA" >> "$GITHUB_OUTPUT"
+              fi
+
+              # GHCR requires repository path to be strictly lowercase
+              REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+              echo "image_repo=ghcr.io/$REPO_LOWER" >> "$GITHUB_OUTPUT"
+
+         - name: Detect Changed Services
+           id: detect
+           shell: bash
+           run: |
+              if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                 if [ "${{ inputs.force_deploy }}" = "true" ] || [ "${{ inputs.service }}" != "" ]; then
+                    sh scripts/detect-changed-services.sh "${{ inputs.service }}"
+                    exit 0
+                 fi
+              fi
+              sh scripts/detect-changed-services.sh
+
+   # ---------------------------------------------------------------------------
+   # Phase 2: Parallel Independent Container Packaging & GHCR Push
+   # ---------------------------------------------------------------------------
+   build-and-push:
+      name: Build & Push Image [${{ matrix.service }}]
+      runs-on: ubuntu-latest
+      needs: [discovery]
+      if: needs.discovery.outputs.has_changes == 'true'
+      strategy:
+         fail-fast: false
+         matrix:
+            service: ${{ fromJson(needs.discovery.outputs.services_json) }}
+      steps:
+         - name: Checkout Code
+           uses: actions/checkout@v4
+           with:
+              ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+         - name: Set up Docker Buildx
+           uses: docker/setup-buildx-action@v3
+
+         - name: Log in to Container Registry (${{ env.REGISTRY }})
+           uses: docker/login-action@v3
+           with:
+              registry: ${{ env.REGISTRY }}
+              username: ${{ github.actor }}
+              password: ${{ secrets.GITHUB_TOKEN }}
+
+         - name: Extract Docker Metadata
+           id: meta
+           uses: docker/metadata-action@v5
+           with:
+              images: ${{ needs.discovery.outputs.image_repo }}/${{ matrix.service }}
+              tags: |
+                 type=raw,value=${{ needs.discovery.outputs.image_tag }}
+                 type=raw,value=${{ needs.discovery.outputs.environment }}
+                 type=raw,value=latest,enable=${{ needs.discovery.outputs.environment == 'production' }}
+                 type=sha,prefix=sha-,format=short
+
+         - name: Build and Push Service Image
+           uses: docker/build-push-action@v5
+           with:
+              context: .
+              file: ./Dockerfile
+              push: true
+              build-args: |
+                 SERVICE_NAME=${{ matrix.service }}
+              tags: ${{ steps.meta.outputs.tags }}
+              labels: ${{ steps.meta.outputs.labels }}
+              cache-from: type=gha,scope=${{ matrix.service }}
+              cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+   # ---------------------------------------------------------------------------
+   # Phase 3: Per-Service Database Migration (Executed only after image build succeeds)
+   # ---------------------------------------------------------------------------
+   migrate-database:
+      name: Migrate DB [${{ matrix.service }}]
+      runs-on: ubuntu-latest
+      needs: [discovery, build-and-push]
+      if: needs.discovery.outputs.has_changes == 'true'
+      environment:
+         name: ${{ needs.discovery.outputs.environment }}
+      strategy:
+         fail-fast: false
+         matrix:
+            service: ${{ fromJson(needs.discovery.outputs.services_json) }}
+      steps:
+         - name: Checkout Code
+           uses: actions/checkout@v4
+           with:
+              ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+         - name: Check Schema Existence
+           id: check_schema
+           shell: bash
+           run: |
+              if [ -f "apps/${{ matrix.service }}/prisma/schema.prisma" ]; then
+                 echo "has_schema=true" >> "$GITHUB_OUTPUT"
+              else
+                 echo "has_schema=false" >> "$GITHUB_OUTPUT"
+              fi
+
+         - name: Setup Node & PNPM for Migration
+           if: steps.check_schema.outputs.has_schema == 'true'
+           uses: ./.github/actions/setup-pnpm-env
+           with:
+              prisma-generate: 'false'
+
+         - name: Execute Prisma Migration
+           if: steps.check_schema.outputs.has_schema == 'true'
+           shell: bash
+           env:
+              DATABASE_URL: ${{ secrets.DATABASE_URL }}
+           run: |
+              if [ -n "$DATABASE_URL" ]; then
+                 echo "🚀 Running database migration for ${{ matrix.service }}..."
+                 pnpm exec prisma migrate deploy --schema="apps/${{ matrix.service }}/prisma/schema.prisma"
+              else
+                 echo "ℹ No DATABASE_URL secret configured for environment '${{ needs.discovery.outputs.environment }}'. Skipping migration."
+              fi
+
+   # ---------------------------------------------------------------------------
+   # Phase 4: Zero-Downtime Rollout & Health Check
+   # ---------------------------------------------------------------------------
+   deploy-service:
+      name: Deploy Service [${{ matrix.service }}]
+      runs-on: ubuntu-latest
+      needs: [discovery, build-and-push, migrate-database]
+      if: needs.discovery.outputs.has_changes == 'true'
+      environment:
+         name: ${{ needs.discovery.outputs.environment }}
+      strategy:
+         fail-fast: false
+         matrix:
+            service: ${{ fromJson(needs.discovery.outputs.services_json) }}
+      steps:
+         - name: Checkout Code
+           uses: actions/checkout@v4
+           with:
+              ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+         - name: Configure Kubernetes Credentials
+           shell: bash
+           env:
+              KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
+           run: |
+              if [ -n "$KUBE_CONFIG_DATA" ]; then
+                 mkdir -p ~/.kube
+                 echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
+                 chmod 600 ~/.kube/config
+                 echo "KUBECONFIG_CONFIGURED=true" >> "$GITHUB_ENV"
+              else
+                 echo "ℹ No KUBE_CONFIG secret supplied for '${{ needs.discovery.outputs.environment }}'. Skipping direct cluster update."
+                 echo "KUBECONFIG_CONFIGURED=false" >> "$GITHUB_ENV"
+              fi
+
+         - name: Execute Zero-Downtime Rollout
+           shell: bash
+           env:
+              IMAGE_REF: ${{ needs.discovery.outputs.image_repo }}/${{ matrix.service }}:${{ needs.discovery.outputs.image_tag }}
+              NAMESPACE: omni-services-${{ needs.discovery.outputs.environment }}
+           run: |
+              if [ "$KUBECONFIG_CONFIGURED" = "true" ]; then
+                 sh scripts/deploy-k8s.sh "${{ matrix.service }}" "$IMAGE_REF" "$NAMESPACE"
+              else
+                 echo "✅ Image successfully published: $IMAGE_REF"
+                 echo "Ready for Pull-based GitOps (ArgoCD / Flux) or manual cluster deployment."
+              fi
+
+   # ---------------------------------------------------------------------------
+   # Phase 5: Deployment Summary Report
+   # ---------------------------------------------------------------------------
+   deployment-summary:
+      name: CD Deployment Summary
+      runs-on: ubuntu-latest
+      needs: [discovery, deploy-service]
+      if: always()
+      steps:
+         - name: Generate Summary Markdown
+           shell: bash
+           run: |
+              cat << 'EOF' >> "$GITHUB_STEP_SUMMARY"
+              ## 🚀 OmniServices Continuous Deployment Summary
+
+              | Parameter | Value |
+              | :--- | :--- |
+              | **Environment** | `${{ needs.discovery.outputs.environment || 'N/A' }}` |
+              | **Commit SHA** | `${{ needs.discovery.outputs.short_sha || github.sha }}` |
+              | **Image Tag** | `${{ needs.discovery.outputs.image_tag || 'N/A' }}` |
+              | **Registry** | `${{ needs.discovery.outputs.image_repo || 'ghcr.io' }}` |
+              | **Deployed Services** | `${{ needs.discovery.outputs.services_json || '[]' }}` |
+              | **Overall Status** | ${{ needs.deploy-service.result == 'success' && '✅ **Success**' || needs.discovery.outputs.has_changes != 'true' && '⏭️ **Skipped (No Changes)**' || '❌ **Failed**' }} |
+
+              ---
+              *OmniServices Monorepo CI/CD Engine*
+              EOF

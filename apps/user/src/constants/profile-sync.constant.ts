@@ -21,6 +21,7 @@ export type UserProfileSyncField = (typeof USER_PROFILE_SYNC_FIELDS)[keyof typeo
 export const USER_METADATA_FIELDS = {
    WEBSITE: 'website',
    LOCATION: 'location',
+   ADDRESS: 'address',
    GENDER: 'gender',
    DATE_OF_BIRTH: 'dateOfBirth',
    COVER_IMAGE: 'coverImage',
@@ -35,6 +36,7 @@ export type UserMetadataField = (typeof USER_METADATA_FIELDS)[keyof typeof USER_
 export const PROFILE_METADATA_FIELDS = [
    USER_METADATA_FIELDS.WEBSITE,
    USER_METADATA_FIELDS.LOCATION,
+   USER_METADATA_FIELDS.ADDRESS,
    USER_METADATA_FIELDS.GENDER,
    USER_METADATA_FIELDS.DATE_OF_BIRTH,
    USER_METADATA_FIELDS.COVER_IMAGE,

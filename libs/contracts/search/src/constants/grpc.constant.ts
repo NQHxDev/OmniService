@@ -27,6 +27,8 @@ export const SEARCH_V1_GRPC_CLIENT = 'SEARCH_V1_GRPC_CLIENT';
 export const SEARCH_V1_GRPC_METHODS = {
    SEARCH_USERS: 'SearchUsers',
    SEARCH_INGREDIENTS: 'SearchIngredients',
+   SEARCH_PRODUCTS: 'SearchProducts',
+   SUGGEST_PRODUCTS: 'SuggestProducts',
    GLOBAL_SEARCH: 'GlobalSearch',
    GET_POST_FEED: 'GetPostFeed',
    GET_POST_DETAIL: 'GetPostDetail',

@@ -3,8 +3,14 @@ import {
    PostIngredient as PrismaPostIngredient,
    PostStatus,
    Visibility,
+   Recipe as PrismaRecipe,
+   RecipeStep as PrismaRecipeStep,
+   PostTag,
+   Tag,
+   PostMention,
 } from '@post/prisma-client';
 import { PostIngredientEntity } from '@post/entities/post-ingredient.entity';
+import { RecipeEntity } from '@post/entities/recipe.entity';
 
 export class PostEntity implements PrismaPost {
    postId: string;
@@ -32,8 +38,20 @@ export class PostEntity implements PrismaPost {
    updatedAt: Date;
    publishedAt: Date | null;
    ingredients: PostIngredientEntity[];
+   recipe: RecipeEntity | null;
+   tags: string[];
+   mentionedUserIds: string[];
 
-   constructor(partial: Partial<PrismaPost> & { ingredients?: Partial<PrismaPostIngredient>[] }) {
+   constructor(
+      partial: Partial<PrismaPost> & {
+         ingredients?: Partial<PrismaPostIngredient>[];
+         recipe?: (Partial<PrismaRecipe> & { steps?: Partial<PrismaRecipeStep>[] }) | null;
+         tags?: ({ tag?: Partial<Tag> } | Partial<PostTag>)[];
+         mentions?: Partial<PostMention>[];
+         tagNames?: string[];
+         mentionedUserIds?: string[];
+      },
+   ) {
       this.postId = partial.postId || '';
       this.userId = partial.userId || '';
       this.title = partial.title || '';
@@ -59,5 +77,17 @@ export class PostEntity implements PrismaPost {
       this.updatedAt = partial.updatedAt || new Date();
       this.publishedAt = partial.publishedAt ?? null;
       this.ingredients = (partial.ingredients || []).map((item) => new PostIngredientEntity(item));
+      this.recipe = partial.recipe ? new RecipeEntity(partial.recipe) : null;
+      this.tags =
+         partial.tagNames ||
+         (partial.tags || [])
+            .map((t) => {
+               if ('tag' in t && t.tag && t.tag.name) return t.tag.name;
+               if ('name' in t && typeof (t as unknown as Tag).name === 'string') return (t as unknown as Tag).name;
+               return '';
+            })
+            .filter((name): name is string => Boolean(name));
+      this.mentionedUserIds =
+         partial.mentionedUserIds || (partial.mentions || []).map((m) => m.userId || '').filter(Boolean);
    }
 }

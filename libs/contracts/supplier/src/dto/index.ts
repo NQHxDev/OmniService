@@ -6,3 +6,5 @@ export * from '@contracts/supplier/dto/get-suppliers-by-ids.dto';
 export * from '@contracts/supplier/dto/my-supplier-response.dto';
 export * from '@contracts/supplier/dto/verify-supplier.dto';
 export * from '@contracts/supplier/dto/update-supplier-status.dto';
+export * from '@contracts/supplier/dto/submit-kyb.dto';
+export * from '@contracts/supplier/dto/reject-supplier.dto';

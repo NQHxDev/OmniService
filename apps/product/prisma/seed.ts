@@ -1,7 +1,16 @@
-import { PrismaClient } from '../src/generated/prisma-client';
+import { PrismaClient } from '@product/prisma-client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import { WHO_FOOD_GROUPS } from '@contracts/product';
+import { validateProductEnv } from '@product/config';
+import { PrismaPoolConfigFactory } from '@common';
 
-const prisma = new PrismaClient();
+const env = validateProductEnv(process.env);
+const connectionString = env.DIRECT_URL || env.DATABASE_URL;
+const poolOptions = PrismaPoolConfigFactory.createPoolOptions(connectionString);
+const pool = new Pool(poolOptions);
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function seed() {
    console.log('Seeding WHO nutrition categories...');
@@ -23,7 +32,7 @@ async function seed() {
          },
       });
    }
-   console.log(`Seeded ${WHO_FOOD_GROUPS.length} WHO categories successfully.`);
+   console.log(`✔ Seeded ${WHO_FOOD_GROUPS.length} WHO categories successfully.`);
 }
 
 seed()
@@ -33,4 +42,5 @@ seed()
    })
    .finally(async () => {
       await prisma.$disconnect();
+      await pool.end();
    });

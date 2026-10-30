@@ -29,6 +29,8 @@ export enum IngredientStatusEnum {
 export const SUPPLIER_STATUS = {
    ACTIVE: 'ACTIVE',
    PENDING: 'PENDING',
+   UNDER_REVIEW: 'UNDER_REVIEW',
+   REJECTED: 'REJECTED',
    SUSPENDED: 'SUSPENDED',
 } as const;
 
@@ -37,5 +39,7 @@ export type SupplierStatusType = (typeof SUPPLIER_STATUS)[keyof typeof SUPPLIER_
 export enum SupplierStatusEnum {
    ACTIVE = 'ACTIVE',
    PENDING = 'PENDING',
+   UNDER_REVIEW = 'UNDER_REVIEW',
+   REJECTED = 'REJECTED',
    SUSPENDED = 'SUSPENDED',
 }

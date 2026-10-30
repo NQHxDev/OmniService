@@ -1,4 +1,9 @@
-import type { IProductProto, IProductVariantProto, IWhoCategoryProto } from '../models';
+import type {
+   IProductModerationHistoryProto,
+   IProductProto,
+   IProductVariantProto,
+   IWhoCategoryProto,
+} from '@contracts/product/grpc/v1/models';
 
 export interface IGetProductByIdRequest {
    productId: string;
@@ -80,10 +85,30 @@ export interface IModerateProductRequest {
    moderationStatus: string;
    rejectionReason?: string;
    moderatedBy?: string;
+   action?: string;
+   moderationNotes?: string;
+   moderatorEmail?: string;
 }
 
 export interface IModerateProductResponse {
    product: IProductProto;
+}
+
+export interface ISubmitProductForReviewRequest {
+   productId: string;
+   supplierId: string;
+}
+
+export interface ISubmitProductForReviewResponse {
+   product: IProductProto;
+}
+
+export interface IGetProductModerationHistoryRequest {
+   productId: string;
+}
+
+export interface IGetProductModerationHistoryResponse {
+   items: IProductModerationHistoryProto[];
 }
 
 export interface IUpdateProductStatusRequest {

@@ -2,11 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PostService } from '@post/services';
 import { POST_REPOSITORY_TOKEN, type IPostRepository } from '@post/repositories';
 import { PostEntity, PostIngredientEntity } from '@post/entities';
-import { BadRequestException, NotFoundException } from '@common';
+import { BadRequestException, NotFoundException, SERVICES } from '@common';
+import { POST_EVENT_KEYS, type CreatePostDto } from '@contracts/post';
 
 describe('PostService', () => {
    let service: PostService;
    let repository: jest.Mocked<IPostRepository>;
+   let searchClient: { emit: jest.Mock };
+   let notificationClient: { emit: jest.Mock };
 
    const mockIngredientEntity = new PostIngredientEntity({
       ingredientId: 'ing-1',
@@ -22,7 +25,7 @@ describe('PostService', () => {
       postId: 'post-1',
       userId: 'user-1',
       title: 'Hanoi Beef Pho',
-      caption: 'Pho tutorial',
+      caption: 'Pho tutorial #phobo',
       mediaId: 'media-1',
       videoUrl: 'https://r2.dev/video.mp4',
       playbackUrl: null,
@@ -51,6 +54,8 @@ describe('PostService', () => {
             sortOrder: 1,
          },
       ],
+      tagNames: ['phobo'],
+      mentionedUserIds: ['user-2'],
    });
 
    beforeEach(async () => {
@@ -58,7 +63,11 @@ describe('PostService', () => {
          findFeed: jest.fn(),
          findById: jest.fn(),
          findIngredientsByPostId: jest.fn(),
+         create: jest.fn(),
       };
+
+      searchClient = { emit: jest.fn() };
+      notificationClient = { emit: jest.fn() };
 
       const module: TestingModule = await Test.createTestingModule({
          providers: [
@@ -66,6 +75,14 @@ describe('PostService', () => {
             {
                provide: POST_REPOSITORY_TOKEN,
                useValue: mockRepo,
+            },
+            {
+               provide: SERVICES.SEARCH_SERVICE,
+               useValue: searchClient,
+            },
+            {
+               provide: SERVICES.NOTIFICATION_SERVICE,
+               useValue: notificationClient,
             },
          ],
       }).compile();
@@ -172,6 +189,52 @@ describe('PostService', () => {
          repository.findById.mockResolvedValue(null);
 
          await expect(service.getIngredientsByPostId('non-existent')).rejects.toThrow(NotFoundException);
+      });
+   });
+
+   describe('createPost', () => {
+      const validDto: CreatePostDto = {
+         title: 'Hanoi Beef Pho',
+         caption: 'Pho tutorial #phobo',
+         videoUrl: 'https://r2.dev/video.mp4',
+         thumbnailUrl: 'https://r2.dev/thumb.jpg',
+         duration: 45,
+         tags: ['phobo'],
+         mentionedUserIds: ['user-2'],
+      };
+
+      it('should create post and emit event to search and notification clients', async () => {
+         repository.create.mockResolvedValue(mockPostEntity);
+
+         const result = await service.createPost('user-1', validDto);
+
+         expect(repository.create).toHaveBeenCalledWith('user-1', validDto);
+         expect(searchClient.emit).toHaveBeenCalledWith(
+            'post.created',
+            expect.objectContaining({
+               eventId: POST_EVENT_KEYS.buildCreatedEventId('post-1'),
+               idempotencyKey: POST_EVENT_KEYS.buildCreatedIdempotencyKey('post-1'),
+               postId: 'post-1',
+               userId: 'user-1',
+               title: 'Hanoi Beef Pho',
+            }),
+         );
+         expect(notificationClient.emit).toHaveBeenCalledWith(
+            'post.created',
+            expect.objectContaining({
+               postId: 'post-1',
+               mentionedUserIds: ['user-2'],
+            }),
+         );
+         expect(result.postId).toBe('post-1');
+      });
+
+      it('should throw BadRequestException when userId is missing', async () => {
+         await expect(service.createPost('', validDto)).rejects.toThrow(BadRequestException);
+      });
+
+      it('should throw BadRequestException when required media parameters are missing', async () => {
+         await expect(service.createPost('user-1', { ...validDto, videoUrl: '' })).rejects.toThrow(BadRequestException);
       });
    });
 });

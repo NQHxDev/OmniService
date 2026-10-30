@@ -7,7 +7,7 @@ import { AUTH_PERMISSIONS, AUTH_PERMISSION_DEFINITIONS, AUTH_ROLES } from '@cont
 import { validateAuthEnv } from '@auth/config/auth-env.schema';
 
 const env = validateAuthEnv(process.env);
-const connectionString = env.DATABASE_URL;
+const connectionString = env.DIRECT_URL || env.DATABASE_URL;
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -47,15 +47,15 @@ const rolesDefinition = [
    },
 ];
 
-async function seedRedis(
-   rolesWithPermissions: Array<{
-      id: string;
-      code: string;
-      name: string;
-      description: string | null;
-      permissions: string[];
-   }>,
-): Promise<void> {
+interface RoleWithPermissions {
+   roleId: string;
+   code: string;
+   name: string;
+   description: string | null;
+   permissions: string[];
+}
+
+async function seedRedis(rolesWithPermissions: RoleWithPermissions[]): Promise<void> {
    const redisHost = env.REDIS_HOST;
    const redisPort = env.REDIS_PORT;
    const redisPassword = env.REDIS_PASSWORD || undefined;
@@ -102,13 +102,7 @@ async function main() {
    }
 
    console.log('Seeding cooking network roles...');
-   const seededRoles: Array<{
-      id: string;
-      code: string;
-      name: string;
-      description: string | null;
-      permissions: string[];
-   }> = [];
+   const seededRoles: RoleWithPermissions[] = [];
 
    for (const roleDef of rolesDefinition) {
       const role = await prisma.role.upsert({
@@ -137,7 +131,7 @@ async function main() {
       }
 
       seededRoles.push({
-         id: role.roleId,
+         roleId: role.roleId,
          code: role.code,
          name: role.name,
          description: role.description,

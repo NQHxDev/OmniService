@@ -17,6 +17,10 @@ import type {
    IVerifySupplierResponse,
    IUpdateSupplierStatusRequest,
    IUpdateSupplierStatusResponse,
+   ISubmitKybRequest,
+   ISubmitKybResponse,
+   IRejectSupplierRequest,
+   IRejectSupplierResponse,
 } from '@contracts/supplier/grpc/v1/messages';
 
 export interface ISupplierV1GrpcService {
@@ -38,6 +42,10 @@ export interface ISupplierV1GrpcService {
       request: IUpdateSupplierStatusRequest,
       metadata?: Metadata,
    ): Observable<IUpdateSupplierStatusResponse>;
+
+   submitKyb(request: ISubmitKybRequest, metadata?: Metadata): Observable<ISubmitKybResponse>;
+
+   rejectSupplier(request: IRejectSupplierRequest, metadata?: Metadata): Observable<IRejectSupplierResponse>;
 }
 
 export type ISupplierGrpcService = ISupplierV1GrpcService;

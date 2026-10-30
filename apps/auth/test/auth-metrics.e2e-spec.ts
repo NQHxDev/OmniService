@@ -1,14 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AuthModule } from '@auth/auth.module';
+import { AuthMetricsController } from '@auth/auth-metrics.controller';
+import { AUTH_METRICS_SERVICE, AuthMetricsService } from '@auth/services/infrastructure';
 
 describe('Metrics Endpoint (e2e)', () => {
    let app: ReturnType<TestingModule['createNestApplication']>;
 
    beforeAll(async () => {
       const moduleRef = await Test.createTestingModule({
-         imports: [AuthModule],
+         controllers: [AuthMetricsController],
+         providers: [
+            {
+               provide: AUTH_METRICS_SERVICE,
+               useClass: AuthMetricsService,
+            },
+         ],
       }).compile();
 
       app = moduleRef.createNestApplication();

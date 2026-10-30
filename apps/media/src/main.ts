@@ -15,6 +15,7 @@ async function bootstrap() {
    const rmqService = app.get(RmqService);
    const configService = app.get(MediaConfigService);
 
+   app.enableShutdownHooks();
    app.useLogger(logger);
    app.useGlobalFilters(new AllRpcExceptionsFilter());
    app.useGlobalInterceptors(new TracingInterceptor());
@@ -42,6 +43,12 @@ async function bootstrap() {
                protoPath: [getMediaProtoPath()],
                url: configService.grpcUrl,
                loader: getMediaProtoLoaderOptions(),
+               maxReceiveMessageLength: 50 * 1024 * 1024,
+               maxSendMessageLength: 50 * 1024 * 1024,
+               channelOptions: {
+                  'grpc.max_receive_message_length': 50 * 1024 * 1024,
+                  'grpc.max_send_message_length': 50 * 1024 * 1024,
+               },
             },
          },
          {

@@ -25,7 +25,7 @@ export class RmqModule {
                   imports: [AppConfigModule],
                   useFactory: (config: AppConfigService) => {
                      const rmqService = new RmqService(config);
-                     return rmqService.getOptions(name, options);
+                     return rmqService.getClientOptions(name, options);
                   },
                   inject: [AppConfigService],
                },

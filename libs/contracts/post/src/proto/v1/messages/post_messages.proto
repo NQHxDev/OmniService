@@ -33,3 +33,58 @@ message GetIngredientsByPostIdRequest {
 message GetIngredientsByPostIdResponse {
   repeated PostIngredientProto items = 1;
 }
+
+message CreatePostIngredientInputProto {
+  string name = 1;
+  optional double amount = 2;
+  optional string unit = 3;
+  optional string group = 4;
+  int32 sortOrder = 5;
+  optional string catalogIngredientId = 6;
+}
+
+message CreateRecipeStepInputProto {
+  int32 stepNumber = 1;
+  optional string title = 2;
+  string instruction = 3;
+  optional int32 timestampSeconds = 4;
+  optional string imageUrl = 5;
+  optional string mediaId = 6;
+}
+
+message CreateRecipeInputProto {
+  int32 prepTimeMinutes = 1;
+  int32 cookTimeMinutes = 2;
+  int32 servings = 3;
+  string difficulty = 4;
+  optional int32 calories = 5;
+  optional string cuisine = 6;
+  optional string chefTips = 7;
+  repeated CreateRecipeStepInputProto steps = 8;
+}
+
+message CreatePostRequest {
+  string userId = 1;
+  string title = 2;
+  optional string caption = 3;
+  optional string mediaId = 4;
+  string videoUrl = 5;
+  optional string playbackUrl = 6;
+  string thumbnailUrl = 7;
+  optional string blurHash = 8;
+  int32 duration = 9;
+  optional int32 videoWidth = 10;
+  optional int32 videoHeight = 11;
+  optional string visibility = 12;
+  optional bool allowComments = 13;
+  optional bool allowDuet = 14;
+  repeated string tags = 15;
+  repeated string mentionedUserIds = 16;
+  repeated string categoryIds = 17;
+  repeated CreatePostIngredientInputProto ingredients = 18;
+  optional CreateRecipeInputProto recipe = 19;
+}
+
+message CreatePostResponse {
+  PostItemProto post = 1;
+}

@@ -2,6 +2,7 @@ import {
    CACHE_TTL,
    calculateTokenBlacklistTtl,
    OTP_TTL,
+   PRODUCT_CATEGORIES_CACHE_TTL,
    RATE_LIMIT_WINDOW,
    SESSION_TTL,
    USER_PROFILE_CACHE_TTL,
@@ -12,6 +13,7 @@ describe('cache-ttl.constants', () => {
       expect(SESSION_TTL).toBe(86400);
       expect(OTP_TTL).toBe(300);
       expect(USER_PROFILE_CACHE_TTL).toBe(900);
+      expect(PRODUCT_CATEGORIES_CACHE_TTL).toBe(43200);
       expect(RATE_LIMIT_WINDOW.ONE_MIN).toBe(60);
       expect(RATE_LIMIT_WINDOW.ONE_HOUR).toBe(3600);
       expect(RATE_LIMIT_WINDOW.ONE_DAY).toBe(86400);
@@ -19,6 +21,7 @@ describe('cache-ttl.constants', () => {
       expect(CACHE_TTL.SESSION).toBe(SESSION_TTL);
       expect(CACHE_TTL.OTP).toBe(OTP_TTL);
       expect(CACHE_TTL.USER_PROFILE).toBe(USER_PROFILE_CACHE_TTL);
+      expect(CACHE_TTL.PRODUCT_CATEGORIES).toBe(PRODUCT_CATEGORIES_CACHE_TTL);
       expect(CACHE_TTL.RATE_LIMIT_WINDOW).toEqual(RATE_LIMIT_WINDOW);
    });
 

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { BadRequestException, ConflictException, NotFoundException } from '@common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@common';
 import {
    COMMERCE_ERROR_CODES,
    COMMERCE_EVENTS,
@@ -9,6 +9,7 @@ import {
    SUPPLIER_STATUS,
    type CreateProductOfferDto,
 } from '@contracts/commerce';
+import { SUPPLIER_ERROR_CODES } from '@contracts/supplier';
 import {
    INGREDIENT_REPOSITORY,
    SUPPLIER_PRODUCT_REPOSITORY,
@@ -87,9 +88,19 @@ export class SupplierOfferService {
 
    async createProductOffer(dto: CreateProductOfferDto): Promise<SupplierProductEntity> {
       const supplier = await this.supplierAdapter.getSupplierById(dto.supplierId);
-      if (!supplier || supplier.supplierStatus !== SUPPLIER_STATUS.ACTIVE) {
+      if (!supplier) {
          throw new NotFoundException(COMMERCE_ERROR_CODES.SUPPLIER_NOT_FOUND, {
             params: { supplierId: dto.supplierId },
+         });
+      }
+
+      if (!supplier.isVerified || supplier.supplierStatus !== SUPPLIER_STATUS.ACTIVE) {
+         throw new ForbiddenException(SUPPLIER_ERROR_CODES.SUPPLIER_NOT_VERIFIED, {
+            params: {
+               supplierId: dto.supplierId,
+               supplierStatus: supplier.supplierStatus,
+               isVerified: supplier.isVerified,
+            },
          });
       }
 

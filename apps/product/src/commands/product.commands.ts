@@ -7,6 +7,7 @@ import type {
    ListProductsQueryDto,
    ModerateProductDto,
    ProductItemDto,
+   ProductModerationHistoryDto,
    ReleaseStockDto,
    UpdateProductDto,
    UpdateProductStatusDto,
@@ -32,11 +33,21 @@ export class UpdateProductCommand extends Command<ProductItemDto> {
    }
 }
 
+export class SubmitProductForReviewCommand extends Command<ProductItemDto> {
+   constructor(
+      public readonly productId: string,
+      public readonly supplierId: string,
+   ) {
+      super();
+   }
+}
+
 export class ModerateProductCommand extends Command<ProductItemDto> {
    constructor(
       public readonly productId: string,
       public readonly moderatorId: string,
       public readonly dto: ModerateProductDto,
+      public readonly moderatorEmail?: string,
    ) {
       super();
    }
@@ -96,6 +107,12 @@ export class ListProductsQuery extends Command<{
 
 export class ListWhoCategoriesQuery extends Command<WhoCategoryDto[]> {
    constructor() {
+      super();
+   }
+}
+
+export class GetProductModerationHistoryQuery extends Command<ProductModerationHistoryDto[]> {
+   constructor(public readonly productId: string) {
       super();
    }
 }

@@ -11,17 +11,36 @@ import {
    type ICreateOrderRequest,
    type ICreateOrderResponse,
    type IGetOrderByIdRequest,
+   type IGetProductOrderStatsRequest,
+   type IGetProductOrderStatsResponse,
    type IGetOrderByIdResponse,
    type IGetOrdersByUserIdRequest,
    type IGetOrdersByUserIdResponse,
+   type IGetSupplierOrderByIdRequest,
+   type IGetSupplierOrderByIdResponse,
+   type IListSupplierOrdersRequest,
+   type IListSupplierOrdersResponse,
    type IOrderProto,
    type IOrderV1GrpcService,
    type IUpdateOrderStatusRequest,
    type IUpdateOrderStatusResponse,
+   type IUpdateSupplierOrderStatusRequest,
+   type IUpdateSupplierOrderStatusResponse,
 } from '@contracts/order';
 import type { OrderWithItems } from '@order/entities';
-import { CancelOrderCommandHandler, CreateOrderCommandHandler, UpdateOrderStatusCommandHandler } from '@order/commands';
-import { GetOrderByIdQueryHandler, GetOrdersByUserIdQueryHandler } from '@order/queries';
+import {
+   CancelOrderCommandHandler,
+   CreateOrderCommandHandler,
+   UpdateOrderStatusCommandHandler,
+   UpdateSupplierOrderStatusCommandHandler,
+} from '@order/commands';
+import {
+   GetOrderByIdQueryHandler,
+   GetOrdersByUserIdQueryHandler,
+   GetProductOrderStatsQueryHandler,
+   GetSupplierOrderByIdQueryHandler,
+   ListSupplierOrdersQueryHandler,
+} from '@order/queries';
 import { validateOrderUserId } from '@order/utils';
 
 function mapOrderToProto(order: OrderWithItems): IOrderProto {
@@ -40,11 +59,15 @@ function mapOrderToProto(order: OrderWithItems): IOrderProto {
       note: order.note ?? '',
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
+      supplierId: order.supplierId ?? undefined,
+      shippingMethod: order.shippingMethod ?? undefined,
+      shipperTrackingCode: order.shipperTrackingCode ?? undefined,
       items: (order.items || []).map((item) => ({
          orderItemId: item.orderItemId,
          orderId: item.orderId,
          productId: item.productId,
          productName: item.productName,
+         imageUrl: item.imageUrl ?? undefined,
          quantity: item.quantity,
          unitPrice: Number(item.unitPrice),
          totalPrice: Number(item.totalPrice),
@@ -62,6 +85,10 @@ export class OrderGrpcController implements IOrderV1GrpcService {
       private readonly updateOrderStatusHandler: UpdateOrderStatusCommandHandler,
       private readonly getOrderByIdHandler: GetOrderByIdQueryHandler,
       private readonly getOrdersByUserIdHandler: GetOrdersByUserIdQueryHandler,
+      private readonly listSupplierOrdersHandler: ListSupplierOrdersQueryHandler,
+      private readonly getSupplierOrderByIdHandler: GetSupplierOrderByIdQueryHandler,
+      private readonly updateSupplierOrderStatusHandler: UpdateSupplierOrderStatusCommandHandler,
+      private readonly getProductOrderStatsHandler: GetProductOrderStatsQueryHandler,
    ) {}
 
    @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.CREATE_ORDER)
@@ -114,5 +141,37 @@ export class OrderGrpcController implements IOrderV1GrpcService {
             order: mapOrderToProto(order),
          })),
       );
+   }
+
+   @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.LIST_SUPPLIER_ORDERS)
+   listSupplierOrders(
+      request: IListSupplierOrdersRequest,
+      _metadata?: Metadata,
+   ): Observable<IListSupplierOrdersResponse> {
+      return from(this.listSupplierOrdersHandler.execute(request));
+   }
+
+   @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.GET_SUPPLIER_ORDER_BY_ID)
+   getSupplierOrderById(
+      request: IGetSupplierOrderByIdRequest,
+      _metadata?: Metadata,
+   ): Observable<IGetSupplierOrderByIdResponse> {
+      return from(this.getSupplierOrderByIdHandler.execute(request));
+   }
+
+   @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.UPDATE_SUPPLIER_ORDER_STATUS)
+   updateSupplierOrderStatus(
+      request: IUpdateSupplierOrderStatusRequest,
+      _metadata?: Metadata,
+   ): Observable<IUpdateSupplierOrderStatusResponse> {
+      return from(this.updateSupplierOrderStatusHandler.execute(request));
+   }
+
+   @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.GET_PRODUCT_ORDER_STATS)
+   getProductOrderStats(
+      request: IGetProductOrderStatsRequest,
+      _metadata?: Metadata,
+   ): Observable<IGetProductOrderStatsResponse> {
+      return from(this.getProductOrderStatsHandler.execute(request));
    }
 }

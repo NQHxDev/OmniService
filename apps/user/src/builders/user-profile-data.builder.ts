@@ -15,6 +15,7 @@ export interface UserProfileDtoSource {
    coverImage?: string;
    website?: string;
    location?: string;
+   address?: string;
    isPrivate?: boolean;
    isVerified?: boolean;
    status?: UserStatus;
@@ -35,6 +36,7 @@ export class UserProfileDataBuilder implements IBuilder<CreateUserData> {
    private coverImage?: string | null;
    private website?: string | null;
    private location?: string | null;
+   private address?: string | null;
    private dateOfBirth?: Date | null;
    private gender?: Gender | null;
    private isPrivate?: boolean;
@@ -139,6 +141,16 @@ export class UserProfileDataBuilder implements IBuilder<CreateUserData> {
    }
 
    /**
+    * Sets physical address string.
+    */
+   withAddress(address?: string | null): this {
+      if (address !== undefined) {
+         this.address = address ?? null;
+      }
+      return this;
+   }
+
+   /**
     * Sets date of birth, safely parsing strings, numbers or Date instances.
     */
    withDateOfBirth(dob?: Date | string | number | null): this {
@@ -203,6 +215,7 @@ export class UserProfileDataBuilder implements IBuilder<CreateUserData> {
       if (dto.coverImage !== undefined) this.withCoverImage(dto.coverImage);
       if (dto.website !== undefined) this.withWebsite(dto.website);
       if (dto.location !== undefined) this.withLocation(dto.location);
+      if (dto.address !== undefined) this.withAddress(dto.address);
       if (dto.gender !== undefined) this.withGender(dto.gender);
       if (dto.dateOfBirth !== undefined) this.withDateOfBirth(dto.dateOfBirth);
       if (dto.isPrivate !== undefined) this.asPrivate(dto.isPrivate);
@@ -252,6 +265,7 @@ export class UserProfileDataBuilder implements IBuilder<CreateUserData> {
          coverImage: this.coverImage ?? null,
          website: this.website ?? null,
          location: this.location ?? null,
+         address: this.address ?? null,
          dateOfBirth: this.dateOfBirth ?? null,
          gender: this.gender ?? null,
          isPrivate: this.isPrivate ?? false,
@@ -274,6 +288,7 @@ export class UserProfileDataBuilder implements IBuilder<CreateUserData> {
       if (this.coverImage !== undefined && this.coverImage !== null) updateData.coverImage = this.coverImage;
       if (this.website !== undefined && this.website !== null) updateData.website = this.website;
       if (this.location !== undefined && this.location !== null) updateData.location = this.location;
+      if (this.address !== undefined && this.address !== null) updateData.address = this.address;
       if (this.dateOfBirth !== undefined && this.dateOfBirth !== null) updateData.dateOfBirth = this.dateOfBirth;
       if (this.gender !== undefined && this.gender !== null) updateData.gender = this.gender;
       if (this.isPrivate !== undefined) updateData.isPrivate = this.isPrivate;

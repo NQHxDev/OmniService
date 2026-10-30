@@ -10,6 +10,7 @@ message OrderItemProto {
   int32 quantity = 5;
   double unitPrice = 6;
   double totalPrice = 7;
+  string imageUrl = 8;
 }
 
 message OrderProto {
@@ -28,6 +29,9 @@ message OrderProto {
   repeated OrderItemProto items = 13;
   string createdAt = 14;
   string updatedAt = 15;
+  string supplierId = 16;
+  string shippingMethod = 17;
+  string shipperTrackingCode = 18;
 }
 
 message CreateOrderItemInput {
@@ -35,6 +39,9 @@ message CreateOrderItemInput {
   string productName = 2;
   int32 quantity = 3;
   double unitPrice = 4;
+  string imageUrl = 5;
+  string note = 6;
+  string productVariantId = 7;
 }
 
 message CreateOrderRequest {
@@ -46,6 +53,8 @@ message CreateOrderRequest {
   string note = 6;
   double shippingFee = 7;
   repeated CreateOrderItemInput items = 8;
+  string supplierId = 9;
+  string shippingMethod = 10;
 }
 
 message CreateOrderResponse {
@@ -93,10 +102,149 @@ message UpdateOrderStatusResponse {
   OrderProto order = 1;
 }
 
+// Supplier Orders Messages
+message SupplierOrderItemProto {
+  string orderItemId = 1;
+  string productId = 2;
+  string title = 3;
+  int32 quantity = 4;
+  double price = 5;
+  double totalPrice = 6;
+  string imageUrl = 7;
+}
+
+message SupplierOrderSummaryProto {
+  int32 shippingCount = 1;
+  int32 needsActionCount = 2;
+}
+
+message SupplierOrderPaginationProto {
+  int32 page = 1;
+  int32 limit = 2;
+  int32 totalItems = 3;
+  int32 totalPages = 4;
+}
+
+message SupplierOrderListItemProto {
+  string orderId = 1;
+  string orderNumber = 2;
+  string customerName = 3;
+  string customerPhone = 4;
+  string deliveryAddress = 5;
+  string shippingMethod = 6;
+  double totalAmount = 7;
+  double shippingFee = 8;
+  string status = 9;
+  string paymentMethod = 10;
+  string paymentStatus = 11;
+  string note = 12;
+  string createdAt = 13;
+  string updatedAt = 14;
+  repeated SupplierOrderItemProto items = 15;
+}
+
+message ListSupplierOrdersRequest {
+  string supplierId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  string group = 4;
+  string status = 5;
+  string dateRange = 6;
+  string startDate = 7;
+  string endDate = 8;
+  string shippingMethod = 9;
+  string paymentStatus = 10;
+  string search = 11;
+  string sortBy = 12;
+  string sortOrder = 13;
+}
+
+message ListSupplierOrdersResponse {
+  repeated SupplierOrderListItemProto items = 1;
+  SupplierOrderPaginationProto pagination = 2;
+  SupplierOrderSummaryProto summary = 3;
+}
+
+message OrderTimelineProto {
+  string status = 1;
+  string time = 2;
+  string description = 3;
+}
+
+message CustomerDetailProto {
+  string userId = 1;
+  string name = 2;
+  string phone = 3;
+  string avatar = 4;
+}
+
+message SupplierOrderDetailProto {
+  string orderId = 1;
+  string orderNumber = 2;
+  CustomerDetailProto customer = 3;
+  string shippingAddress = 4;
+  string shippingMethod = 5;
+  string status = 6;
+  string paymentMethod = 7;
+  string paymentStatus = 8;
+  double totalAmount = 9;
+  double subTotal = 10;
+  double shippingFee = 11;
+  double discountAmount = 12;
+  string note = 13;
+  repeated SupplierOrderItemProto items = 14;
+  repeated OrderTimelineProto timeline = 15;
+  string createdAt = 16;
+  string updatedAt = 17;
+}
+
+message GetSupplierOrderByIdRequest {
+  string orderId = 1;
+  string supplierId = 2;
+}
+
+message GetSupplierOrderByIdResponse {
+  SupplierOrderDetailProto order = 1;
+}
+
+message UpdateSupplierOrderStatusRequest {
+  string orderId = 1;
+  string supplierId = 2;
+  string status = 3;
+  string reason = 4;
+  string shipperTrackingCode = 5;
+}
+
+message UpdateSupplierOrderStatusResponse {
+  string orderId = 1;
+  string status = 2;
+  string updatedAt = 3;
+}
+
+message GetProductOrderStatsRequest {
+  repeated string productIds = 1;
+}
+
+message ProductOrderStatsProto {
+  string productId = 1;
+  int32 orderCount = 2;
+  int32 soldCount = 3;
+}
+
+message GetProductOrderStatsResponse {
+  repeated ProductOrderStatsProto stats = 1;
+}
+
 service OrderService {
   rpc CreateOrder (CreateOrderRequest) returns (CreateOrderResponse);
   rpc GetOrderById (GetOrderByIdRequest) returns (GetOrderByIdResponse);
   rpc GetOrdersByUserId (GetOrdersByUserIdRequest) returns (GetOrdersByUserIdResponse);
   rpc CancelOrder (CancelOrderRequest) returns (CancelOrderResponse);
   rpc UpdateOrderStatus (UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
+
+  rpc ListSupplierOrders (ListSupplierOrdersRequest) returns (ListSupplierOrdersResponse);
+  rpc GetSupplierOrderById (GetSupplierOrderByIdRequest) returns (GetSupplierOrderByIdResponse);
+  rpc UpdateSupplierOrderStatus (UpdateSupplierOrderStatusRequest) returns (UpdateSupplierOrderStatusResponse);
+
+  rpc GetProductOrderStats (GetProductOrderStatsRequest) returns (GetProductOrderStatsResponse);
 }

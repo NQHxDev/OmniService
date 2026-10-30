@@ -114,9 +114,7 @@ export class TracingSDK {
 
    private registerProcessHandlers(): void {
       const shutdownHandler = () => {
-         void this.shutdown().finally(() => {
-            process.exit(0);
-         });
+         void this.shutdown();
       };
 
       for (const signal of SHUTDOWN_SIGNALS) {

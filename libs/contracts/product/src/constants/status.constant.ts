@@ -7,12 +7,25 @@ export const PRODUCT_STATUS = {
 export type ProductStatusType = (typeof PRODUCT_STATUS)[keyof typeof PRODUCT_STATUS];
 
 export const MODERATION_STATUS = {
+   DRAFT: 'DRAFT',
    PENDING_APPROVAL: 'PENDING_APPROVAL',
    APPROVED: 'APPROVED',
    REJECTED: 'REJECTED',
+   EDIT_PENDING_APPROVAL: 'EDIT_PENDING_APPROVAL',
+   SUSPENDED: 'SUSPENDED',
 } as const;
 
 export type ModerationStatusType = (typeof MODERATION_STATUS)[keyof typeof MODERATION_STATUS];
+
+export const MODERATION_ACTION = {
+   APPROVE: 'APPROVE',
+   REJECT: 'REJECT',
+   SUSPEND: 'SUSPEND',
+   APPROVE_EDIT: 'APPROVE_EDIT',
+   REJECT_EDIT: 'REJECT_EDIT',
+} as const;
+
+export type ModerationActionType = (typeof MODERATION_ACTION)[keyof typeof MODERATION_ACTION];
 
 export const VARIANT_STATUS = {
    AVAILABLE: 'AVAILABLE',

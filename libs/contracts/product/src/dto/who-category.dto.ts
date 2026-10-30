@@ -1,10 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { WhoCategoryCode } from '../constants/product-categories.constant';
+import { WHO_CATEGORY_CODES, type WhoCategoryCode } from '@contracts/product/constants/product-categories.constant';
 
 export class WhoCategoryDto {
    @ApiProperty({
       description: 'Standard WHO nutrition group code',
-      example: 'STAPLES',
+      enum: WHO_CATEGORY_CODES,
+      example: WHO_CATEGORY_CODES.STAPLES,
    })
    code!: WhoCategoryCode;
 

@@ -41,6 +41,7 @@ import {
    AvatarSignatureResponseDto,
    CheckUsernameResponseDto,
    CreateUserProfileDto,
+   UpdateAddressDto,
    UpdateBioDto,
    UpdateCoverImageDto,
    UpdateDisplayNameDto,
@@ -186,7 +187,7 @@ export class UsersController {
 - Recommended to check username availability first via **Step 1/2** (\`GET /api/v1/users/check-username\`).
 
 #### Process Flow
-- Creates user profile with unique handle (username), display name, bio, date of birth, and gender.
+- Creates user profile with unique handle (username), display name, bio, physical address, date of birth, and gender.
 - Synchronizes profile record to Elasticsearch inverted index for fast autocomplete search.
 - Initializes graph entities for social following and relationships.
 
@@ -537,6 +538,41 @@ export class UsersController {
    @ResponseMessage(USER_RESPONSE_MESSAGES.UPDATE_LOCATION_SUCCESS)
    async updateMyLocation(@Body() dto: UpdateLocationDto, @CurrentUser() user: JwtPayload): Promise<unknown> {
       return this.usersService.updateLocation(user.sub, dto.location, user);
+   }
+
+   @Patch('me/address')
+   @ApiCookieAuth()
+   @ApiBearerAuth()
+   @ApiOperation({
+      operationId: 'updateMyAddress',
+      summary: 'Update physical address',
+      description: 'Updates the physical address for the authenticated user (maximum 255 characters).',
+   })
+   @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Address updated successfully.',
+      type: UserResponseDto,
+   })
+   @ApiErrorResponses([
+      {
+         status: HttpStatus.BAD_REQUEST,
+         description: 'Validation failed for address',
+         errorCodes: [COMMON_ERROR_CODES.VALIDATION_FAILED, USER_ERROR_CODES.INVALID_ADDRESS_FORMAT],
+      },
+      {
+         status: HttpStatus.UNAUTHORIZED,
+         description: 'Unauthorized access or invalid token',
+         errorCodes: [COMMON_ERROR_CODES.UNAUTHORIZED],
+      },
+      {
+         status: HttpStatus.NOT_FOUND,
+         description: 'User profile not found',
+         errorCodes: [USER_ERROR_CODES.USER_NOT_FOUND],
+      },
+   ])
+   @ResponseMessage(USER_RESPONSE_MESSAGES.UPDATE_ADDRESS_SUCCESS)
+   async updateMyAddress(@Body() dto: UpdateAddressDto, @CurrentUser() user: JwtPayload): Promise<unknown> {
+      return this.usersService.updateAddress(user.sub, dto.address, user);
    }
 
    @Patch('me/website')

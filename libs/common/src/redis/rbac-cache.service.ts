@@ -28,7 +28,14 @@ export class RbacCacheService {
 
    async getRole(roleCode: string): Promise<CachedRoleData | null> {
       const key = RbacRedisKeys.role(roleCode);
-      return this.redisService.getJson<CachedRoleData>(key);
+      const data = await this.redisService.getJson<CachedRoleData & { id?: string }>(key);
+      if (!data) {
+         return null;
+      }
+      if (!data.roleId && data.id) {
+         data.roleId = data.id;
+      }
+      return data;
    }
 
    async setRole(

@@ -119,6 +119,14 @@ export class JwtAuthGuard implements CanActivate {
    }
 
    private extractToken(request: AuthenticatedRequest): string | null {
+      const authHeader = request.headers?.authorization;
+      if (authHeader) {
+         const [scheme, token] = authHeader.split(' ');
+         if (scheme && scheme.toLowerCase() === 'bearer' && token) {
+            return token.trim();
+         }
+      }
+
       const cookies = request.cookies as Record<string, string> | undefined;
 
       if (cookies) {
@@ -129,16 +137,23 @@ export class JwtAuthGuard implements CanActivate {
          if (cookies[AUTH_COOKIES.ACCESS_TOKEN]) {
             return cookies[AUTH_COOKIES.ACCESS_TOKEN];
          }
+         if (cookies['access_token']) {
+            return cookies['access_token'];
+         }
+         if (cookies['accessToken']) {
+            return cookies['accessToken'];
+         }
          if (cookies['jwt']) {
             return cookies['jwt'];
          }
-      }
-
-      const authHeader = request.headers?.authorization;
-      if (authHeader) {
-         const [scheme, token] = authHeader.split(' ');
-         if (scheme && scheme.toLowerCase() === 'bearer' && token) {
-            return token.trim();
+         if (cookies['token']) {
+            return cookies['token'];
+         }
+         if (cookies['AT']) {
+            return cookies['AT'];
+         }
+         if (cookies['at']) {
+            return cookies['at'];
          }
       }
 

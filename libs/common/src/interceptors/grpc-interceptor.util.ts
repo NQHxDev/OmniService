@@ -421,6 +421,8 @@ export function mapHttpStatusToGrpc(httpStatus: HttpStatus): number {
 export function mapGrpcStatusToHttpStatus(grpcStatus: GrpcStatus): HttpStatus {
    switch (grpcStatus) {
       case GrpcStatus.INVALID_ARGUMENT:
+      case GrpcStatus.FAILED_PRECONDITION:
+      case GrpcStatus.OUT_OF_RANGE:
          return HttpStatus.BAD_REQUEST;
       case GrpcStatus.UNAUTHENTICATED:
          return HttpStatus.UNAUTHORIZED;

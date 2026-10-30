@@ -10,6 +10,7 @@
    },
    "dependencies": {
       "@common": "workspace:*",
+      "@contracts/analyze": "workspace:*",
       "@contracts/auth": "workspace:*",
       "@contracts/commerce": "workspace:*",
       "@contracts/health": "workspace:*",

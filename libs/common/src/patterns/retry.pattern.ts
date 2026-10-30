@@ -710,6 +710,8 @@ export interface GrpcChannelRetryOptions {
    backoffMultiplier?: number;
    retryableStatusCodes?: string[];
    serviceNames?: string[];
+   maxReceiveMessageLength?: number;
+   maxSendMessageLength?: number;
 }
 
 /**
@@ -721,6 +723,8 @@ export function createGrpcRetryChannelOptions(options: GrpcChannelRetryOptions =
    const maxBackoff = options.maxBackoff ?? '1s';
    const backoffMultiplier = options.backoffMultiplier ?? 2;
    const retryableStatusCodes = options.retryableStatusCodes ?? ['UNAVAILABLE', 'DEADLINE_EXCEEDED'];
+   const maxReceiveMessageLength = options.maxReceiveMessageLength ?? 50 * 1024 * 1024;
+   const maxSendMessageLength = options.maxSendMessageLength ?? 50 * 1024 * 1024;
 
    const serviceConfig = {
       methodConfig: [
@@ -743,5 +747,7 @@ export function createGrpcRetryChannelOptions(options: GrpcChannelRetryOptions =
    return {
       'grpc.service_config': JSON.stringify(serviceConfig),
       'grpc.enable_retries': 1,
+      'grpc.max_receive_message_length': maxReceiveMessageLength,
+      'grpc.max_send_message_length': maxSendMessageLength,
    };
 }

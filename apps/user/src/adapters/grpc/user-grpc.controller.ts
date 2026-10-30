@@ -136,6 +136,7 @@ export class UserGrpcController implements IUserV1GrpcService {
          displayName: user.displayName || undefined,
          avatar: user.avatar || undefined,
          bio: user.bio || undefined,
+         address: user.address || user.profile?.address || undefined,
          profile: user.profile
             ? {
                  profileId: user.profile.profileId,
@@ -146,6 +147,7 @@ export class UserGrpcController implements IUserV1GrpcService {
                  coverImage: user.profile.coverImage || undefined,
                  website: user.profile.website || undefined,
                  location: user.profile.location || undefined,
+                 address: user.profile.address || undefined,
                  createdAt:
                     user.profile.createdAt instanceof Date
                        ? user.profile.createdAt.toISOString()

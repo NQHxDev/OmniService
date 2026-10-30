@@ -84,3 +84,31 @@ export interface IUpdateSupplierStatusRequest {
 export interface IUpdateSupplierStatusResponse {
    supplier: ISupplierProto;
 }
+
+export interface ISubmitKybRequest {
+   supplierId: string;
+   merchantType: string;
+   citizenId?: string;
+   citizenIdIssuedDate?: string;
+   idCardFrontUrl?: string;
+   idCardBackUrl?: string;
+   businessName?: string;
+   taxCode?: string;
+   businessLicenseUrl?: string;
+   bankName?: string;
+   bankAccountNumber?: string;
+   bankAccountHolder?: string;
+}
+
+export interface ISubmitKybResponse {
+   supplier: ISupplierProto;
+}
+
+export interface IRejectSupplierRequest {
+   supplierId: string;
+   reason: string;
+}
+
+export interface IRejectSupplierResponse {
+   supplier: ISupplierProto;
+}

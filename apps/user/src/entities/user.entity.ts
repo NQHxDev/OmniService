@@ -16,6 +16,7 @@ export class UserProfileEntity implements Omit<PrismaUserProfile, 'dateOfBirth' 
    coverImage: string | null;
    website: string | null;
    location: string | null;
+   address: string | null;
    createdAt: Date;
    updatedAt: Date;
 
@@ -32,6 +33,7 @@ export class UserProfileEntity implements Omit<PrismaUserProfile, 'dateOfBirth' 
       this.coverImage = rest.coverImage ?? null;
       this.website = rest.website ?? null;
       this.location = rest.location ?? null;
+      this.address = rest.address ?? null;
       this.createdAt = rest.createdAt || new Date();
       this.updatedAt = rest.updatedAt || new Date();
    }
@@ -106,6 +108,7 @@ export class UserEntity implements PrismaUser {
    coverImage: string | null;
    website: string | null;
    location: string | null;
+   address: string | null;
    followersCount: number;
    followingCount: number;
    postsCount: number;
@@ -148,6 +151,7 @@ export class UserEntity implements PrismaUser {
       this.coverImage = partial.coverImage ?? this.profile?.coverImage ?? null;
       this.website = partial.website ?? this.profile?.website ?? null;
       this.location = partial.location ?? this.profile?.location ?? null;
+      this.address = partial.address ?? this.profile?.address ?? null;
       this.followersCount = partial.followersCount ?? this.stats?.followersCount ?? 0;
       this.followingCount = partial.followingCount ?? this.stats?.followingCount ?? 0;
       this.postsCount = partial.postsCount ?? this.stats?.postsCount ?? 0;

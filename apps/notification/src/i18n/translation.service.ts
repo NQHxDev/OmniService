@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BaseTranslations, ITranslationService, Locale } from './translation.interface';
+import { BaseTranslations, ITranslationService, Locale } from '@notification/i18n/translation.interface';
 
 /**
  * Service for loading, caching, and interpolating email template translations.

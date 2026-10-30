@@ -12,6 +12,8 @@ import {
    SendWelcomeEmailDto,
    SendChangePasswordOtpEmailDto,
 } from '@contracts/notification';
+import { PRODUCT_EVENTS, type ProductModeratedEventPayload } from '@contracts/product';
+import { POST_EVENTS } from '@contracts/post';
 import { NotificationService } from '@notification/notification.service';
 
 @Controller()
@@ -133,5 +135,61 @@ export class NotificationController {
             eventId,
          ),
       );
+   }
+
+   @EventPattern(PRODUCT_EVENTS.APPROVED)
+   async handleProductApproved(@Payload() data: ProductModeratedEventPayload, @Ctx() context: RmqContext) {
+      this.logger.log(`Received PRODUCT_APPROVED event for product ${data?.productId} (${data?.productName})`);
+      return this.handleConsumerMessage(context, () => {
+         this.logger.log(`Product ${data?.productId} approved by moderator ${data?.moderatedBy}`);
+         return Promise.resolve();
+      });
+   }
+
+   @EventPattern(PRODUCT_EVENTS.REJECTED)
+   async handleProductRejected(@Payload() data: ProductModeratedEventPayload, @Ctx() context: RmqContext) {
+      this.logger.log(
+         `Received PRODUCT_REJECTED event for product ${data?.productId}: reason=${data?.rejectionReason}`,
+      );
+      return this.handleConsumerMessage(context, () => {
+         this.logger.log(`Product ${data?.productId} rejected by moderator ${data?.moderatedBy}`);
+         return Promise.resolve();
+      });
+   }
+
+   @EventPattern(PRODUCT_EVENTS.SUSPENDED)
+   async handleProductSuspended(@Payload() data: ProductModeratedEventPayload, @Ctx() context: RmqContext) {
+      this.logger.log(
+         `Received PRODUCT_SUSPENDED event for product ${data?.productId}: notes=${data?.moderationNotes}`,
+      );
+      return this.handleConsumerMessage(context, () => {
+         this.logger.log(`Product ${data?.productId} suspended by moderator ${data?.moderatedBy}`);
+         return Promise.resolve();
+      });
+   }
+
+   @EventPattern(POST_EVENTS.CREATED)
+   async handlePostCreated(
+      @Payload()
+      data: {
+         postId: string;
+         userId: string;
+         title: string;
+         mentionedUserIds?: string[];
+         eventId?: string;
+      },
+      @Ctx() context: RmqContext,
+   ) {
+      this.logger.log(`Received POST_CREATED event for post: ${data?.postId} by user: ${data?.userId}`);
+      return this.handleConsumerMessage(context, () => {
+         if (data?.mentionedUserIds && data.mentionedUserIds.length > 0) {
+            for (const mentionedUserId of data.mentionedUserIds) {
+               this.logger.log(
+                  `Notifying mentioned user ${mentionedUserId} about post ${data.postId} ("${data.title}") created by user ${data.userId}`,
+               );
+            }
+         }
+         return Promise.resolve();
+      });
    }
 }

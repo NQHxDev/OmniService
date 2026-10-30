@@ -69,6 +69,7 @@ model UserProfile {
   coverImage  String?   @map("cover_image")
   website     String?
   location    String?
+  address     String?   @db.Text
   dateOfBirth DateTime? @map("date_of_birth")
   gender      Gender?
 

@@ -225,6 +225,21 @@ describe('ProfileValidationPipeline & Chain Handlers', () => {
          });
       });
 
+      it('should throw BadRequestException when address is invalid', async () => {
+         const context: ProfileValidationContext = {
+            operation: PROFILE_OPERATIONS.CREATE,
+            address: 'ab',
+         };
+
+         await expect(handler.handle(context)).rejects.toThrow(BadRequestException);
+         await expect(handler.handle(context)).rejects.toMatchObject({
+            response: expect.objectContaining({
+               errorCode: USER_ERROR_CODES.INVALID_ADDRESS_FORMAT,
+               params: expect.objectContaining({ reason: USER_ERROR_REASONS.MIN_LENGTH }),
+            }),
+         });
+      });
+
       it('should pass when all attributes are valid', async () => {
          const context: ProfileValidationContext = {
             operation: PROFILE_OPERATIONS.CREATE,
@@ -232,6 +247,7 @@ describe('ProfileValidationPipeline & Chain Handlers', () => {
             dateOfBirth: '1995-10-10',
             bio: 'Software engineer',
             website: 'https://example.com',
+            address: '123 Nguyen Trai, Hanoi',
          };
 
          await expect(handler.handle(context)).resolves.toBeUndefined();

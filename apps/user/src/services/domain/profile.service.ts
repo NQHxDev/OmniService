@@ -79,6 +79,7 @@ export class ProfileService {
          coverImage?: string;
          website?: string;
          location?: string;
+         address?: string;
          dateOfBirth?: Date;
          gender?: Gender;
       },

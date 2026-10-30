@@ -47,6 +47,20 @@ describe('RbacCacheService', () => {
       expect(result).toEqual(mockRole);
    });
 
+   it('should normalize legacy id to roleId if roleId is missing', async () => {
+      const legacyMockRole = {
+         id: 'role-legacy-1',
+         code: 'USER',
+         name: 'Standard User',
+         description: 'desc',
+         permissions: ['USERS:READ'],
+      };
+      mockGetJson.mockResolvedValue(legacyMockRole);
+
+      const result = await service.getRole('USER');
+      expect(result?.roleId).toBe('role-legacy-1');
+   });
+
    it('should set role and permissions in Redis', async () => {
       const roleData: CachedRoleData = {
          roleId: 'role-1',

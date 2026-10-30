@@ -19,6 +19,7 @@ async function bootstrap() {
    const logger = app.get(Logger);
    const configService = app.get(CommerceConfigService);
 
+   app.enableShutdownHooks();
    app.useLogger(logger);
 
    app.useGlobalFilters(new AllRpcExceptionsFilter());

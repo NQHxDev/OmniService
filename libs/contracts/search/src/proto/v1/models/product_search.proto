@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package search.v1;
+
+message ProductVariantSearchProto {
+  string variantId = 1;
+  string sku = 2;
+  string variantName = 3;
+  string unit = 4;
+  string packSize = 5;
+  double price = 6;
+  double originalPrice = 7;
+  string currency = 8;
+  int32 stockQuantity = 9;
+  bool isDefault = 10;
+  string status = 11;
+}
+
+message ProductSearchHitProto {
+  string productId = 1;
+  string supplierId = 2;
+  string whoCategoryCode = 3;
+  string productName = 4;
+  string productSlug = 5;
+  string description = 6;
+  string origin = 7;
+  repeated string images = 8;
+  string status = 9;
+  string moderationStatus = 10;
+  repeated ProductVariantSearchProto variants = 11;
+  double minPrice = 12;
+  double maxPrice = 13;
+  string currency = 14;
+  string createdAt = 15;
+  string updatedAt = 16;
+}
+
+message ProductSuggestionProto {
+  string productId = 1;
+  string productName = 2;
+  string productSlug = 3;
+  string whoCategoryCode = 4;
+  string origin = 5;
+  repeated string images = 6;
+  string defaultUnit = 7;
+  double minPrice = 8;
+  double maxPrice = 9;
+  string currency = 10;
+}

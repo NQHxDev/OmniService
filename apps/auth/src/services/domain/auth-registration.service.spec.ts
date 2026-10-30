@@ -110,7 +110,12 @@ describe('AuthRegistrationService', () => {
             AuthRegistrationService,
             {
                provide: RbacCacheService,
-               useValue: { getRole: jest.fn().mockResolvedValue({ id: 'r1', permissions: [] }), setRole: jest.fn() },
+               useValue: {
+                  getRole: jest
+                     .fn()
+                     .mockResolvedValue({ roleId: 'r1', id: 'r1', code: SYSTEM_ROLES.USER, permissions: [] }),
+                  setRole: jest.fn(),
+               },
             },
             {
                provide: ACCOUNT_REPOSITORY,

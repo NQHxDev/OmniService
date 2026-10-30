@@ -7,6 +7,8 @@ import "messages/search_messages.proto";
 service SearchService {
   rpc SearchUsers (SearchUsersRequest) returns (SearchUsersResponse);
   rpc SearchIngredients (SearchIngredientsRequest) returns (SearchIngredientsResponse);
+  rpc SearchProducts (SearchProductsRequest) returns (SearchProductsResponse);
+  rpc SuggestProducts (SuggestProductsRequest) returns (SuggestProductsResponse);
   rpc GlobalSearch (GlobalSearchRequest) returns (GlobalSearchResponse);
   rpc GetPostFeed (GetPostFeedRequest) returns (GetPostFeedResponse);
   rpc GetPostDetail (GetPostDetailRequest) returns (GetPostDetailResponse);

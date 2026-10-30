@@ -1,3 +1,4 @@
+import type { ProductPendingEditData } from '@contracts/product';
 import { ProductEntity } from '@product/entities';
 
 export const PRODUCT_REPOSITORY = Symbol('PRODUCT_REPOSITORY');
@@ -26,9 +27,11 @@ export interface CreateProductInput {
    images?: string[];
    status?: string;
    moderationStatus?: string;
+   pendingEditData?: ProductPendingEditData | null;
 }
 
 export interface UpdateProductInput {
+   whoCategoryCode?: string;
    productName?: string;
    normalizedName?: string;
    productSlug?: string;
@@ -42,6 +45,7 @@ export interface UpdateProductInput {
    rejectionReason?: string | null;
    moderatedBy?: string | null;
    moderatedAt?: Date | null;
+   pendingEditData?: ProductPendingEditData | null;
 }
 
 export interface IProductRepository {

@@ -1,4 +1,5 @@
 import { PostEntity, PostIngredientEntity } from '@post/entities';
+import type { CreatePostDto } from '@contracts/post';
 
 export interface IPostCursorData {
    createdAt: Date;
@@ -25,4 +26,5 @@ export interface IPostRepository {
    findFeed(params: IFindFeedParams): Promise<IFeedQueryResult>;
    findById(postId: string): Promise<PostEntity | null>;
    findIngredientsByPostId(postId: string): Promise<PostIngredientEntity[]>;
+   create(userId: string, data: CreatePostDto): Promise<PostEntity>;
 }

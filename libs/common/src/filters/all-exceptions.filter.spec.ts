@@ -1,4 +1,4 @@
-import { ArgumentsHost, HttpStatus } from '@nestjs/common';
+import { ArgumentsHost, BadRequestException as NestBadRequestException, HttpStatus } from '@nestjs/common';
 import { BadRequestException } from '@common/exceptions';
 import { COMMON_ERROR_CODES } from '@common/exceptions/error-codes';
 import { AllExceptionsFilter } from '@common/filters/all-exceptions.filter';
@@ -167,6 +167,30 @@ describe('AllExceptionsFilter', () => {
             message: 'AUTH.FORBIDDEN',
          }),
       );
+   });
+
+   it('should handle ValidationPipe errors and format validationErrors properly', () => {
+      const nestValidationException = new NestBadRequestException([
+         'mediaId must be a UUID',
+         'duration must not be less than 0',
+      ]);
+
+      filter.catch(nestValidationException, mockHost);
+
+      expect(mockStatus).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(mockJson).toHaveBeenCalledWith(
+         expect.objectContaining({
+            success: false,
+            statusCode: 400,
+            errorCode: COMMON_ERROR_CODES.VALIDATION_FAILED,
+            message: COMMON_ERROR_CODES.VALIDATION_FAILED,
+            errors: [
+               { field: 'mediaId', message: 'mediaId must be a UUID' },
+               { field: 'duration', message: 'duration must not be less than 0' },
+            ],
+         }),
+      );
+      expect(mockRequest.customLogMessage).toContain('mediaId: mediaId must be a UUID');
    });
 
    it('should fallback to 500 INTERNAL_SERVER_ERROR for standard unhandled errors', () => {

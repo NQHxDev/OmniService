@@ -49,6 +49,7 @@ export class UserProfileRepository implements IUserProfileRepository {
                   coverImage: data.coverImage,
                   website: data.website,
                   location: data.location,
+                  address: data.address,
                   dateOfBirth: data.dateOfBirth,
                   gender: data.gender,
                },
@@ -220,6 +221,7 @@ export class UserProfileRepository implements IUserProfileRepository {
          ...(coverImage !== undefined && { coverImage }),
          ...(website !== undefined && { website }),
          ...(location !== undefined && { location }),
+         ...(data.address !== undefined && { address: data.address }),
          ...(dateOfBirth !== undefined && { dateOfBirth }),
          ...(gender !== undefined && { gender }),
       };

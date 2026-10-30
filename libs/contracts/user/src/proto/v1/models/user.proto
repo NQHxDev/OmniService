@@ -13,6 +13,7 @@ message UserProfileProto {
   optional string location = 8;
   string createdAt = 9;
   string updatedAt = 10;
+  optional string address = 11;
 }
 
 message UserStatsProto {
@@ -46,6 +47,7 @@ message UserProto {
   optional string displayName = 12;
   optional string avatar = 13;
   optional string bio = 14;
+  optional string address = 15;
 }
 
 message UserSuggestionItemProto {

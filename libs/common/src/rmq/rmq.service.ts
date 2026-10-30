@@ -73,6 +73,13 @@ export class RmqService {
       };
    }
 
+   getClientOptions(queue: string, options?: IRmqQueueOptions): RmqOptions {
+      return this.getOptions(queue, {
+         ...options,
+         noAck: options?.noAck ?? true,
+      });
+   }
+
    async setupQueueTopology(queue: string, options?: IRmqQueueOptions): Promise<void> {
       const resolvedQueue = this.config.rabbitMq.getQueue(queue);
       const dlxExchange = options?.dlxExchange ?? buildDlxExchangeName(resolvedQueue);

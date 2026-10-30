@@ -2,7 +2,7 @@ import React, { type FC } from 'react';
 import { Heading, Section, Text } from '@react-email/components';
 import { EMAIL_COLORS, EMAIL_FONTS } from '@notification/constants/email-theme';
 import { BaseTranslations, getDefaultTranslations } from '@notification/i18n';
-import { EmailHeader, EmailLayout } from './components';
+import { EmailHeader, EmailLayout } from '@notification/templates/components';
 
 export interface ChangePasswordOtpEmailProps {
    fullName?: string;

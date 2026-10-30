@@ -3,7 +3,11 @@ import { RpcException } from '@nestjs/microservices';
 import { status as GrpcStatus } from '@grpc/grpc-js';
 import { Observable, throwError } from 'rxjs';
 import { AppException, COMMON_ERROR_CODES } from '@common';
-import { extractGrpcMetadata, mapHttpStatusToGrpc } from '@common/interceptors/grpc-interceptor.util';
+import {
+   extractGrpcMetadata,
+   mapGrpcStatusToHttpStatus,
+   mapHttpStatusToGrpc,
+} from '@common/interceptors/grpc-interceptor.util';
 import { GrpcTraceStorage } from '@common/interceptors/grpc-trace.storage';
 import { uuidv7 } from '@common/utils/uuid.util';
 
@@ -71,12 +75,19 @@ export class GrpcExceptionFilter implements RpcExceptionFilter {
             }
             if (typeof errObj.code === 'number') {
                code = errObj.code;
+               if (typeof errObj.statusCode !== 'number') {
+                  statusCode = mapGrpcStatusToHttpStatus(code);
+               }
             }
             if (typeof errObj.errorCode === 'string') {
                errorCode = errObj.errorCode;
+            } else if (typeof errObj.message === 'string') {
+               errorCode = errObj.message;
             }
             if (typeof errObj.message === 'string') {
                message = errObj.message;
+            } else if (typeof errObj.errorCode === 'string') {
+               message = errObj.errorCode;
             }
             if (typeof errObj.params === 'object' && errObj.params !== null) {
                params = errObj.params as Record<string, unknown>;
@@ -91,11 +102,21 @@ export class GrpcExceptionFilter implements RpcExceptionFilter {
                   statusCode = parsed.statusCode;
                   code = this.mapHttpStatusToGrpc(statusCode);
                }
+               if (typeof parsed.code === 'number') {
+                  code = parsed.code;
+                  if (typeof parsed.statusCode !== 'number') {
+                     statusCode = mapGrpcStatusToHttpStatus(code);
+                  }
+               }
                if (typeof parsed.errorCode === 'string') {
                   errorCode = parsed.errorCode;
+               } else if (typeof parsed.message === 'string') {
+                  errorCode = parsed.message;
                }
                if (typeof parsed.message === 'string') {
                   message = parsed.message;
+               } else if (typeof parsed.errorCode === 'string') {
+                  message = parsed.errorCode;
                }
                if (typeof parsed.params === 'object' && parsed.params !== null) {
                   params = parsed.params as Record<string, unknown>;

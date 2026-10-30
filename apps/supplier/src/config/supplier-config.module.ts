@@ -10,6 +10,13 @@ import { validateSupplierEnv } from '@supplier/config/supplier-env.schema';
       ConfigModule.forRoot({
          isGlobal: true,
          validate: validateSupplierEnv,
+         envFilePath: [
+            process.env.ENV_FILE || '',
+            'apps/supplier/.env.local',
+            'apps/supplier/.env',
+            '.env.local',
+            '.env',
+         ].filter(Boolean),
       }),
    ],
    providers: [
@@ -19,6 +26,6 @@ import { validateSupplierEnv } from '@supplier/config/supplier-env.schema';
          useExisting: SupplierConfigService,
       },
    ],
-   exports: [SupplierConfigService, CommonConfigService],
+   exports: [SupplierConfigService, CommonConfigService, ConfigModule],
 })
 export class SupplierConfigModule {}

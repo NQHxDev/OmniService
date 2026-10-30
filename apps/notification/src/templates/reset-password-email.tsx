@@ -2,7 +2,7 @@ import React, { type FC } from 'react';
 import { Button, Heading, Link, Section, Text } from '@react-email/components';
 import { EMAIL_COLORS, EMAIL_FONTS } from '@notification/constants';
 import { BaseTranslations, getDefaultTranslations } from '@notification/i18n';
-import { EmailHeader, EmailLayout } from './components';
+import { EmailHeader, EmailLayout } from '@notification/templates/components';
 
 export interface ResetPasswordEmailProps {
    fullName?: string;
