@@ -1,0 +1,1010 @@
+# ==============================================================================
+# OmniServices — Full Production Deploy (Docker Compose)
+# Includes: All microservices + Infra + Cloudflare Tunnel
+#
+# Usage:
+#   docker compose -f docker-compose.deploy.yml --env-file .env.deploy up -d
+#   docker compose -f docker-compose.deploy.yml --env-file .env.deploy down
+# ==============================================================================
+
+name: omni-deploy
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SHARED DEFAULTS
+# ──────────────────────────────────────────────────────────────────────────────
+x-service-defaults: &service-defaults
+   restart: unless-stopped
+   networks:
+      - omni-network
+
+x-pg-healthcheck: &pg-healthcheck
+   interval: 10s
+   timeout: 5s
+   retries: 5
+   start_period: 15s
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SERVICES
+# ──────────────────────────────────────────────────────────────────────────────
+services:
+   # ============================================================================
+   # INFRASTRUCTURE LAYER
+   # ============================================================================
+
+   redis:
+      image: redis/redis-stack-server:latest
+      container_name: omni-deploy-redis
+      restart: unless-stopped
+      ports:
+         - '6379:6379'
+      volumes:
+         - redis_data:/data
+      healthcheck:
+         test: ['CMD', 'redis-cli', 'ping']
+         interval: 10s
+         timeout: 5s
+         retries: 5
+         start_period: 10s
+      networks:
+         - omni-network
+
+   rabbitmq:
+      image: rabbitmq:4-management-alpine
+      container_name: omni-deploy-rabbitmq
+      restart: unless-stopped
+      environment:
+         RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+         RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+      ports:
+         - '5672:5672'
+         - '15672:15672'
+      volumes:
+         - rabbitmq_data:/var/lib/rabbitmq
+         - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      healthcheck:
+         test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+         interval: 15s
+         timeout: 25s
+         retries: 5
+         start_period: 30s
+      networks:
+         - omni-network
+
+   jaeger:
+      image: jaegertracing/jaeger:latest
+      container_name: omni-deploy-jaeger
+      restart: unless-stopped
+      ports:
+         - '16686:16686'
+         - '4318:4318'
+         - '4317:4317'
+      networks:
+         - omni-network
+
+   elasticsearch:
+      image: elasticsearch:8.17.0
+      container_name: omni-deploy-elasticsearch
+      restart: unless-stopped
+      environment:
+         - discovery.type=single-node
+         - xpack.security.enabled=false
+         - xpack.security.http.ssl.enabled=false
+         - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      ulimits:
+         memlock:
+            soft: -1
+            hard: -1
+         nofile:
+            soft: 65536
+            hard: 65536
+      ports:
+         - '9200:9200'
+      volumes:
+         - elasticsearch_data:/usr/share/elasticsearch/data
+      healthcheck:
+         test: ['CMD-SHELL', 'curl -sf http://localhost:9200/_cluster/health | grep -vq "\"status\":\"red\""']
+         interval: 10s
+         timeout: 10s
+         retries: 15
+         start_period: 30s
+      networks:
+         - omni-network
+
+   # ── NebulaGraph (social graph cho User service) ────────────────────────────
+   # FIX: Tăng start_period & retries — storaged cần 60-90s để init
+   nebula-metad:
+      image: vesoft/nebula-metad:v3.8.0
+      container_name: omni-deploy-nebula-metad
+      restart: unless-stopped
+      environment:
+         USER: root
+      command:
+         - --meta_server_addrs=nebula-metad:9559
+         - --local_ip=nebula-metad
+         - --ws_ip=0.0.0.0
+         - --port=9559
+         - --ws_http_port=19559
+         - --data_path=/data/meta
+         - --log_dir=/logs
+         - --v=0
+         - --minloglevel=0
+      volumes:
+         - nebula_metad_data:/data/meta
+         - nebula_metad_logs:/logs
+      healthcheck:
+         test: ['CMD', 'curl', '-sf', 'http://127.0.0.1:19559/status']
+         interval: 10s
+         timeout: 10s
+         retries: 15
+         start_period: 30s
+      networks:
+         - omni-network
+
+   nebula-storaged:
+      image: vesoft/nebula-storaged:v3.8.0
+      container_name: omni-deploy-nebula-storaged
+      restart: unless-stopped
+      environment:
+         USER: root
+      command:
+         - --meta_server_addrs=nebula-metad:9559
+         - --local_ip=nebula-storaged
+         - --ws_ip=0.0.0.0
+         - --port=9779
+         - --ws_http_port=19779
+         - --data_path=/data/storage
+         - --log_dir=/logs
+         - --v=0
+         - --minloglevel=0
+      depends_on:
+         nebula-metad:
+            condition: service_healthy
+      volumes:
+         - nebula_storaged_data:/data/storage
+         - nebula_storaged_logs:/logs
+      healthcheck:
+         # FIX: start_period=90s + retries=30 để đủ thời gian init
+         test: ['CMD', 'curl', '-sf', 'http://127.0.0.1:19779/status']
+         interval: 10s
+         timeout: 10s
+         retries: 30
+         start_period: 90s
+      networks:
+         - omni-network
+
+   nebula-graphd:
+      image: vesoft/nebula-graphd:v3.8.0
+      container_name: omni-deploy-nebula-graphd
+      restart: unless-stopped
+      environment:
+         USER: root
+      command:
+         - --meta_server_addrs=nebula-metad:9559
+         - --local_ip=nebula-graphd
+         - --ws_ip=0.0.0.0
+         - --port=9669
+         - --ws_http_port=19669
+         - --log_dir=/logs
+         - --v=0
+         - --minloglevel=0
+         - --max_sessions_per_ip_per_user=100000
+      depends_on:
+         nebula-metad:
+            condition: service_healthy
+      volumes:
+         - nebula_graphd_logs:/logs
+      healthcheck:
+         test: ['CMD', 'curl', '-sf', 'http://127.0.0.1:19669/status']
+         interval: 10s
+         timeout: 10s
+         retries: 20
+         start_period: 30s
+      networks:
+         - omni-network
+
+   # ============================================================================
+   # DATABASE LAYER (Postgres per service)
+   # ============================================================================
+
+   auth-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-auth-postgres
+      command:
+         [
+            'postgres',
+            '-p',
+            '5433',
+            '-c',
+            'wal_level=logical',
+            '-c',
+            'max_wal_senders=10',
+            '-c',
+            'max_replication_slots=10',
+         ]
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-zeion}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-582005}
+         POSTGRES_DB: omni_service_auth
+         PGPORT: 5433
+      ports:
+         - '5433:5433'
+      volumes:
+         - auth_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5433 -U ${POSTGRES_USER:-zeion} -d omni_service_auth']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   user-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-user-postgres
+      command:
+         [
+            'postgres',
+            '-p',
+            '5439',
+            '-c',
+            'wal_level=logical',
+            '-c',
+            'max_wal_senders=10',
+            '-c',
+            'max_replication_slots=10',
+         ]
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-zeion}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-582005}
+         POSTGRES_DB: omni_service_user
+         PGPORT: 5439
+      ports:
+         - '5439:5439'
+      volumes:
+         - user_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5439 -U ${POSTGRES_USER:-zeion} -d omni_service_user']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   notification-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-notification-postgres
+      command: ['postgres', '-p', '5436']
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-zeion}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-582005}
+         POSTGRES_DB: omni_service_notification
+         PGPORT: 5436
+      ports:
+         - '5436:5436'
+      volumes:
+         - notification_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5436 -U ${POSTGRES_USER:-zeion} -d omni_service_notification']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   post-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-post-postgres
+      command: ['postgres', '-p', '5441']
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-zeion}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-582005}
+         POSTGRES_DB: omni_service_post
+         PGPORT: 5441
+      ports:
+         - '5441:5441'
+      volumes:
+         - post_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5441 -U ${POSTGRES_USER:-zeion} -d omni_service_post']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   media-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-media-postgres
+      command: ['postgres', '-p', '5442']
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-zeion}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-582005}
+         POSTGRES_DB: omni_service_media
+         PGPORT: 5442
+      ports:
+         - '5442:5442'
+      volumes:
+         - media_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5442 -U ${POSTGRES_USER:-zeion} -d omni_service_media']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   commerce-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-commerce-postgres
+      command:
+         [
+            'postgres',
+            '-p',
+            '5443',
+            '-c',
+            'wal_level=logical',
+            '-c',
+            'max_wal_senders=10',
+            '-c',
+            'max_replication_slots=10',
+         ]
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-zeion}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-582005}
+         POSTGRES_DB: omni_service_commerce
+         PGPORT: 5443
+      ports:
+         - '5443:5443'
+      volumes:
+         - commerce_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5443 -U ${POSTGRES_USER:-zeion} -d omni_service_commerce']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   supplier-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-supplier-postgres
+      command: ['postgres', '-p', '5444']
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-zeion}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-582005}
+         POSTGRES_DB: omni_service_supplier
+         PGPORT: 5444
+      ports:
+         - '5444:5444'
+      volumes:
+         - supplier_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5444 -U ${POSTGRES_USER:-zeion} -d omni_service_supplier']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   order-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-order-postgres
+      command: ['postgres', '-p', '5445']
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-postgres}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+         POSTGRES_DB: omni_service_order
+         PGPORT: 5445
+      ports:
+         - '5445:5445'
+      volumes:
+         - order_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5445 -U ${POSTGRES_USER:-postgres} -d omni_service_order']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   payment-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-payment-postgres
+      command: ['postgres', '-p', '5446']
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-postgres}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+         POSTGRES_DB: omni_service_payment
+         PGPORT: 5446
+      ports:
+         - '5446:5446'
+      volumes:
+         - payment_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5446 -U ${POSTGRES_USER:-postgres} -d omni_service_payment']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   product-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-product-postgres
+      command:
+         [
+            'postgres',
+            '-p',
+            '5447',
+            '-c',
+            'wal_level=logical',
+            '-c',
+            'max_wal_senders=10',
+            '-c',
+            'max_replication_slots=10',
+         ]
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-postgres}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+         POSTGRES_DB: omni_service_product
+         PGPORT: 5447
+      ports:
+         - '5447:5447'
+      volumes:
+         - product_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5447 -U ${POSTGRES_USER:-postgres} -d omni_service_product']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   analyze-postgres:
+      image: postgres:17-alpine
+      container_name: omni-deploy-analyze-postgres
+      command: ['postgres', '-p', '5448']
+      restart: unless-stopped
+      environment:
+         POSTGRES_USER: ${POSTGRES_USER:-postgres}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+         POSTGRES_DB: omni_service_analyze
+         PGPORT: 5448
+      ports:
+         - '5448:5448'
+      volumes:
+         - analyze_postgres_data:/var/lib/postgresql/data
+      healthcheck:
+         test: ['CMD-SHELL', 'pg_isready -p 5448 -U ${POSTGRES_USER:-postgres} -d omni_service_analyze']
+         <<: *pg-healthcheck
+      networks:
+         - omni-network
+
+   # ── PgBouncer — dùng config deploy riêng (host = service name nội bộ) ─────
+   pgbouncer:
+      image: edoburu/pgbouncer:latest
+      container_name: omni-deploy-pgbouncer
+      restart: unless-stopped
+      ports:
+         - '6432:6432'
+      volumes:
+         # FIX: dùng pgbouncer.deploy.ini thay vì pgbouncer.ini (host đúng với docker service name)
+         - ./infra/pgbouncer/pgbouncer.deploy.ini:/etc/pgbouncer/pgbouncer.ini:ro
+         - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+      healthcheck:
+         test: ['CMD', 'pg_isready', '-h', '127.0.0.1', '-p', '6432']
+         interval: 10s
+         timeout: 5s
+         retries: 5
+         start_period: 15s
+      depends_on:
+         auth-postgres:
+            condition: service_healthy
+         user-postgres:
+            condition: service_healthy
+         notification-postgres:
+            condition: service_healthy
+         post-postgres:
+            condition: service_healthy
+         media-postgres:
+            condition: service_healthy
+         commerce-postgres:
+            condition: service_healthy
+         supplier-postgres:
+            condition: service_healthy
+         order-postgres:
+            condition: service_healthy
+         payment-postgres:
+            condition: service_healthy
+         product-postgres:
+            condition: service_healthy
+         analyze-postgres:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   # ============================================================================
+   # MICROSERVICES LAYER
+   # ============================================================================
+
+   gateway:
+      command: ['sh', '-c', 'exec node dist/apps/gateway/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: gateway
+      image: omni-gateway:latest
+      container_name: omni-deploy-gateway
+      restart: unless-stopped
+      env_file:
+         - apps/gateway/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         PORT: 8080
+         # Override localhost → Docker service names (gRPC)
+         AUTH_GRPC_URL: auth:50051
+         USER_GRPC_URL: user:50052
+         MEDIA_GRPC_URL: media:50055
+         POST_GRPC_URL: post:50059
+         SEARCH_GRPC_URL: search:50056
+         CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173,https://service.zeion.online,https://zeion.online}
+         COMMERCE_GRPC_URL: commerce:50053
+         SUPPLIER_GRPC_URL: supplier:50054
+         ORDER_GRPC_URL: order:50057
+         PAYMENT_GRPC_URL: payment:50058
+         PRODUCT_GRPC_URL: product:50060
+         ANALYZE_GRPC_URL: analyze:50061
+         NOTIFICATION_GRPC_URL: notification:50062
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      ports:
+         - '8080:8080'
+      volumes:
+         - ./apps/gateway/keys:/app/apps/gateway/keys:ro
+      depends_on:
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+         auth:
+            condition: service_started
+         user:
+            condition: service_started
+      healthcheck:
+         test: ['CMD', 'curl', '-sf', 'http://localhost:8080/api/v1/health']
+         interval: 15s
+         timeout: 5s
+         retries: 10
+         start_period: 30s
+      networks:
+         - omni-network
+
+   web:
+      build:
+         context: ./temp
+         dockerfile: Dockerfile
+         args:
+            NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api/v1}
+      image: omni-web:latest
+      container_name: omni-deploy-web
+      restart: unless-stopped
+      environment:
+         NODE_ENV: production
+         PORT: 3000
+         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api/v1}
+      ports:
+         - '3000:3000'
+      depends_on:
+         gateway:
+            condition: service_started
+      healthcheck:
+         test: ['CMD', 'curl', '-sf', 'http://localhost:3000/']
+         interval: 15s
+         timeout: 5s
+         retries: 5
+         start_period: 15s
+      networks:
+         - omni-network
+
+   auth:
+      command: ['sh', '-c', 'exec node dist/apps/auth/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: auth
+      image: omni-auth:latest
+      container_name: omni-deploy-auth
+      restart: unless-stopped
+      env_file:
+         - apps/auth/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@pgbouncer:6432/omni_service_auth?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@auth-postgres:5433/omni_service_auth
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      volumes:
+         - ./apps/auth/keys:/app/apps/auth/keys:ro
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   user:
+      command: ['sh', '-c', 'exec node dist/apps/user/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: user
+      image: omni-user:latest
+      container_name: omni-deploy-user
+      restart: unless-stopped
+      env_file:
+         - apps/user/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@pgbouncer:6432/omni_service_user?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@user-postgres:5439/omni_service_user
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         NEBULA_GRAPHD_HOST: nebula-graphd
+         NEBULA_GRAPHD_PORT: 9669
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   notification:
+      command: ['sh', '-c', 'exec node dist/apps/notification/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: notification
+      image: omni-notification:latest
+      container_name: omni-deploy-notification
+      restart: unless-stopped
+      env_file:
+         - apps/notification/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@pgbouncer:6432/omni_service_notification?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@notification-postgres:5436/omni_service_notification
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   post:
+      command: ['sh', '-c', 'exec node dist/apps/post/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: post
+      image: omni-post:latest
+      container_name: omni-deploy-post
+      restart: unless-stopped
+      env_file:
+         - apps/post/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@pgbouncer:6432/omni_service_post?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@post-postgres:5441/omni_service_post
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   search:
+      command: ['sh', '-c', 'exec node dist/apps/search/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: search
+      image: omni-search:latest
+      container_name: omni-deploy-search
+      restart: unless-stopped
+      env_file:
+         - apps/search/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         ELASTICSEARCH_NODE: http://elasticsearch:9200
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         elasticsearch:
+            condition: service_healthy
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   media:
+      command: ['sh', '-c', 'exec node dist/apps/media/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: media
+      image: omni-media:latest
+      container_name: omni-deploy-media
+      restart: unless-stopped
+      env_file:
+         - apps/media/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@pgbouncer:6432/omni_service_media?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@media-postgres:5442/omni_service_media
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   commerce:
+      command: ['sh', '-c', 'exec node dist/apps/commerce/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: commerce
+      image: omni-commerce:latest
+      container_name: omni-deploy-commerce
+      restart: unless-stopped
+      env_file:
+         - apps/commerce/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@pgbouncer:6432/omni_service_commerce?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@commerce-postgres:5443/omni_service_commerce
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         RABBITMQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   supplier:
+      command: ['sh', '-c', 'exec node dist/apps/supplier/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: supplier
+      image: omni-supplier:latest
+      container_name: omni-deploy-supplier
+      restart: unless-stopped
+      env_file:
+         - apps/supplier/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@pgbouncer:6432/omni_service_supplier?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-zeion}:${POSTGRES_PASSWORD:-582005}@supplier-postgres:5444/omni_service_supplier
+         RABBITMQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   order:
+      command: ['sh', '-c', 'exec node dist/apps/order/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: order
+      image: omni-order:latest
+      container_name: omni-deploy-order
+      restart: unless-stopped
+      env_file:
+         - apps/order/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@pgbouncer:6432/omni_service_order?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@order-postgres:5445/omni_service_order
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   payment:
+      command: ['sh', '-c', 'exec node dist/apps/payment/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: payment
+      image: omni-payment:latest
+      container_name: omni-deploy-payment
+      restart: unless-stopped
+      env_file:
+         - apps/payment/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@pgbouncer:6432/omni_service_payment?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@payment-postgres:5446/omni_service_payment
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   product:
+      command: ['sh', '-c', 'exec node dist/apps/product/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: product
+      image: omni-product:latest
+      container_name: omni-deploy-product
+      restart: unless-stopped
+      env_file:
+         - apps/product/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@pgbouncer:6432/omni_service_product?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@product-postgres:5447/omni_service_product
+         RABBITMQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   analyze:
+      command: ['sh', '-c', 'exec node dist/apps/analyze/main.js']
+      build:
+         context: .
+         dockerfile: Dockerfile
+         args:
+            SERVICE_NAME: analyze
+      image: omni-analyze:latest
+      container_name: omni-deploy-analyze
+      restart: unless-stopped
+      env_file:
+         - apps/analyze/.env
+      environment:
+         NODE_ENV: production
+         JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+         DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@pgbouncer:6432/omni_service_analyze?connection_limit=5&pool_timeout=10&pgbouncer=true
+         DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@analyze-postgres:5448/omni_service_analyze
+         RABBIT_MQ_URI: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
+         REDIS_HOST: redis
+         REDIS_PORT: 6379
+         OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      depends_on:
+         pgbouncer:
+            condition: service_healthy
+         redis:
+            condition: service_healthy
+         rabbitmq:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+   # ============================================================================
+   # CLOUDFLARE TUNNEL — expose Gateway port 8080 ra internet
+   # ============================================================================
+   cloudflared:
+      image: cloudflare/cloudflared:latest
+      container_name: omni-deploy-cloudflared
+      restart: unless-stopped
+      command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+      depends_on:
+         gateway:
+            condition: service_healthy
+      networks:
+         - omni-network
+
+# ──────────────────────────────────────────────────────────────────────────────
+# VOLUMES
+# ──────────────────────────────────────────────────────────────────────────────
+volumes:
+   redis_data:
+   rabbitmq_data:
+   elasticsearch_data:
+   nebula_metad_data:
+   nebula_metad_logs:
+   nebula_storaged_data:
+   nebula_storaged_logs:
+   nebula_graphd_logs:
+   auth_postgres_data:
+   user_postgres_data:
+   notification_postgres_data:
+   post_postgres_data:
+   media_postgres_data:
+   commerce_postgres_data:
+   supplier_postgres_data:
+   order_postgres_data:
+   payment_postgres_data:
+   product_postgres_data:
+   analyze_postgres_data:
+
+# ──────────────────────────────────────────────────────────────────────────────
+# NETWORKS
+# ──────────────────────────────────────────────────────────────────────────────
+networks:
+   omni-network:
+      driver: bridge

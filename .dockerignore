@@ -47,3 +47,9 @@ docs
 .agents
 .claude
 .codex
+
+# Docker, Infra & Script configs (do not bust app build cache)
+docker-compose*.yml
+Makefile
+infra/
+scripts/

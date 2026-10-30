@@ -192,3 +192,40 @@ ifndef service
 	$(error "Please specify service name, e.g. make docker-run service=auth")
 endif
 	docker run --rm -it -p 3000:3000 omni-$(service):latest
+
+# ── Full Production Deploy (with Cloudflare Tunnel) ───────────────────────────
+.PHONY: deploy
+deploy:
+	@bash scripts/deploy.sh up
+
+.PHONY: deploy-rebuild
+deploy-rebuild:
+	@REBUILD=1 bash scripts/deploy.sh up
+
+.PHONY: deploy-down
+deploy-down:
+	@bash scripts/deploy.sh down
+
+.PHONY: deploy-restart
+deploy-restart:
+	@bash scripts/deploy.sh restart
+
+.PHONY: deploy-logs
+deploy-logs:
+	@bash scripts/deploy.sh logs $(filter-out $@,$(MAKECMDGOALS))
+
+.PHONY: deploy-status
+deploy-status:
+	@bash scripts/deploy.sh status
+
+.PHONY: deploy-migrate
+deploy-migrate:
+	@bash scripts/deploy.sh migrate
+
+.PHONY: deploy-seed
+deploy-seed:
+	@bash scripts/deploy.sh seed
+
+.PHONY: deploy-clean
+deploy-clean:
+	@bash scripts/deploy.sh down:clean
