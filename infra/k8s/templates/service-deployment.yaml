@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
    name: omni-{{SERVICE_NAME}}
-   namespace: { { NAMESPACE } }
+   namespace: '{{NAMESPACE}}'
    labels:
       app.kubernetes.io/name: omni-{{SERVICE_NAME}}
       app.kubernetes.io/part-of: omni-services
@@ -25,8 +25,8 @@ spec:
       spec:
          terminationGracePeriodSeconds: 30
          containers:
-            - name: { { SERVICE_NAME } }
-              image: { { IMAGE_TAG } }
+            - name: '{{SERVICE_NAME}}'
+              image: '{{IMAGE_TAG}}'
               imagePullPolicy: IfNotPresent
               envFrom:
                  - configMapRef:
@@ -76,7 +76,7 @@ apiVersion: v1
 kind: Service
 metadata:
    name: omni-{{SERVICE_NAME}}
-   namespace: { { NAMESPACE } }
+   namespace: '{{NAMESPACE}}'
    labels:
       app.kubernetes.io/name: omni-{{SERVICE_NAME}}
       app.kubernetes.io/part-of: omni-services
