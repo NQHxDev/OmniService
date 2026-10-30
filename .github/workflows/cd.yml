@@ -244,7 +244,17 @@ jobs:
            run: |
               if [ -n "$KUBE_CONFIG_DATA" ]; then
                  mkdir -p ~/.kube
-                 echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
+                 # Support both Raw YAML and Base64 encoded kubeconfig
+                 if echo "$KUBE_CONFIG_DATA" | grep -qE "apiVersion:|clusters:|kind: Config"; then
+                    echo "i Detected raw YAML kubeconfig."
+                    echo "$KUBE_CONFIG_DATA" > ~/.kube/config
+                 else
+                    echo "i Detected base64 encoded kubeconfig."
+                    # Strip any accidental quotes/spaces/newlines and decode with fallback
+                    echo "$KUBE_CONFIG_DATA" | tr -d '\r\n \"'\'' ' | base64 -d > ~/.kube/config 2>/dev/null || \
+                    echo "$KUBE_CONFIG_DATA" | base64 -di > ~/.kube/config 2>/dev/null || \
+                    echo "$KUBE_CONFIG_DATA" | base64 -d > ~/.kube/config
+                 fi
                  chmod 600 ~/.kube/config
                  echo "KUBECONFIG_CONFIGURED=true" >> "$GITHUB_ENV"
               else
