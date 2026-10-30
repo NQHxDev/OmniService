@@ -24,7 +24,7 @@ export class ProductEventPublisher implements IProductEventPublisher {
 
    publishProductRegistered(event: ProductRegisteredEventPayload): Promise<void> {
       try {
-         this.searchClient.emit(PRODUCT_EVENTS.REGISTERED, event);
+         // Do not publish to searchClient: unapproved products must wait for ADMIN approval before indexing into Elasticsearch
          this.eventEmitter.emit(PRODUCT_EVENTS.REGISTERED, event);
          this.logger.log(`Published ${PRODUCT_EVENTS.REGISTERED} for product ${event.productId}`);
          return Promise.resolve();

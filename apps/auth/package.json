@@ -25,6 +25,8 @@
       "@nestjs/microservices": "^11.2.6",
       "@nestjs/swagger": "^11.4.7",
       "@prisma/adapter-pg": "7.10.0",
+      "amqp-connection-manager": "^5.0.0",
+      "amqplib": "^2.0.1",
       "argon2": "^0.45.1",
       "ioredis": "^6.0.0",
       "jsonwebtoken": "^9.0.3",

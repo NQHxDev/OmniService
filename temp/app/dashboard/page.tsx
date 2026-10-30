@@ -30,14 +30,14 @@ export default function DashboardOverviewPage() {
          });
 
       productsApi
-         .list({ limit: 20 })
+         .list({ status: 'DRAFT', moderationStatus: 'PENDING_APPROVAL', limit: 20 })
          .then((res) => {
             if (isMounted && res?.data?.items) {
                setProducts(res.data.items);
             }
          })
          .catch(() => {
-            // Keep fallback
+            // Error handling
          })
          .finally(() => {
             if (isMounted) setLoadingProducts(false);
@@ -55,7 +55,7 @@ export default function DashboardOverviewPage() {
    const pendingProducts = products.filter(
       (p) => p.moderationStatus === 'PENDING_APPROVAL' || p.moderationStatus === 'EDIT_PENDING_APPROVAL',
    );
-   const pendingProductsCount = pendingProducts.length > 0 ? pendingProducts.length : 3;
+   const pendingProductsCount = pendingProducts.length;
 
    const stats = [
       {
@@ -103,9 +103,11 @@ export default function DashboardOverviewPage() {
             <h1 className="text-2xl font-bold">Xin chào, {user?.email?.split('@')[0] || 'Quản trị viên'} 👋</h1>
             <p className="mt-2 text-indigo-100/90 text-sm max-w-2xl">
                Chào mừng bạn quay lại hệ thống quản trị trung tâm OmniServices. Hiện tại có{' '}
-               <strong className="text-amber-300">12 sản phẩm</strong> và{' '}
-               <strong className="text-amber-300">{underReviewSuppliers.length} hồ sơ KYB Nhà cung cấp</strong> đang chờ
-               đội kiểm duyệt xử lý.
+               <strong className="text-amber-300">
+                  {loadingProducts ? '...' : `${pendingProductsCount} sản phẩm`}
+               </strong>{' '}
+               và <strong className="text-amber-300">{underReviewSuppliers.length} hồ sơ KYB Nhà cung cấp</strong> đang
+               chờ đội kiểm duyệt xử lý.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
                <Link
@@ -184,41 +186,32 @@ export default function DashboardOverviewPage() {
                   </Link>
                </div>
                <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
-                  {[
-                     {
-                        name: 'Áo Thun Unisex Cotton 100% 250gsm',
-                        supplier: 'Xưởng May Thần Tốc',
-                        time: '15 phút trước',
-                        category: 'Thời trang',
-                     },
-                     {
-                        name: 'Cà Phê Robusta Honey Lâm Đồng 500g',
-                        supplier: 'Nông trại Cầu Đất',
-                        time: '1 giờ trước',
-                        category: 'Nông sản',
-                     },
-                     {
-                        name: 'Bộ Bàn Phím Cơ Không Dây Tri-mode',
-                        supplier: 'TechZone Official',
-                        time: '3 giờ trước',
-                        category: 'Công nghệ',
-                     },
-                  ].map((p, idx) => (
-                     <div key={idx} className="py-3 flex items-center justify-between text-sm">
-                        <div>
-                           <p className="font-medium text-slate-900 dark:text-slate-100 truncate max-w-xs">{p.name}</p>
-                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {p.supplier} • {p.category}
-                           </p>
+                  {loadingProducts ? (
+                     <div className="py-6 text-center text-xs text-slate-400">Đang tải danh sách sản phẩm...</div>
+                  ) : pendingProducts.length === 0 ? (
+                     <div className="py-6 text-center text-xs text-slate-400">Không có sản phẩm nào chờ duyệt</div>
+                  ) : (
+                     pendingProducts.slice(0, 4).map((p) => (
+                        <div key={p.productId} className="py-3 flex items-center justify-between text-sm">
+                           <div>
+                              <p className="font-medium text-slate-900 dark:text-slate-100 truncate max-w-xs">
+                                 {p.productName}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                 {p.supplierName || p.supplierId} • {p.whoCategoryCode}
+                              </p>
+                           </div>
+                           <div className="flex items-center gap-3">
+                              <span className="text-xs text-slate-400 dark:text-slate-500">
+                                 {p.submittedAt || p.createdAt || 'Mới gửi'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60">
+                                 {p.moderationStatus === 'EDIT_PENDING_APPROVAL' ? 'Duyệt sửa' : 'Chờ duyệt'}
+                              </span>
+                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                           <span className="text-xs text-slate-400 dark:text-slate-500">{p.time}</span>
-                           <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60">
-                              Chờ duyệt
-                           </span>
-                        </div>
-                     </div>
-                  ))}
+                     ))
+                  )}
                </div>
             </div>
 

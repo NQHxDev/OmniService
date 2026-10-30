@@ -198,7 +198,7 @@ export class ProductService {
             payload: eventPayload as unknown as Record<string, unknown>,
          });
 
-         // Sync immediately to Search Service (RabbitMQ) even though unapproved
+         // Publish domain event (Search indexing will only occur after admin approval)
          await this.publisher.publishProductRegistered(eventPayload);
 
          return resultDto;
@@ -387,6 +387,11 @@ export class ProductService {
             snapshot,
          });
 
+         const prices = (updated.variants || []).map((v) => v.price).filter((p) => typeof p === 'number' && !isNaN(p));
+         const minPrice = prices.length > 0 ? Math.min(...prices) : undefined;
+         const maxPrice = prices.length > 0 ? Math.max(...prices) : undefined;
+         const currency = (updated.variants?.[0]?.currency as CurrencyType) || CURRENCY.VND;
+
          const eventPayload: ProductModeratedEventPayload = {
             productId,
             supplierId: updated.supplierId,
@@ -398,6 +403,32 @@ export class ProductService {
             moderatedBy: moderatorId,
             moderatorEmail,
             moderatedAt: now.toISOString(),
+            whoCategoryCode: updated.whoCategoryCode,
+            productSlug: updated.productSlug,
+            description: updated.description,
+            origin: updated.origin || undefined,
+            storageCondition: updated.storageCondition || undefined,
+            shelfLifeDays: updated.shelfLifeDays || undefined,
+            images: updated.images || [],
+            status: updated.status,
+            variants: (updated.variants || []).map((v) => ({
+               variantId: v.variantId,
+               sku: v.sku,
+               variantName: v.variantName,
+               unit: v.unit,
+               packSize: v.packSize || undefined,
+               price: v.price,
+               originalPrice: v.originalPrice || undefined,
+               currency: v.currency,
+               stockQuantity: v.stockQuantity,
+               lowStockThreshold: v.lowStockThreshold,
+               isDefault: v.isDefault,
+               status: v.status,
+            })),
+            minPrice,
+            maxPrice,
+            currency,
+            createdAt: updated.createdAt.toISOString(),
          };
 
          const eventType =

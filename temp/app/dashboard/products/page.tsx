@@ -19,6 +19,7 @@ import {
    SlidersHorizontal,
    ImageIcon,
    Info,
+   Loader2,
 } from 'lucide-react';
 import { productsApi, ProductItem, ProductVariantItem } from '@/lib/api';
 
@@ -83,246 +84,13 @@ const PRESET_REJECTION_REASONS = [
    'Sản phẩm thuộc danh mục cấm hoặc hạn chế kinh doanh trên nền tảng OmniServices',
 ];
 
-const INITIAL_FALLBACK_PRODUCTS: ProductItem[] = [
-   {
-      productId: 'PROD-ST25-001',
-      supplierId: 'SUPP-VN-001',
-      supplierName: 'Hợp Tác Xã Nông Sản Sạch Sóc Trăng',
-      whoCategoryCode: 'STAPLES',
-      productName: 'Gạo ST25 Ông Cua Thượng Hạng Chuẩn OCOP 5 Sao (Vụ Mùa Mới)',
-      productSlug: 'gao-st25-ong-cua-thuong-hang-ocop-5-sao',
-      description:
-         'Gạo ST25 đạt danh hiệu Gạo ngon nhất thế giới. Hạt gạo dài, trắng trong, không bạc bụng, khi nấu cơm dẻo mềm, thơm mùi lá dứa tự nhiên. Đạt chứng chỉ VietGAP và kiểm nghiệm an toàn dư lượng thuốc bảo vệ thực vật 0%.',
-      origin: 'Sóc Trăng, Đồng bằng Sông Cửu Long',
-      storageCondition: 'Nơi khô ráo, thoáng mát, tránh ánh nắng trực tiếp hoặc côn trùng xâm nhập.',
-      shelfLifeDays: 365,
-      images: [
-         'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80',
-         'https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?auto=format&fit=crop&w=800&q=80',
-      ],
-      status: 'DRAFT',
-      moderationStatus: 'PENDING_APPROVAL',
-      submittedAt: '28/10/2026 08:30',
-      variants: [
-         {
-            variantId: 'VAR-ST25-5KG',
-            sku: 'ST25-BAG-5KG',
-            barcode: '8936001230012',
-            variantName: 'Túi 5kg hút chân không',
-            price: 195000,
-            compareAtPrice: 220000,
-            currency: 'VND',
-            stockQuantity: 450,
-            weightGrams: 5000,
-            status: 'AVAILABLE',
-         },
-         {
-            variantId: 'VAR-ST25-2KG',
-            sku: 'ST25-BOX-2KG',
-            barcode: '8936001230029',
-            variantName: 'Hộp cao cấp 2kg biếu tặng',
-            price: 95000,
-            compareAtPrice: 110000,
-            currency: 'VND',
-            stockQuantity: 200,
-            weightGrams: 2000,
-            status: 'AVAILABLE',
-         },
-      ],
-   },
-   {
-      productId: 'PROD-CF-002',
-      supplierId: 'SUPP-VN-002',
-      supplierName: 'Nông Trại Cà Phê Cầu Đất Specialty Farm',
-      whoCategoryCode: 'OTHER_FRUITS_VEG',
-      productName: 'Cà Phê Hạt Rang Mộc Arabica Cầu Đất Honey Process 100% Tự Nhiên',
-      productSlug: 'ca-phe-arabica-cau-dat-honey-process',
-      description:
-         'Cà phê Arabica thu hoạch ở độ cao 1.650m tại Cầu Đất, Đà Lạt. Phương pháp chế biến Honey giữ trọn vị ngọt tự nhiên của quả chín, hậu vị hương hoa cam và socola đen đặc trưng.',
-      origin: 'Cầu Đất, Thành phố Đà Lạt, Lâm Đồng',
-      storageCondition: 'Bảo quản kín khí trong bao bì có van 1 chiều, tránh nơi có độ ẩm cao.',
-      shelfLifeDays: 180,
-      images: [
-         'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=800&q=80',
-         'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80',
-      ],
-      status: 'DRAFT',
-      moderationStatus: 'PENDING_APPROVAL',
-      submittedAt: '27/10/2026 16:45',
-      variants: [
-         {
-            variantId: 'VAR-CF-250G',
-            sku: 'CF-ARABICA-250G',
-            barcode: '8936004560015',
-            variantName: 'Gói 250g nguyên hạt',
-            price: 135000,
-            compareAtPrice: 155000,
-            currency: 'VND',
-            stockQuantity: 180,
-            weightGrams: 250,
-            status: 'AVAILABLE',
-         },
-         {
-            variantId: 'VAR-CF-500G',
-            sku: 'CF-ARABICA-500G',
-            barcode: '8936004560022',
-            variantName: 'Gói 500g nguyên hạt',
-            price: 250000,
-            compareAtPrice: 290000,
-            currency: 'VND',
-            stockQuantity: 120,
-            weightGrams: 500,
-            status: 'AVAILABLE',
-         },
-      ],
-   },
-   {
-      productId: 'PROD-FISH-003',
-      supplierId: 'SUPP-VN-003',
-      supplierName: 'Công Ty Nước Mắm Truyền Thống Khải Hoàn Phú Quốc',
-      whoCategoryCode: 'FATS_OILS',
-      productName: 'Nước Mắm Cốt Nhĩ Phú Quốc 43 Độ Đạm Ủ Chượp Thùng Gỗ 18 Tháng',
-      productSlug: 'nuoc-mam-cot-nhi-phu-quoc-43-do-dam',
-      description:
-         'Nước mắm truyền thống cốt nhĩ Phú Quốc làm từ 100% cá cơm than tươi và muối biển Bà Rịa, ủ chượp tự nhiên trong thùng gỗ bời lời trên 18 tháng. Không chất bảo quản, không mì chính, không phẩm màu.',
-      origin: 'Đảo Phú Quốc, Tỉnh Kiên Giang',
-      storageCondition: 'Nơi khô thoáng, đậy kín nắp sau khi sử dụng để không làm biến đổi độ đạm tự nhiên.',
-      shelfLifeDays: 730,
-      images: ['https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80'],
-      status: 'DRAFT',
-      moderationStatus: 'PENDING_APPROVAL',
-      submittedAt: '27/10/2026 14:15',
-      variants: [
-         {
-            variantId: 'VAR-NM-500ML',
-            sku: 'NM-PHUQUOC-500ML',
-            barcode: '8936007890011',
-            variantName: 'Chai thủy tinh 500ml',
-            price: 125000,
-            currency: 'VND',
-            stockQuantity: 350,
-            weightGrams: 900,
-            status: 'AVAILABLE',
-         },
-         {
-            variantId: 'VAR-NM-BOX-2CHAI',
-            sku: 'NM-PHUQUOC-BOX2',
-            barcode: '8936007890028',
-            variantName: 'Hộp quà biếu 2 chai 500ml',
-            price: 265000,
-            compareAtPrice: 290000,
-            currency: 'VND',
-            stockQuantity: 95,
-            weightGrams: 1900,
-            status: 'AVAILABLE',
-         },
-      ],
-   },
-   {
-      productId: 'PROD-TEA-004',
-      supplierId: 'SUPP-VN-004',
-      supplierName: 'Trà Thảo Mộc Bảo Lộc EcoTea',
-      whoCategoryCode: 'OTHER_FRUITS_VEG',
-      productName: 'Trà Ô Long Thuần Búp Bảo Lộc Sấy Lạnh Công Nghệ Cao (Yêu cầu duyệt giá mới)',
-      productSlug: 'tra-o-long-thuan-bup-bao-loc',
-      description:
-         'Búp trà Ô Long 1 tôm 2 lá tuyển chọn tại cao nguyên Bảo Lộc. Viên trà tròn bóng, nước trà vàng mật ong thanh tao, vị ngọt hậu sâu.',
-      origin: 'Bảo Lộc, Tỉnh Lâm Đồng',
-      storageCondition: 'Bảo quản nơi khô ráo, tránh ánh sáng chiếu trực tiếp.',
-      shelfLifeDays: 720,
-      images: ['https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=800&q=80'],
-      status: 'ACTIVE',
-      moderationStatus: 'EDIT_PENDING_APPROVAL',
-      submittedAt: '26/10/2026 19:20',
-      pendingEditData: {
-         productName: 'Trà Ô Long Thuần Búp Bảo Lộc Thượng Hạng Hộp Thiếc Mới 200g',
-         updatedPrice: '235.000 ₫ (Cũ: 210.000 ₫)',
-         note: 'Cập nhật bao bì hộp thiếc mới chống ẩm cao cấp và điều chỉnh giá nguyên liệu.',
-      },
-      variants: [
-         {
-            variantId: 'VAR-TEA-200G',
-            sku: 'TEA-OLONG-200G',
-            barcode: '8936009990014',
-            variantName: 'Hộp thiếc cao cấp 200g',
-            price: 235000,
-            compareAtPrice: 250000,
-            currency: 'VND',
-            stockQuantity: 140,
-            weightGrams: 200,
-            status: 'AVAILABLE',
-         },
-      ],
-   },
-   {
-      productId: 'PROD-CASHEW-005',
-      supplierId: 'SUPP-VN-005',
-      supplierName: 'Công Ty Chế Biến Hạt Điều Xuất Khẩu Bình Phước',
-      whoCategoryCode: 'LEGUMES_NUTS_SEEDS',
-      productName: 'Hạt Điều Bình Phước Rang Muối Vỏ Lụa Loại A Hạt Cồ Cực Lớn',
-      productSlug: 'hat-dieu-binh-phuoc-rang-muoi-a-co',
-      description:
-         'Hạt điều đặc sản Bình Phước tuyển chọn hạt to đều, giòn bùi, béo ngậy. Đã qua kiểm định tiêu chuẩn an toàn thực phẩm ISO 22000.',
-      origin: 'Bù Đăng, Bình Phước',
-      storageCondition: 'Nơi khô ráo, giữ kín sau khi mở nắp hộp.',
-      shelfLifeDays: 365,
-      images: ['https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80'],
-      status: 'ACTIVE',
-      moderationStatus: 'APPROVED',
-      submittedAt: '25/10/2026 10:10',
-      variants: [
-         {
-            variantId: 'VAR-DIEU-500G',
-            sku: 'DIEU-BP-500G',
-            barcode: '8936003330018',
-            variantName: 'Hũ nhựa nắp nhôm 500g',
-            price: 165000,
-            compareAtPrice: 180000,
-            currency: 'VND',
-            stockQuantity: 500,
-            weightGrams: 500,
-            status: 'AVAILABLE',
-         },
-      ],
-   },
-   {
-      productId: 'PROD-NEST-006',
-      supplierId: 'SUPP-VN-006',
-      supplierName: 'Thương Hiệu Yến Sào Hoàng Gia Khánh Hòa',
-      whoCategoryCode: 'EGGS',
-      productName: 'Tổ Yến Tinh Chế Rút Lông Nguyên Sợi Khánh Hòa Hộp 100g',
-      productSlug: 'to-yen-tinh-che-khanh-hoa-100g',
-      description: 'Tổ yến đảo thiên nhiên Khánh Hòa tinh chế thủ công nguyên sợi, hàm lượng protein >52%.',
-      origin: 'Nha Trang, Tỉnh Khánh Hòa',
-      storageCondition: 'Nhiệt độ phòng mát mẻ, tránh ánh nắng trực tiếp.',
-      shelfLifeDays: 730,
-      images: ['https://images.unsplash.com/photo-1506802913710-40e2e66339c9?auto=format&fit=crop&w=800&q=80'],
-      status: 'DRAFT',
-      moderationStatus: 'REJECTED',
-      rejectionReason:
-         'Thiếu giấy chứng nhận kiểm nghiệm vi sinh và chỉ tiêu hàm lượng protein từ viện Pasteur độc lập.',
-      submittedAt: '24/10/2026 15:00',
-      variants: [
-         {
-            variantId: 'VAR-YEN-100G',
-            sku: 'YEN-KHANHHOA-100G',
-            barcode: '8936004440019',
-            variantName: 'Hộp gỗ nhung 100g kèm táo đỏ và đường phèn',
-            price: 3850000,
-            currency: 'VND',
-            stockQuantity: 25,
-            weightGrams: 100,
-            status: 'AVAILABLE',
-         },
-      ],
-   },
-];
-
 type FilterTab = 'ALL' | 'PENDING' | 'EDIT_PENDING' | 'APPROVED' | 'REJECTED';
 
 export default function ProductApprovalPage() {
-   const [products, setProducts] = useState<ProductItem[]>(INITIAL_FALLBACK_PRODUCTS);
+   const [products, setProducts] = useState<ProductItem[]>([]);
+   const [isLoading, setIsLoading] = useState<boolean>(true);
    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
    // Search & Filters
    const [searchTerm, setSearchTerm] = useState('');
@@ -352,30 +120,52 @@ export default function ProductApprovalPage() {
       }, 4500);
    }, []);
 
-   // Fetch from real API, fallback seamlessly
+   // Fetch from real API with required status and moderationStatus
    const fetchProducts = useCallback(
       async (isManualRefresh = false) => {
          if (isManualRefresh) {
             setIsRefreshing(true);
+         } else {
+            setIsLoading(true);
          }
+         setErrorMessage(null);
 
          try {
-            const res = await productsApi.list({ limit: 100 });
-            const list = res.data?.items;
-            if (Array.isArray(list) && list.length > 0) {
-               setProducts(list);
-            } else {
-               // Keep fallback dataset if remote DB is empty
-               setProducts((prev) => (prev.length > 0 ? prev : INITIAL_FALLBACK_PRODUCTS));
-            }
+            // Backend requires status and moderationStatus as mandatory query params
+            const [pendingDraft, editPendingActive, editPendingDraft, approvedActive, rejectedDraft] =
+               await Promise.all([
+                  productsApi
+                     .list({ status: 'DRAFT', moderationStatus: 'PENDING_APPROVAL', limit: 100 })
+                     .catch(() => null),
+                  productsApi
+                     .list({ status: 'ACTIVE', moderationStatus: 'EDIT_PENDING_APPROVAL', limit: 100 })
+                     .catch(() => null),
+                  productsApi
+                     .list({ status: 'DRAFT', moderationStatus: 'EDIT_PENDING_APPROVAL', limit: 100 })
+                     .catch(() => null),
+                  productsApi.list({ status: 'ACTIVE', moderationStatus: 'APPROVED', limit: 100 }).catch(() => null),
+                  productsApi.list({ status: 'DRAFT', moderationStatus: 'REJECTED', limit: 100 }).catch(() => null),
+               ]);
+
+            const allItems: ProductItem[] = [
+               ...(pendingDraft?.data?.items ?? []),
+               ...(editPendingActive?.data?.items ?? []),
+               ...(editPendingDraft?.data?.items ?? []),
+               ...(approvedActive?.data?.items ?? []),
+               ...(rejectedDraft?.data?.items ?? []),
+            ];
+
+            const uniqueItems = Array.from(new Map(allItems.map((p) => [p.productId, p])).values());
+            setProducts(uniqueItems);
          } catch (err: unknown) {
-            // Keep current local state so user can continue reviewing
             const msg = err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ Product Service';
-            // Only show toast if user actively clicked refresh
+            setErrorMessage(msg);
+            setProducts([]);
             if (isManualRefresh) {
-               showToast(`${msg} (đang sử dụng danh sách lưu đệm)`, 'info');
+               showToast(msg, 'error');
             }
          } finally {
+            setIsLoading(false);
             setIsRefreshing(false);
          }
       },
@@ -391,8 +181,11 @@ export default function ProductApprovalPage() {
       setActionLoadingId(product.productId);
       try {
          await productsApi.approve(product.productId, notes);
-      } catch {
-         // Silently proceed for smooth demo/offline support
+      } catch (err: unknown) {
+         const msg = err instanceof Error ? err.message : 'Không thể phê duyệt sản phẩm';
+         showToast(msg, 'error');
+         setActionLoadingId(null);
+         return;
       }
 
       setProducts((prev) =>
@@ -450,8 +243,12 @@ export default function ProductApprovalPage() {
 
       try {
          await productsApi.reject(prodId, trimmed, moderationNotes.trim() || undefined);
-      } catch {
-         // Offline/dev fallback
+      } catch (err: unknown) {
+         const msg = err instanceof Error ? err.message : 'Không thể từ chối sản phẩm';
+         setRejectError(msg);
+         showToast(msg, 'error');
+         setActionLoadingId(null);
+         return;
       }
 
       setProducts((prev) =>
@@ -804,199 +601,41 @@ export default function ProductApprovalPage() {
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                     {filteredProducts.map((item) => {
-                        const catMeta = WHO_CATEGORY_LABELS[item.whoCategoryCode] || {
-                           label: item.whoCategoryCode,
-                           color: 'text-slate-700 dark:text-slate-300',
-                           bg: 'bg-slate-100 dark:bg-slate-800',
-                           border: 'border-slate-200 dark:border-slate-700',
-                        };
-
-                        const priceRange = getProductPriceRange(item.variants);
-                        const totalStock = getTotalStock(item.variants);
-                        const isPending = item.moderationStatus === 'PENDING_APPROVAL';
-                        const isEditPending = item.moderationStatus === 'EDIT_PENDING_APPROVAL';
-                        const isApproved = item.moderationStatus === 'APPROVED';
-                        const isRejected = item.moderationStatus === 'REJECTED';
-                        const isActionLoading = actionLoadingId === item.productId;
-
-                        return (
-                           <tr
-                              key={item.productId}
-                              className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition group"
-                           >
-                              {/* Product Info */}
-                              <td className="px-5 py-4 max-w-sm">
-                                 <div className="flex items-start gap-3">
-                                    {/* Thumbnail */}
-                                    <div className="h-12 w-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-                                       {item.images && item.images.length > 0 ? (
-                                          <img
-                                             src={item.images[0]}
-                                             alt={item.productName}
-                                             className="h-full w-full object-cover transition group-hover:scale-105"
-                                          />
-                                       ) : (
-                                          <ImageIcon className="h-5 w-5 text-slate-400" />
-                                       )}
-                                    </div>
-                                    <div>
-                                       <button
-                                          onClick={() => {
-                                             setSelectedProduct(item);
-                                             setActiveImageIndex(0);
-                                          }}
-                                          className="text-left font-semibold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition line-clamp-2"
-                                       >
-                                          {item.productName}
-                                       </button>
-                                       <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 font-mono">
-                                          <span>ID: {item.productId}</span>
-                                          {item.variants && item.variants.length > 0 && (
-                                             <>
-                                                <span>•</span>
-                                                <span className="text-slate-600 dark:text-slate-400">
-                                                   {item.variants.length} phân loại
-                                                </span>
-                                             </>
-                                          )}
-                                          {item.origin && (
-                                             <>
-                                                <span>•</span>
-                                                <span className="text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
-                                                   {item.origin}
-                                                </span>
-                                             </>
-                                          )}
-                                       </div>
-                                    </div>
-                                 </div>
-                              </td>
-
-                              {/* Supplier */}
-                              <td className="px-5 py-4">
-                                 <div className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
-                                    <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                    <span className="truncate max-w-[180px]">
-                                       {item.supplierName || item.supplierId}
-                                    </span>
-                                 </div>
-                                 <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
-                                    {item.supplierId}
-                                 </span>
-                              </td>
-
-                              {/* WHO Category */}
-                              <td className="px-5 py-4">
-                                 <span
-                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${catMeta.bg} ${catMeta.color} ${catMeta.border}`}
-                                 >
-                                    <Tag className="h-3 w-3" />
-                                    <span>{catMeta.label}</span>
-                                 </span>
-                              </td>
-
-                              {/* Price & Stock */}
-                              <td className="px-5 py-4">
-                                 <p className="font-bold text-slate-900 dark:text-slate-100">{priceRange}</p>
-                                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                                    Tổng kho:{' '}
-                                    <strong className="text-slate-700 dark:text-slate-300 font-semibold">
-                                       {totalStock.toLocaleString('vi-VN')}
-                                    </strong>
+                     {isLoading ? (
+                        <tr>
+                           <td colSpan={7} className="py-14 text-center">
+                              <div className="flex flex-col items-center justify-center gap-3">
+                                 <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+                                 <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    Đang tải danh sách sản phẩm thực tế...
                                  </p>
-                              </td>
-
-                              {/* Moderation Status Badge */}
-                              <td className="px-5 py-4">
-                                 {isPending && (
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
-                                       <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
-                                       <span>Chờ duyệt lên sàn</span>
-                                    </span>
-                                 )}
-                                 {isEditPending && (
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 shadow-sm">
-                                       <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                                       <span>Duyệt bản sửa đổi</span>
-                                    </span>
-                                 )}
-                                 {isApproved && (
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                                       <span>Đã lên sàn</span>
-                                    </span>
-                                 )}
-                                 {isRejected && (
-                                    <div>
-                                       <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
-                                          <XCircle className="h-3.5 w-3.5 text-rose-500" />
-                                          <span>Từ chối</span>
-                                       </span>
-                                       {item.rejectionReason && (
-                                          <p
-                                             title={item.rejectionReason}
-                                             className="mt-1 text-[10px] text-rose-600 dark:text-rose-400 truncate max-w-[150px]"
-                                          >
-                                             {item.rejectionReason}
-                                          </p>
-                                       )}
-                                    </div>
-                                 )}
-                              </td>
-
-                              {/* Submitted Date */}
-                              <td className="px-5 py-4 text-slate-500 dark:text-slate-400">
-                                 {item.submittedAt || item.createdAt || 'Mới cập nhật'}
-                              </td>
-
-                              {/* Actions */}
-                              <td className="px-5 py-4 text-right">
-                                 <div className="flex items-center justify-end gap-1.5">
-                                    {(isPending || isEditPending) && (
-                                       <>
-                                          {/* Quick Approve */}
-                                          <button
-                                             onClick={() => handleApprove(item)}
-                                             disabled={isActionLoading}
-                                             title="Phê duyệt cho phép bán lên sàn"
-                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-600/30 transition disabled:opacity-50"
-                                          >
-                                             <Check className="h-3.5 w-3.5" />
-                                             <span className="hidden md:inline">Duyệt</span>
-                                          </button>
-
-                                          {/* Quick Reject */}
-                                          <button
-                                             onClick={() => openRejectModal(item)}
-                                             disabled={isActionLoading}
-                                             title="Từ chối phê duyệt"
-                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 font-semibold text-xs border border-rose-200 dark:border-rose-800/50 transition disabled:opacity-50"
-                                          >
-                                             <X className="h-3.5 w-3.5" />
-                                             <span className="hidden md:inline">Từ chối</span>
-                                          </button>
-                                       </>
-                                    )}
-
-                                    {/* View Full Dossier */}
-                                    <button
-                                       onClick={() => {
-                                          setSelectedProduct(item);
-                                          setActiveImageIndex(0);
-                                       }}
-                                       title="Xem chi tiết hồ sơ thẩm định"
-                                       className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-                                    >
-                                       <Eye className="h-4 w-4" />
-                                    </button>
+                                 <p className="text-xs text-slate-400 dark:text-slate-500">
+                                    Đang kết nối hệ thống máy chủ Product Service
+                                 </p>
+                              </div>
+                           </td>
+                        </tr>
+                     ) : errorMessage ? (
+                        <tr>
+                           <td colSpan={7} className="py-14 text-center">
+                              <div className="flex flex-col items-center justify-center gap-3">
+                                 <div className="h-12 w-12 rounded-2xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-500">
+                                    <AlertTriangle className="h-6 w-6" />
                                  </div>
-                              </td>
-                           </tr>
-                        );
-                     })}
-
-                     {filteredProducts.length === 0 && (
+                                 <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+                                    {errorMessage}
+                                 </p>
+                                 <button
+                                    onClick={() => void fetchProducts(true)}
+                                    className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm shadow-indigo-600/30"
+                                 >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    <span>Thử lại</span>
+                                 </button>
+                              </div>
+                           </td>
+                        </tr>
+                     ) : filteredProducts.length === 0 ? (
                         <tr>
                            <td colSpan={7} className="py-14 text-center">
                               <div className="flex flex-col items-center justify-center gap-2">
@@ -1007,11 +646,205 @@ export default function ProductApprovalPage() {
                                     Không có sản phẩm nào phù hợp
                                  </p>
                                  <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm">
-                                    Thử điều chỉnh từ khóa tìm kiếm hoặc đổi tab bộ lọc trạng thái kiểm duyệt.
+                                    {searchTerm.trim() || activeTab !== 'ALL' || selectedCategory !== 'ALL'
+                                       ? 'Thử điều chỉnh từ khóa tìm kiếm hoặc đổi tab bộ lọc trạng thái kiểm duyệt.'
+                                       : 'Chưa có sản phẩm nào trên hệ thống.'}
                                  </p>
                               </div>
                            </td>
                         </tr>
+                     ) : (
+                        filteredProducts.map((item) => {
+                           const catMeta = WHO_CATEGORY_LABELS[item.whoCategoryCode] || {
+                              label: item.whoCategoryCode,
+                              color: 'text-slate-700 dark:text-slate-300',
+                              bg: 'bg-slate-100 dark:bg-slate-800',
+                              border: 'border-slate-200 dark:border-slate-700',
+                           };
+
+                           const priceRange = getProductPriceRange(item.variants);
+                           const totalStock = getTotalStock(item.variants);
+                           const isPending = item.moderationStatus === 'PENDING_APPROVAL';
+                           const isEditPending = item.moderationStatus === 'EDIT_PENDING_APPROVAL';
+                           const isApproved = item.moderationStatus === 'APPROVED';
+                           const isRejected = item.moderationStatus === 'REJECTED';
+                           const isActionLoading = actionLoadingId === item.productId;
+
+                           return (
+                              <tr
+                                 key={item.productId}
+                                 className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition group"
+                              >
+                                 {/* Product Info */}
+                                 <td className="px-5 py-4 max-w-sm">
+                                    <div className="flex items-start gap-3">
+                                       {/* Thumbnail */}
+                                       <div className="h-12 w-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                                          {item.images && item.images.length > 0 ? (
+                                             <img
+                                                src={item.images[0]}
+                                                alt={item.productName}
+                                                className="h-full w-full object-cover transition group-hover:scale-105"
+                                             />
+                                          ) : (
+                                             <ImageIcon className="h-5 w-5 text-slate-400" />
+                                          )}
+                                       </div>
+                                       <div>
+                                          <button
+                                             onClick={() => {
+                                                setSelectedProduct(item);
+                                                setActiveImageIndex(0);
+                                             }}
+                                             className="text-left font-semibold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition line-clamp-2"
+                                          >
+                                             {item.productName}
+                                          </button>
+                                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                                             <span>ID: {item.productId}</span>
+                                             {item.variants && item.variants.length > 0 && (
+                                                <>
+                                                   <span>•</span>
+                                                   <span className="text-slate-600 dark:text-slate-400">
+                                                      {item.variants.length} phân loại
+                                                   </span>
+                                                </>
+                                             )}
+                                             {item.origin && (
+                                                <>
+                                                   <span>•</span>
+                                                   <span className="text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
+                                                      {item.origin}
+                                                   </span>
+                                                </>
+                                             )}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </td>
+
+                                 {/* Supplier */}
+                                 <td className="px-5 py-4">
+                                    <div className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
+                                       <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                       <span className="truncate max-w-[180px]">
+                                          {item.supplierName || item.supplierId}
+                                       </span>
+                                    </div>
+                                    <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                                       {item.supplierId}
+                                    </span>
+                                 </td>
+
+                                 {/* WHO Category */}
+                                 <td className="px-5 py-4">
+                                    <span
+                                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${catMeta.bg} ${catMeta.color} ${catMeta.border}`}
+                                    >
+                                       <Tag className="h-3 w-3" />
+                                       <span>{catMeta.label}</span>
+                                    </span>
+                                 </td>
+
+                                 {/* Price & Stock */}
+                                 <td className="px-5 py-4">
+                                    <p className="font-bold text-slate-900 dark:text-slate-100">{priceRange}</p>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                       Tổng kho:{' '}
+                                       <strong className="text-slate-700 dark:text-slate-300 font-semibold">
+                                          {totalStock.toLocaleString('vi-VN')}
+                                       </strong>
+                                    </p>
+                                 </td>
+
+                                 {/* Moderation Status Badge */}
+                                 <td className="px-5 py-4">
+                                    {isPending && (
+                                       <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
+                                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                                          <span>Chờ duyệt lên sàn</span>
+                                       </span>
+                                    )}
+                                    {isEditPending && (
+                                       <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 shadow-sm">
+                                          <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                                          <span>Duyệt bản sửa đổi</span>
+                                       </span>
+                                    )}
+                                    {isApproved && (
+                                       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                          <span>Đã lên sàn</span>
+                                       </span>
+                                    )}
+                                    {isRejected && (
+                                       <div>
+                                          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
+                                             <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                                             <span>Từ chối</span>
+                                          </span>
+                                          {item.rejectionReason && (
+                                             <p
+                                                title={item.rejectionReason}
+                                                className="mt-1 text-[10px] text-rose-600 dark:text-rose-400 truncate max-w-[150px]"
+                                             >
+                                                {item.rejectionReason}
+                                             </p>
+                                          )}
+                                       </div>
+                                    )}
+                                 </td>
+
+                                 {/* Submitted Date */}
+                                 <td className="px-5 py-4 text-slate-500 dark:text-slate-400">
+                                    {item.submittedAt || item.createdAt || 'Mới cập nhật'}
+                                 </td>
+
+                                 {/* Actions */}
+                                 <td className="px-5 py-4 text-right">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                       {(isPending || isEditPending) && (
+                                          <>
+                                             {/* Quick Approve */}
+                                             <button
+                                                onClick={() => handleApprove(item)}
+                                                disabled={isActionLoading}
+                                                title="Phê duyệt cho phép bán lên sàn"
+                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-600/30 transition disabled:opacity-50"
+                                             >
+                                                <Check className="h-3.5 w-3.5" />
+                                                <span className="hidden md:inline">Duyệt</span>
+                                             </button>
+
+                                             {/* Quick Reject */}
+                                             <button
+                                                onClick={() => openRejectModal(item)}
+                                                disabled={isActionLoading}
+                                                title="Từ chối phê duyệt"
+                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 font-semibold text-xs border border-rose-200 dark:border-rose-800/50 transition disabled:opacity-50"
+                                             >
+                                                <X className="h-3.5 w-3.5" />
+                                                <span className="hidden md:inline">Từ chối</span>
+                                             </button>
+                                          </>
+                                       )}
+
+                                       {/* View Full Dossier */}
+                                       <button
+                                          onClick={() => {
+                                             setSelectedProduct(item);
+                                             setActiveImageIndex(0);
+                                          }}
+                                          title="Xem chi tiết hồ sơ thẩm định"
+                                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                                       >
+                                          <Eye className="h-4 w-4" />
+                                       </button>
+                                    </div>
+                                 </td>
+                              </tr>
+                           );
+                        })
                      )}
                   </tbody>
                </table>

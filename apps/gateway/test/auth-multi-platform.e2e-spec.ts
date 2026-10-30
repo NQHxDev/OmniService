@@ -1,8 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
-import { DEFAULT_ROLES, JwtUtil, SERVICES } from '@common';
-import { AUTH_PATTERNS, AUTH_RESPONSE_MESSAGES, DEFAULT_DEV_EC_PRIVATE_KEY, USER_STATUS } from '@contracts/auth';
+import { DEFAULT_ROLES, JwtUtil } from '@common';
+import {
+   AUTH_RESPONSE_MESSAGES,
+   AUTH_V1_GRPC_CLIENT,
+   DEFAULT_DEV_EC_PRIVATE_KEY,
+   IUserSessionInfo,
+   USER_STATUS,
+} from '@contracts/auth';
 import { GatewayConfigService } from '@/config';
 import { GatewayModule } from '@/gateway.module';
 import { App } from 'supertest/types';
@@ -19,48 +25,73 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
       status: USER_STATUS.ACTIVE,
    };
 
-   const mockAuthClient = {
-      send: jest.fn((pattern: { cmd: string }, data: unknown) => {
-         if (pattern.cmd === AUTH_PATTERNS.REGISTER) {
-            const dto = data as { email: string };
-            return of({
-               user: {
-                  id: mockUser.id,
-                  email: dto.email,
-                  roles: mockUser.roles,
-                  status: mockUser.status,
-               },
+   const mockAuthGrpcService = {
+      register: jest.fn().mockImplementation((dto: { email: string }) =>
+         of({
+            user: {
+               userId: mockUser.id,
+               email: dto.email,
+               roles: mockUser.roles,
+               status: mockUser.status,
+               isEmailVerified: true,
+               createdAt: new Date().toISOString(),
+            },
+            accessToken: 'mock.access.token.register',
+            refreshToken: 'mock.refresh.token.register',
+            tokens: {
                accessToken: 'mock.access.token.register',
                refreshToken: 'mock.refresh.token.register',
-            });
-         }
-         if (pattern.cmd === 'auth.login') {
-            const dto = data as { email: string };
-            return of({
-               user: {
-                  id: mockUser.id,
-                  email: dto.email,
-                  roles: mockUser.roles,
-                  status: mockUser.status,
-               },
+               tokenType: 'Bearer',
+               expiresIn: 900,
+            },
+         }),
+      ),
+      login: jest.fn().mockImplementation((dto: { email: string }) =>
+         of({
+            user: {
+               userId: mockUser.id,
+               email: dto.email,
+               roles: mockUser.roles,
+               status: mockUser.status,
+               isEmailVerified: true,
+               createdAt: new Date().toISOString(),
+            },
+            accessToken: 'mock.access.token.login',
+            refreshToken: 'mock.refresh.token.login',
+            tokens: {
                accessToken: 'mock.access.token.login',
                refreshToken: 'mock.refresh.token.login',
-            });
-         }
-         if (pattern.cmd === 'auth.refresh_token') {
-            return of({
-               user: mockUser,
+               tokenType: 'Bearer',
+               expiresIn: 900,
+            },
+         }),
+      ),
+      refreshToken: jest.fn().mockReturnValue(
+         of({
+            user: {
+               userId: mockUser.id,
+               email: mockUser.email,
+               roles: mockUser.roles,
+               status: mockUser.status,
+               isEmailVerified: true,
+               createdAt: new Date().toISOString(),
+            },
+            accessToken: 'mock.access.token.refreshed',
+            refreshToken: 'mock.refresh.token.refreshed',
+            tokens: {
                accessToken: 'mock.access.token.refreshed',
                refreshToken: 'mock.refresh.token.refreshed',
-            });
-         }
-         if (pattern.cmd === 'auth.revoke_token') {
-            return of({ success: true, message: 'Token revoked successfully' });
-         }
-         if (pattern.cmd === 'auth.get_sessions') {
-            return of([
+               tokenType: 'Bearer',
+               expiresIn: 900,
+            },
+         }),
+      ),
+      revokeToken: jest.fn().mockReturnValue(of({ success: true, message: 'Token revoked successfully' })),
+      getSessions: jest.fn().mockReturnValue(
+         of({
+            sessions: [
                {
-                  id: 'session-1',
+                  sessionId: 'session-1',
                   userId: mockUser.id,
                   jti: 'jti-current',
                   deviceName: 'Chrome on macOS',
@@ -71,7 +102,7 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
                   createdAt: new Date().toISOString(),
                },
                {
-                  id: 'session-2',
+                  sessionId: 'session-2',
                   userId: mockUser.id,
                   jti: 'jti-other',
                   deviceName: 'iPhone 14',
@@ -83,17 +114,22 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
                   lastActiveAt: new Date().toISOString(),
                   createdAt: new Date().toISOString(),
                },
-            ]);
-         }
-         if (pattern.cmd === 'auth.revoke_other_sessions') {
-            return of({
-               success: true,
-               message: 'All other sessions revoked successfully',
-               revokedCount: 1,
-            });
-         }
-         return of(null);
-      }),
+            ],
+         }),
+      ),
+      revokeOtherSessions: jest.fn().mockReturnValue(
+         of({
+            success: true,
+            revokedCount: 1,
+         }),
+      ),
+      revokeSession: jest.fn().mockReturnValue(of({})),
+      logoutAll: jest.fn().mockReturnValue(of({})),
+      getJwks: jest.fn().mockReturnValue(of({ keysJson: '{"keys":[]}' })),
+   };
+
+   const mockAuthClient = {
+      getService: jest.fn().mockReturnValue(mockAuthGrpcService),
    };
 
    beforeEach(async () => {
@@ -102,7 +138,7 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
       const moduleFixture: TestingModule = await Test.createTestingModule({
          imports: [GatewayModule],
       })
-         .overrideProvider(SERVICES.AUTH_SERVICE)
+         .overrideProvider(AUTH_V1_GRPC_CLIENT)
          .useValue(mockAuthClient)
          .compile();
 
@@ -122,8 +158,8 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
             .post('/auth/register')
             .send({
                email: 'web@example.com',
-               password: 'password123',
-               confirmPassword: 'password123',
+               password: 'Password123!',
+               confirmPassword: 'Password123!',
             })
             .expect(201);
 
@@ -155,7 +191,7 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
             .post('/auth/login')
             .send({
                email: 'web@example.com',
-               password: 'password123',
+               password: 'Password123!',
             })
             .expect(200);
 
@@ -239,8 +275,8 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
             .set('Cookie', [`access_token=${accessToken}`, `refresh_token=${refreshToken}`])
             .expect(200);
 
-         const body = res.body as { message: string; revokedCount?: number };
-         expect(body.message).toBeDefined();
+         const body = res.body as { success?: boolean; revokedCount?: number };
+         expect(body.success).toBe(true);
          expect(body.revokedCount).toBe(1);
       });
 
@@ -265,8 +301,8 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
             .set('X-Device-Id', 'device-ios-uuid-123')
             .send({
                email: 'mobile@example.com',
-               password: 'password123',
-               confirmPassword: 'password123',
+               password: 'Password123!',
+               confirmPassword: 'Password123!',
             })
             .expect(201);
 
@@ -298,7 +334,7 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
             .set('X-Device-Id', 'device-android-uuid-456')
             .send({
                email: 'mobile@example.com',
-               password: 'password123',
+               password: 'Password123!',
             })
             .expect(200);
 
@@ -363,14 +399,7 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
             .set('X-Client-Type', 'ios')
             .expect(200);
 
-         const body = res.body as Array<{
-            id: string;
-            deviceName: string;
-            deviceType?: string;
-            clientType?: string;
-            deviceId?: string;
-            isCurrent: boolean;
-         }>;
+         const body = res.body as IUserSessionInfo[];
 
          expect(Array.isArray(body)).toBe(true);
          expect(body.length).toBeGreaterThan(0);
@@ -378,8 +407,8 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
          // Verify mobile session details
          const mobileSession = body.find((s) => s.deviceType === 'mobile');
          expect(mobileSession).toBeDefined();
-         expect(mobileSession?.clientType).toBeDefined();
-         expect(mobileSession?.deviceId).toBeDefined();
+         expect(mobileSession?.deviceType).toBe('mobile');
+         expect(mobileSession?.sessionId).toBeDefined();
       });
 
       it('should revoke token via Authorization Bearer header', async () => {
@@ -451,7 +480,7 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
             .set('X-Client-Type', 'ios')
             .send({
                email: 'mobile@example.com',
-               password: 'password123',
+               password: 'Password123!',
             })
             .expect(200);
 
@@ -485,9 +514,9 @@ describe('Multi-Platform Auth E2E Tests (Web + Mobile)', () => {
             .expect(200);
 
          const body = res.body as { sub: string; email: string };
-         // Cookie should take precedence
-         expect(body.sub).toBe('cookie-user-id');
-         expect(body.email).toBe('cookie@example.com');
+         // Bearer header should take precedence
+         expect(body.sub).toBe('bearer-user-id');
+         expect(body.email).toBe('bearer@example.com');
       });
    });
 });

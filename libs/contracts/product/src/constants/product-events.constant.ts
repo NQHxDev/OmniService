@@ -71,6 +71,19 @@ export interface ProductModeratedEventPayload {
    moderatedBy?: string;
    moderatorEmail?: string;
    moderatedAt: string;
+   whoCategoryCode?: string;
+   productSlug?: string;
+   description?: string;
+   origin?: string;
+   storageCondition?: string;
+   shelfLifeDays?: number;
+   images?: string[];
+   status?: string;
+   variants?: ProductVariantPayload[];
+   minPrice?: number;
+   maxPrice?: number;
+   currency?: string;
+   createdAt?: string;
 }
 
 export interface ProductStockAdjustedEventPayload {

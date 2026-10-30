@@ -27,7 +27,7 @@
       "start:nowatch:supplier": "nest start supplier -b swc",
       "pc:start": "process-compose -p 9999 up",
       "pc:down": "process-compose -p 9999 down",
-      "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
+      "format": "prettier --write \"{src,apps,libs,test}/**/*.ts\"",
       "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
       "prisma:generate": "pnpm -r run prisma:generate",
       "prisma:migrate": "pnpm -r run prisma:migrate",
@@ -42,6 +42,9 @@
       "keys:generate": "ts-node scripts/generate-keys.ts",
       "prepare": "husky",
       "build": "sh scripts/build-sequential.sh",
+      "test": "jest",
+      "test:cov": "jest --coverage",
+      "test:e2e": "jest --config jest-e2e.json --runInBand --forceExit",
       "test:affected": "sh scripts/test-affected.sh",
       "typecheck": "tsc --noEmit -p tsconfig.build.json",
       "build:sequential": "sh scripts/build-sequential.sh",
@@ -58,13 +61,17 @@
       "@eslint/eslintrc": "^3.2.0",
       "@eslint/js": "^9.18.0",
       "@nestjs/cli": "^11.0.0",
+      "@nestjs/common": "^11.2.6",
+      "@nestjs/core": "^11.2.6",
       "@nestjs/schematics": "^11.0.0",
-      "@nestjs/testing": "^11.0.1",
+      "@nestjs/testing": "^11.2.6",
       "@prisma/client": "7.10.0",
       "@react-email/ui": "^6.11.0",
       "@swc/cli": "^0.8.1",
       "@swc/core": "^1.16.13",
       "@types/amqplib": "^0.10.8",
+      "amqp-connection-manager": "^5.0.0",
+      "amqplib": "^2.0.1",
       "@types/cookie-parser": "^1.4.10",
       "@types/express": "^5.0.0",
       "@types/geoip-lite": "^1.4.4",
@@ -149,7 +156,10 @@
    },
    "pnpm": {
       "overrides": {
-         "rxjs": "7.8.1"
+         "rxjs": "7.8.1",
+         "@nestjs/core": "11.2.6",
+         "@nestjs/common": "11.2.6",
+         "@nestjs/testing": "11.2.6"
       }
    }
 }

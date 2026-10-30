@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter, Histogram } from 'prom-client';
 import { AppLogger } from '@common';
+import { MODERATION_STATUS, PRODUCT_STATUS } from '@contracts/product';
 import { BULK_OPERATIONS, SEARCH_INDICES } from '@contracts/search';
 import { ElasticsearchService } from '@search/core/elasticsearch';
 import {
@@ -298,6 +299,8 @@ export class ProductSearchService implements OnModuleInit {
             filterClauses.push({ term: { status: params.status } });
          }
 
+         filterClauses.push({ term: { moderationStatus: MODERATION_STATUS.APPROVED } });
+
          if (cleanQuery) {
             const lowerQuery = cleanQuery.toLowerCase();
             mustClauses.push({
@@ -445,6 +448,10 @@ export class ProductSearchService implements OnModuleInit {
                         },
                      ],
                      minimum_should_match: 1,
+                     filter: [
+                        { term: { moderationStatus: MODERATION_STATUS.APPROVED } },
+                        { term: { status: PRODUCT_STATUS.ACTIVE } },
+                     ],
                   },
                },
             },
