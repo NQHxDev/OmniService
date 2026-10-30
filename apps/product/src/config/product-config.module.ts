@@ -10,6 +10,13 @@ import { validateProductEnv } from '@product/config/product-env.schema';
       ConfigModule.forRoot({
          isGlobal: true,
          validate: validateProductEnv,
+         envFilePath: [
+            process.env.ENV_FILE || '',
+            'apps/product/.env.local',
+            'apps/product/.env',
+            '.env.local',
+            '.env',
+         ].filter(Boolean),
       }),
    ],
    providers: [
@@ -19,6 +26,6 @@ import { validateProductEnv } from '@product/config/product-env.schema';
          useExisting: ProductConfigService,
       },
    ],
-   exports: [ProductConfigService, CommonConfigService],
+   exports: [ProductConfigService, CommonConfigService, ConfigModule],
 })
 export class ProductConfigModule {}

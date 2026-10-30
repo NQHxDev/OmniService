@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PostAuthorDto } from '@contracts/post/dto/post-author.dto';
 import { PostIngredientDto } from '@contracts/post/dto/post-ingredient.dto';
 import { RecipeDto } from '@contracts/post/dto/recipe.dto';
 
@@ -14,6 +15,13 @@ export class PostItemDto {
       example: 'user-1234-uuid',
    })
    userId!: string;
+
+   @ApiPropertyOptional({
+      description: 'Author profile summary (including display name) of the user who created the post',
+      type: PostAuthorDto,
+      nullable: true,
+   })
+   author?: PostAuthorDto | null;
 
    @ApiProperty({
       description: 'Title of recipe or post video',

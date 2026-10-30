@@ -85,6 +85,43 @@ describe('SupplierService', () => {
       expect(result.supplierCode).toMatch(/^SUP-/);
    });
 
+   it('should auto-generate unique slug with incrementing suffix if base slug already exists', async () => {
+      mockSupplierRepo.findByCode.mockResolvedValue(null);
+      mockSupplierRepo.findBySlug
+         .mockResolvedValueOnce({
+            supplierId: 'existing-supp',
+            supplierName: 'Mega Market',
+            supplierSlug: 'mega-market',
+            supplierCode: 'SUPP-MM',
+            rating: 5,
+            isVerified: false,
+            supplierStatus: SUPPLIER_STATUS.ACTIVE,
+            version: 1,
+            deletedAt: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+         })
+         .mockResolvedValueOnce(null);
+      mockSupplierRepo.create.mockImplementation((data) =>
+         Promise.resolve({
+            supplierId: 'supp-unique-slug-1',
+            ...data,
+            rating: 5,
+            version: 1,
+            deletedAt: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+         }),
+      );
+
+      const result = await service.registerSupplier({
+         supplierName: 'Mega Market',
+         supplierCode: 'SUPP-MM-2',
+      });
+
+      expect(result.supplierSlug).toBe('mega-market-1');
+   });
+
    it('should throw ConflictException if supplier code already exists', async () => {
       mockSupplierRepo.findByCode.mockResolvedValue({ supplierId: 'existing' });
 
@@ -143,6 +180,47 @@ describe('SupplierService', () => {
          supplierLogoUrl: undefined,
       });
       expect(result.supplierName).toBe('Mega Market Updated');
+   });
+
+   it('should auto-generate unique slug if updated name collides with another supplier', async () => {
+      mockSupplierRepo.findById.mockResolvedValue({
+         supplierId: 'supp-1',
+         supplierName: 'Old Market',
+         supplierStatus: SUPPLIER_STATUS.ACTIVE,
+      });
+      mockSupplierRepo.findBySlug
+         .mockResolvedValueOnce({
+            supplierId: 'supp-2',
+            supplierName: 'Mega Market',
+            supplierSlug: 'mega-market',
+            supplierCode: 'SUPP-MM',
+            rating: 5,
+            isVerified: true,
+            supplierStatus: SUPPLIER_STATUS.ACTIVE,
+            version: 1,
+            deletedAt: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+         })
+         .mockResolvedValueOnce(null);
+      mockSupplierRepo.update.mockResolvedValue({
+         supplierId: 'supp-1',
+         supplierName: 'Mega Market',
+         supplierSlug: 'mega-market-1',
+         supplierStatus: SUPPLIER_STATUS.ACTIVE,
+      });
+
+      const result = await service.updateSupplier('supp-1', {
+         supplierName: 'Mega Market',
+      });
+
+      expect(mockSupplierRepo.update).toHaveBeenCalledWith(
+         'supp-1',
+         expect.objectContaining({
+            supplierSlug: 'mega-market-1',
+         }),
+      );
+      expect(result.supplierSlug).toBe('mega-market-1');
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(SUPPLIER_EVENTS.SUPPLIER_UPDATED, expect.anything());
       expect(mockEventEmitter.emit).not.toHaveBeenCalledWith(
          SUPPLIER_EVENTS.SUPPLIER_STATUS_CHANGED,

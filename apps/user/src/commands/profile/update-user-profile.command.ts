@@ -12,6 +12,7 @@ export interface UpdateUserProfileDto {
    coverImage?: string;
    website?: string;
    location?: string;
+   address?: string;
 }
 
 export class UpdateUserProfileCommand extends Command<UserEntity> {

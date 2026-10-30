@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { status as GrpcStatus } from '@grpc/grpc-js';
-import { RpcException } from '@nestjs/microservices';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@common';
 import { ORDER_UNIT_OF_WORK, type IOrderUnitOfWork } from '@order/unit-of-work';
 import { PrismaService } from '@order/prisma/prisma.service';
 import {
@@ -28,17 +27,11 @@ export class UpdateSupplierOrderStatusCommandHandler {
 
    async execute(dto: IUpdateSupplierOrderStatusRequest): Promise<IUpdateSupplierOrderStatusResponse> {
       if (!dto.orderId || dto.orderId.trim().length === 0) {
-         throw new RpcException({
-            code: GrpcStatus.INVALID_ARGUMENT,
-            message: ORDER_ERROR_CODES.ORDER_ID_REQUIRED,
-         });
+         throw new BadRequestException(ORDER_ERROR_CODES.ORDER_ID_REQUIRED);
       }
 
       if (!dto.supplierId || dto.supplierId.trim().length === 0) {
-         throw new RpcException({
-            code: GrpcStatus.INVALID_ARGUMENT,
-            message: ORDER_ERROR_CODES.SUPPLIER_ID_REQUIRED,
-         });
+         throw new BadRequestException(ORDER_ERROR_CODES.SUPPLIER_ID_REQUIRED);
       }
 
       const existing = await this.prisma.order.findUnique({
@@ -47,17 +40,11 @@ export class UpdateSupplierOrderStatusCommandHandler {
       });
 
       if (!existing) {
-         throw new RpcException({
-            code: GrpcStatus.NOT_FOUND,
-            message: ORDER_ERROR_CODES.NOT_FOUND,
-         });
+         throw new NotFoundException(ORDER_ERROR_CODES.NOT_FOUND);
       }
 
       if (existing.supplierId && existing.supplierId !== dto.supplierId) {
-         throw new RpcException({
-            code: GrpcStatus.PERMISSION_DENIED,
-            message: ORDER_ERROR_CODES.FORBIDDEN_SUPPLIER_ORDER,
-         });
+         throw new ForbiddenException(ORDER_ERROR_CODES.FORBIDDEN_SUPPLIER_ORDER);
       }
 
       const previousStatus = existing.orderStatus;
@@ -65,9 +52,8 @@ export class UpdateSupplierOrderStatusCommandHandler {
 
       const transitionValidation = this.stateMachine.validateTransition(previousStatus, targetStatus);
       if (!transitionValidation.isValid) {
-         throw new RpcException({
-            code: GrpcStatus.INVALID_ARGUMENT,
-            message: transitionValidation.errorCode || ORDER_ERROR_CODES.INVALID_STATUS_TRANSITION,
+         throw new BadRequestException(transitionValidation.errorCode || ORDER_ERROR_CODES.INVALID_STATUS_TRANSITION, {
+            params: transitionValidation.params,
          });
       }
 

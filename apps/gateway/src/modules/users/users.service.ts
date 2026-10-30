@@ -127,6 +127,7 @@ export class UsersService implements OnModuleInit {
                         coverImage: createUserProfileDto.coverImage,
                         website: createUserProfileDto.website,
                         location: createUserProfileDto.location,
+                        address: createUserProfileDto.address,
                         accountId: user.sub,
                         userId: user.sub,
                      },
@@ -230,6 +231,15 @@ export class UsersService implements OnModuleInit {
       return this.updatePartialProfile(userId, { location }, user, correlationId);
    }
 
+   async updateAddress(
+      userId: string,
+      address: string | undefined,
+      user: JwtPayload,
+      correlationId?: string,
+   ): Promise<unknown> {
+      return this.updatePartialProfile(userId, { address }, user, correlationId);
+   }
+
    async updateWebsite(
       userId: string,
       website: string | undefined,
@@ -272,6 +282,7 @@ export class UsersService implements OnModuleInit {
                                 : undefined,
                         gender: typeof fields.gender === 'string' ? fields.gender : undefined,
                         location: typeof fields.location === 'string' ? fields.location : undefined,
+                        address: typeof fields.address === 'string' ? fields.address : undefined,
                         website: typeof fields.website === 'string' ? fields.website : undefined,
                         coverImage: typeof fields.coverImage === 'string' ? fields.coverImage : undefined,
                      },

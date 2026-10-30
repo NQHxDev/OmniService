@@ -357,6 +357,36 @@
                }
             ]
          }
+      },
+      "analyze": {
+         "type": "application",
+         "root": "apps/analyze",
+         "entryFile": "main",
+         "sourceRoot": "apps/analyze/src",
+         "compilerOptions": {
+            "tsConfigPath": "apps/analyze/tsconfig.app.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
+      },
+      "contracts-analyze": {
+         "type": "library",
+         "root": "libs/contracts/analyze",
+         "entryFile": "index",
+         "sourceRoot": "libs/contracts/analyze/src",
+         "compilerOptions": {
+            "tsConfigPath": "libs/contracts/analyze/tsconfig.lib.json",
+            "assets": [
+               {
+                  "include": "**/*.proto",
+                  "watchAssets": true
+               }
+            ]
+         }
       }
    }
 }

@@ -14,6 +14,15 @@ describe('ProductsService', () => {
 
    const mockGrpcService: Partial<IProductV1GrpcService> = {
       listWhoCategories: jest.fn(),
+      getProductById: jest.fn(),
+   };
+
+   const mockOrdersService = {
+      getProductOrderStats: jest.fn(),
+   };
+
+   const mockSuppliersService = {
+      getSupplierById: jest.fn(),
    };
 
    const mockSearchGrpcService = {
@@ -44,8 +53,68 @@ describe('ProductsService', () => {
 
    beforeEach(() => {
       jest.clearAllMocks();
-      service = new ProductsService(mockGrpcClient as never, mockSearchGrpcClient as never, mockCacheService as never);
+      service = new ProductsService(
+         mockGrpcClient as never,
+         mockSearchGrpcClient as never,
+         mockOrdersService as never,
+         mockSuppliersService as never,
+         mockCacheService as never,
+      );
       service.onModuleInit();
+   });
+
+   describe('getProductById enrichment', () => {
+      const protoProduct = {
+         productId: 'p-1',
+         supplierId: 's-1',
+         whoCategoryCode: 'STAPLES',
+         productName: 'Gạo ST25',
+         productSlug: 'gao-st25',
+         description: 'desc',
+         images: [],
+         status: 'ACTIVE',
+         moderationStatus: 'APPROVED',
+         variants: [],
+         version: 1,
+         createdAt: '2026-10-26T08:00:00.000Z',
+         updatedAt: '2026-10-26T08:00:00.000Z',
+      };
+
+      beforeEach(() => {
+         (mockGrpcService.getProductById as jest.Mock).mockReturnValue(of({ product: protoProduct }));
+      });
+
+      it('should attach store summary and order statistics', async () => {
+         mockSuppliersService.getSupplierById.mockResolvedValue({
+            supplierId: 's-1',
+            supplierName: 'Mega Market',
+            supplierSlug: 'mega-market',
+            supplierLogoUrl: 'logo.png',
+            city: 'HCM',
+            rating: 4.8,
+            isVerified: true,
+            bankAccountNumber: 'SECRET',
+         });
+         mockOrdersService.getProductOrderStats.mockResolvedValue([{ productId: 'p-1', orderCount: 3, soldCount: 12 }]);
+
+         const result = await service.getProductById('p-1');
+
+         expect(result.orderCount).toBe(3);
+         expect(result.soldCount).toBe(12);
+         expect(result.supplier?.supplierName).toBe('Mega Market');
+         expect(result.supplier).not.toHaveProperty('bankAccountNumber');
+      });
+
+      it('should degrade gracefully when downstream services fail', async () => {
+         mockSuppliersService.getSupplierById.mockRejectedValue(new Error('down'));
+         mockOrdersService.getProductOrderStats.mockRejectedValue(new Error('down'));
+
+         const result = await service.getProductById('p-1');
+
+         expect(result.supplier).toBeUndefined();
+         expect(result.orderCount).toBe(0);
+         expect(result.soldCount).toBe(0);
+      });
    });
 
    describe('listWhoCategories with 12h caching', () => {

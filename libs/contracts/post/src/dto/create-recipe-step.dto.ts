@@ -40,7 +40,7 @@ export class CreateRecipeStepDto {
       description: 'Illustration image URL for this step',
       example: 'https://pub-50b1ab619efd4084959e011fe2e5a273.r2.dev/recipes/step_1.jpg',
    })
-   @IsUrl()
+   @IsUrl({ require_tld: false })
    @IsOptional()
    imageUrl?: string;
 
@@ -48,7 +48,7 @@ export class CreateRecipeStepDto {
       description: 'Media reference ID from Media service',
       example: '0192e21b-0002-7000-8000-000000000002',
    })
-   @IsUUID('4')
+   @IsUUID()
    @IsOptional()
    mediaId?: string;
 }

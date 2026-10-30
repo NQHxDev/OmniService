@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { status as GrpcStatus } from '@grpc/grpc-js';
-import { RpcException } from '@nestjs/microservices';
+import { BadRequestException } from '@common';
 import { ORDER_REPOSITORY, type IOrderRepository } from '@order/repositories';
 import {
    DEFAULT_SHIPPING_METHOD,
@@ -19,10 +18,7 @@ export class ListSupplierOrdersQueryHandler {
 
    async execute(dto: IListSupplierOrdersRequest): Promise<IListSupplierOrdersResponse> {
       if (!dto.supplierId || dto.supplierId.trim().length === 0) {
-         throw new RpcException({
-            code: GrpcStatus.INVALID_ARGUMENT,
-            message: ORDER_ERROR_CODES.SUPPLIER_ID_REQUIRED,
-         });
+         throw new BadRequestException(ORDER_ERROR_CODES.SUPPLIER_ID_REQUIRED);
       }
 
       const page = Math.max(1, Number(dto.page) || 1);

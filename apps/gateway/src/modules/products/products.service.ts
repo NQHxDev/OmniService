@@ -1,4 +1,4 @@
-import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional, type OnModuleInit } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { defer, firstValueFrom } from 'rxjs';
 import {
@@ -42,6 +42,7 @@ import {
    type ModerateProductDto,
    type ProductItemDto,
    type ProductModerationHistoryDto,
+   type ProductSupplierSummaryDto,
    type ProductSearchItemDto,
    type ProductSuggestionItemDto,
    type ReleaseStockDto,
@@ -63,6 +64,9 @@ import {
    type ISuggestProductsRequest,
 } from '@contracts/search';
 
+import { OrdersService } from '@/modules/orders/orders.service';
+import { SuppliersService } from '@/modules/suppliers/suppliers.service';
+
 export interface ProductCallOptions {
    authHeader?: string;
    correlationId?: string;
@@ -74,6 +78,7 @@ export interface ProductCallOptions {
 
 @Injectable()
 export class ProductsService implements OnModuleInit {
+   private readonly logger = new Logger(ProductsService.name);
    private productGrpcService!: IProductV1GrpcService;
    private searchGrpcService!: ISearchV1GrpcService;
    private readonly productGrpcBreaker = CircuitBreakerRegistry.getOrCreate(PRODUCT_V1_GRPC_SERVICE_NAME, {
@@ -102,6 +107,8 @@ export class ProductsService implements OnModuleInit {
    constructor(
       @Inject(PRODUCT_V1_GRPC_CLIENT) private readonly productGrpcClient: ClientGrpc,
       @Inject(SEARCH_V1_GRPC_CLIENT) private readonly searchGrpcClient: ClientGrpc,
+      private readonly ordersService: OrdersService,
+      private readonly suppliersService: SuppliersService,
       @Optional() private readonly cacheService?: CacheService,
    ) {}
 
@@ -267,7 +274,7 @@ export class ProductsService implements OnModuleInit {
             email: options?.email,
          });
 
-         return await this.productGrpcBreaker.execute(async () => {
+         const product = await this.productGrpcBreaker.execute(async () => {
             const request: IGetProductByIdRequest = { productId };
             const res = await firstValueFrom(
                defer(() => this.productGrpcService.getProductById(request, metadata)).pipe(
@@ -283,9 +290,51 @@ export class ProductsService implements OnModuleInit {
 
             return this.mapProtoToDto(res.product);
          });
+         return await this.enrichProductDetail(product, options);
       } catch (error: unknown) {
          return handleGrpcError(error);
       }
+   }
+
+   /**
+    * Best-effort enrichment of the product detail with the public store summary and order statistics.
+    * Failures of downstream services never break the product detail response.
+    */
+   private async enrichProductDetail(product: ProductItemDto, options?: ProductCallOptions): Promise<ProductItemDto> {
+      const [supplier, stats] = await Promise.all([
+         this.suppliersService
+            .getSupplierById(product.supplierId, { correlationId: options?.correlationId })
+            .then((s): ProductSupplierSummaryDto => ({
+               supplierId: s.supplierId,
+               supplierName: s.supplierName,
+               supplierSlug: s.supplierSlug,
+               supplierLogoUrl: s.supplierLogoUrl,
+               address: s.address,
+               city: s.city,
+               rating: s.rating,
+               isVerified: s.isVerified,
+            }))
+            .catch((error: unknown) => {
+               this.logger.warn(
+                  `Failed to load supplier ${product.supplierId} for product ${product.productId}: ${String(error)}`,
+               );
+               return undefined;
+            }),
+         this.ordersService
+            .getProductOrderStats([product.productId], options?.correlationId)
+            .then((list) => list[0])
+            .catch((error: unknown) => {
+               this.logger.warn(`Failed to load order stats for product ${product.productId}: ${String(error)}`);
+               return undefined;
+            }),
+      ]);
+
+      return {
+         ...product,
+         supplier,
+         orderCount: stats?.orderCount ?? 0,
+         soldCount: stats?.soldCount ?? 0,
+      };
    }
 
    async listProducts(query: ListProductsQueryDto, options?: ProductCallOptions): Promise<ListProductsResponseDto> {

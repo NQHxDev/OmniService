@@ -3,7 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
-import express, { type NextFunction, type Request, type Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import {
@@ -34,18 +34,6 @@ async function bootstrap() {
    const allowedOrigins = config.corsOrigins;
 
    const isDev = !config.isProduction;
-
-   // Debug middleware: Log request details BEFORE body parsing (helps debug 413 errors)
-   if (isDev) {
-      app.use((req: Request, _res: Response, next: NextFunction) => {
-         if (req.path.includes('/media/upload')) {
-            logger.log(
-               `[DEBUG] Media Upload Request - Content-Type: ${req.headers['content-type']}, Content-Length: ${req.headers['content-length']} bytes`,
-            );
-         }
-         next();
-      });
-   }
 
    // Configure body parser with increased limits for base64 file uploads (default is 100kb)
    // 50MB limit allows uploading ~5-10 high-quality images as base64

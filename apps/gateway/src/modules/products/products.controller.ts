@@ -1,8 +1,21 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+   Body,
+   Controller,
+   Get,
+   HttpCode,
+   HttpStatus,
+   Param,
+   ParseUUIDPipe,
+   Patch,
+   Post,
+   Query,
+   Req,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import {
    ApiErrorResponses,
+   BadRequestException,
    COMMON_ERROR_CODES,
    CORRELATION_ID_HEADER,
    CurrentUser,
@@ -34,6 +47,13 @@ import {
    WhoCategoryDto,
 } from '@contracts/product';
 import { ProductsService } from './products.service';
+
+const UUID_PARAM_PIPE = new ParseUUIDPipe({
+   exceptionFactory: () =>
+      new BadRequestException(COMMON_ERROR_CODES.INVALID_REQUEST, {
+         params: { expected: 'uuid' },
+      }),
+});
 
 @ApiTags('Products')
 @Controller('products')
@@ -231,8 +251,9 @@ export class ProductsController {
    @HttpCode(HttpStatus.OK)
    @ApiOperation({
       operationId: 'getProductById',
-      summary: 'Retrieve detailed product by ID including packaging variants',
-      description: 'Fetches product details, packaging variants, and real-time inventory levels.',
+      summary: 'Retrieve detailed product by ID including packaging variants, store info and order statistics',
+      description:
+         'Fetches product details, packaging variants, real-time inventory levels, a public summary of the selling store (`supplier`), and order statistics (`orderCount` = distinct delivered/completed orders, `soldCount` = total quantity sold). Store and statistics data are best-effort: if a downstream service is unavailable, `supplier` is omitted and the counters default to 0.',
    })
    @ApiParam({
       name: 'productId',
@@ -253,7 +274,7 @@ export class ProductsController {
    ])
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.GET_PRODUCT_SUCCESS)
    async getProductById(
-      @Param('productId') productId: string,
+      @Param('productId', UUID_PARAM_PIPE) productId: string,
       @Req() req: Request,
       @CurrentUser() user?: JwtPayload,
    ): Promise<ProductItemDto> {
@@ -304,7 +325,7 @@ export class ProductsController {
    ])
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.UPDATE_PRODUCT_SUCCESS)
    async updateProduct(
-      @Param('productId') productId: string,
+      @Param('productId', UUID_PARAM_PIPE) productId: string,
       @Body() dto: UpdateProductDto,
       @Req() req: Request,
       @CurrentUser() user?: JwtPayload,
@@ -362,7 +383,7 @@ export class ProductsController {
    ])
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.MODERATE_PRODUCT_SUCCESS)
    async moderateProduct(
-      @Param('productId') productId: string,
+      @Param('productId', UUID_PARAM_PIPE) productId: string,
       @Body() dto: ModerateProductDto,
       @Req() req: Request,
       @CurrentUser() user?: JwtPayload,
@@ -415,7 +436,7 @@ export class ProductsController {
    ])
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.SUBMIT_FOR_REVIEW_SUCCESS)
    async submitProductForReview(
-      @Param('productId') productId: string,
+      @Param('productId', UUID_PARAM_PIPE) productId: string,
       @Req() req: Request,
       @CurrentUser() user?: JwtPayload,
    ): Promise<ProductItemDto> {
@@ -463,7 +484,7 @@ export class ProductsController {
    ])
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.GET_MODERATION_HISTORY_SUCCESS)
    async getProductModerationHistory(
-      @Param('productId') productId: string,
+      @Param('productId', UUID_PARAM_PIPE) productId: string,
       @Req() req: Request,
       @CurrentUser() user?: JwtPayload,
    ): Promise<ProductModerationHistoryDto[]> {
@@ -509,7 +530,7 @@ export class ProductsController {
    ])
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.UPDATE_STATUS_SUCCESS)
    async updateProductStatus(
-      @Param('productId') productId: string,
+      @Param('productId', UUID_PARAM_PIPE) productId: string,
       @Body() dto: UpdateProductStatusDto,
       @Req() req: Request,
       @CurrentUser() user?: JwtPayload,
@@ -555,7 +576,7 @@ export class ProductsController {
    ])
    @ResponseMessage(PRODUCT_RESPONSE_MESSAGES.ADJUST_STOCK_SUCCESS)
    async adjustStock(
-      @Param('variantId') variantId: string,
+      @Param('variantId', UUID_PARAM_PIPE) variantId: string,
       @Body() dto: AdjustStockDto,
       @Req() req: Request,
       @CurrentUser() user?: JwtPayload,

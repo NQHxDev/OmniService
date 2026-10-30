@@ -33,6 +33,7 @@ export const ORDER_V1_GRPC_METHODS = {
    LIST_SUPPLIER_ORDERS: 'ListSupplierOrders',
    GET_SUPPLIER_ORDER_BY_ID: 'GetSupplierOrderById',
    UPDATE_SUPPLIER_ORDER_STATUS: 'UpdateSupplierOrderStatus',
+   GET_PRODUCT_ORDER_STATS: 'GetProductOrderStats',
 } as const;
 
 export type OrderV1GrpcMethod = (typeof ORDER_V1_GRPC_METHODS)[keyof typeof ORDER_V1_GRPC_METHODS];

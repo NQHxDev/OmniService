@@ -11,6 +11,8 @@ import {
    type ICreateOrderRequest,
    type ICreateOrderResponse,
    type IGetOrderByIdRequest,
+   type IGetProductOrderStatsRequest,
+   type IGetProductOrderStatsResponse,
    type IGetOrderByIdResponse,
    type IGetOrdersByUserIdRequest,
    type IGetOrdersByUserIdResponse,
@@ -35,6 +37,7 @@ import {
 import {
    GetOrderByIdQueryHandler,
    GetOrdersByUserIdQueryHandler,
+   GetProductOrderStatsQueryHandler,
    GetSupplierOrderByIdQueryHandler,
    ListSupplierOrdersQueryHandler,
 } from '@order/queries';
@@ -85,6 +88,7 @@ export class OrderGrpcController implements IOrderV1GrpcService {
       private readonly listSupplierOrdersHandler: ListSupplierOrdersQueryHandler,
       private readonly getSupplierOrderByIdHandler: GetSupplierOrderByIdQueryHandler,
       private readonly updateSupplierOrderStatusHandler: UpdateSupplierOrderStatusCommandHandler,
+      private readonly getProductOrderStatsHandler: GetProductOrderStatsQueryHandler,
    ) {}
 
    @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.CREATE_ORDER)
@@ -161,5 +165,13 @@ export class OrderGrpcController implements IOrderV1GrpcService {
       _metadata?: Metadata,
    ): Observable<IUpdateSupplierOrderStatusResponse> {
       return from(this.updateSupplierOrderStatusHandler.execute(request));
+   }
+
+   @GrpcMethod(ORDER_V1_GRPC_SERVICE_NAME, ORDER_V1_GRPC_METHODS.GET_PRODUCT_ORDER_STATS)
+   getProductOrderStats(
+      request: IGetProductOrderStatsRequest,
+      _metadata?: Metadata,
+   ): Observable<IGetProductOrderStatsResponse> {
+      return from(this.getProductOrderStatsHandler.execute(request));
    }
 }

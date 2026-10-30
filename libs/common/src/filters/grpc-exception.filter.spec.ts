@@ -131,4 +131,30 @@ describe('GrpcExceptionFilter', () => {
          expect((rpcErr as unknown as { details: string }).details).toBeDefined();
       }
    });
+
+   it('should map RpcException with gRPC code to appropriate HTTP statusCode and preserve errorCode', async () => {
+      const exception = new RpcException({
+         code: GrpcStatus.INVALID_ARGUMENT,
+         message: 'ORDER.INVALID_STATUS_TRANSITION',
+      });
+
+      const obs = filter.catch(exception);
+      try {
+         await firstValueFrom(obs);
+         throw new Error('Expected exception to be thrown');
+      } catch (err: unknown) {
+         expect(err).toBeInstanceOf(RpcException);
+         const rpcErr = err as RpcException;
+         const error = rpcErr.getError() as { code: number; message: string };
+         expect(error.code).toBe(GrpcStatus.INVALID_ARGUMENT);
+         const parsed = JSON.parse(error.message) as {
+            statusCode: number;
+            errorCode: string;
+            message: string;
+         };
+         expect(parsed.statusCode).toBe(400);
+         expect(parsed.errorCode).toBe('ORDER.INVALID_STATUS_TRANSITION');
+         expect(parsed.message).toBe('ORDER.INVALID_STATUS_TRANSITION');
+      }
+   });
 });

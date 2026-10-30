@@ -91,7 +91,11 @@ describe('AuthRbacService', () => {
 
    describe('getRolePermissions', () => {
       it('should return role permissions', async () => {
-         mockRbacCacheService.getRole.mockResolvedValueOnce({ id: 'r1', permissions: ['read:auth', 'write:auth'] });
+         mockRbacCacheService.getRole.mockResolvedValueOnce({
+            roleId: 'r1',
+            id: 'r1',
+            permissions: ['read:auth', 'write:auth'],
+         });
 
          const permissions = await service.getRolePermissions(DEFAULT_ROLES.ADMIN);
 

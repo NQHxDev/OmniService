@@ -4,6 +4,14 @@ processes:
    # Core Shared Infrastructure (Redis, RabbitMQ, Jaeger, PgBouncer)
    infra:
       command: docker compose --profile infra up -d --wait && exec docker compose logs -f redis rabbitmq jaeger pgbouncer
+      readiness_probe:
+         exec:
+            command: nc -z localhost 6379 && nc -z localhost 5672 && nc -z localhost 6432
+         initial_delay_seconds: 2
+         period_seconds: 1
+         timeout_seconds: 5
+         success_threshold: 1
+         failure_threshold: 30
       shutdown:
          command: docker compose --profile infra stop
 
@@ -14,7 +22,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
 
    # Business Services
    auth:
@@ -23,7 +31,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    user:
@@ -32,7 +40,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    post:
@@ -41,7 +49,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    notification:
@@ -50,7 +58,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    search:
@@ -59,7 +67,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    media:
@@ -68,7 +76,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    commerce:
@@ -77,16 +85,16 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    product:
-      command: ./scripts/run-service.sh product "docker compose --profile product up -d --wait && pnpm --filter @omni/product run prisma:push && pnpm run start:nowatch:product"
+      command: ./scripts/run-service.sh product "docker compose --profile product up -d --wait && pnpm --filter @omni/product run prisma:push && pnpm --filter @omni/product run prisma:seed && pnpm run start:nowatch:product"
       availability:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    supplier:
@@ -95,7 +103,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    order:
@@ -104,7 +112,7 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
       disabled: true
 
    payment:
@@ -113,5 +121,14 @@ processes:
          restart: on_failure
       depends_on:
          infra:
-            condition: process_started
+            condition: process_healthy
+      disabled: true
+
+   analyze:
+      command: ./scripts/run-service.sh analyze "docker compose --profile analyze up -d --wait && pnpm --filter @omni/analyze run prisma:push && pnpm run start:nowatch:analyze"
+      availability:
+         restart: on_failure
+      depends_on:
+         infra:
+            condition: process_healthy
       disabled: true

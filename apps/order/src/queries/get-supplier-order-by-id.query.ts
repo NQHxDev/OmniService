@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { status as GrpcStatus } from '@grpc/grpc-js';
-import { RpcException } from '@nestjs/microservices';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@common';
 import { ORDER_REPOSITORY, type IOrderRepository } from '@order/repositories';
 import {
    DEFAULT_SHIPPING_METHOD,
@@ -18,34 +17,22 @@ export class GetSupplierOrderByIdQueryHandler {
 
    async execute(dto: IGetSupplierOrderByIdRequest): Promise<IGetSupplierOrderByIdResponse> {
       if (!dto.orderId || dto.orderId.trim().length === 0) {
-         throw new RpcException({
-            code: GrpcStatus.INVALID_ARGUMENT,
-            message: ORDER_ERROR_CODES.ORDER_ID_REQUIRED,
-         });
+         throw new BadRequestException(ORDER_ERROR_CODES.ORDER_ID_REQUIRED);
       }
 
       if (!dto.supplierId || dto.supplierId.trim().length === 0) {
-         throw new RpcException({
-            code: GrpcStatus.INVALID_ARGUMENT,
-            message: ORDER_ERROR_CODES.SUPPLIER_ID_REQUIRED,
-         });
+         throw new BadRequestException(ORDER_ERROR_CODES.SUPPLIER_ID_REQUIRED);
       }
 
       // Check if order exists
       const existingOrder = await this.orderRepository.findById(dto.orderId);
       if (!existingOrder) {
-         throw new RpcException({
-            code: GrpcStatus.NOT_FOUND,
-            message: ORDER_ERROR_CODES.NOT_FOUND,
-         });
+         throw new NotFoundException(ORDER_ERROR_CODES.NOT_FOUND);
       }
 
       // Verify supplier ownership if order has supplierId assigned
       if (existingOrder.supplierId && existingOrder.supplierId !== dto.supplierId) {
-         throw new RpcException({
-            code: GrpcStatus.PERMISSION_DENIED,
-            message: ORDER_ERROR_CODES.FORBIDDEN_SUPPLIER_ORDER,
-         });
+         throw new ForbiddenException(ORDER_ERROR_CODES.FORBIDDEN_SUPPLIER_ORDER);
       }
 
       const totalAmount = Number(existingOrder.totalAmount);

@@ -80,7 +80,11 @@
          "@contracts/payment": ["libs/contracts/payment/src"],
          "@contracts/payment/*": ["libs/contracts/payment/src/*"],
          "@contracts/product": ["libs/contracts/product/src"],
-         "@contracts/product/*": ["libs/contracts/product/src/*"]
+         "@contracts/product/*": ["libs/contracts/product/src/*"],
+         "@analyze/*": ["apps/analyze/src/*"],
+         "@analyze/prisma-client": ["apps/analyze/src/generated/prisma-client"],
+         "@contracts/analyze": ["libs/contracts/analyze/src"],
+         "@contracts/analyze/*": ["libs/contracts/analyze/src/*"]
       },
       "jsx": "react-jsx"
    }

@@ -86,7 +86,14 @@ export class PostService {
          throw new BadRequestException(POST_ERROR_CODES.UNAUTHORIZED);
       }
 
-      if (!dto.title || !dto.videoUrl || !dto.thumbnailUrl || !dto.duration) {
+      if (
+         !dto.title ||
+         !dto.videoUrl ||
+         !dto.thumbnailUrl ||
+         dto.duration === undefined ||
+         dto.duration === null ||
+         dto.duration < 0
+      ) {
          throw new BadRequestException(POST_ERROR_CODES.CREATE_FAILED);
       }
 

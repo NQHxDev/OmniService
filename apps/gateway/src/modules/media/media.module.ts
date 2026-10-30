@@ -25,8 +25,12 @@ import { MediaService } from '@gateway/modules/media/media.service';
                   protoPath: [getMediaProtoPath()],
                   url: configService.mediaGrpcUrl,
                   loader: getMediaProtoLoaderOptions(),
+                  maxReceiveMessageLength: 50 * 1024 * 1024,
+                  maxSendMessageLength: 50 * 1024 * 1024,
                   channelOptions: createGrpcRetryChannelOptions({
                      serviceNames: [MEDIA_V1_GRPC_PACKAGE_NAME],
+                     maxReceiveMessageLength: 50 * 1024 * 1024,
+                     maxSendMessageLength: 50 * 1024 * 1024,
                   }),
                },
             }),

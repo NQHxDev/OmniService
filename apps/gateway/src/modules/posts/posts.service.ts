@@ -18,10 +18,12 @@ import {
    type GetPostFeedDto,
    type IPostItemProto,
    type IPostV1GrpcService,
+   type PostAuthorDto,
    type PostFeedResponseDto,
    type PostIngredientDto,
    type PostItemDto,
 } from '@contracts/post';
+import { USER_V1_GRPC_CLIENT, USER_V1_GRPC_SERVICE_NAME, type IUserV1GrpcService } from '@contracts/user';
 import {
    SEARCH_V1_GRPC_CLIENT,
    SEARCH_V1_GRPC_SERVICE_NAME,
@@ -34,6 +36,7 @@ export class PostsService implements OnModuleInit {
    private readonly logger = new Logger(PostsService.name);
    private searchGrpcService!: ISearchV1GrpcService;
    private postGrpcService!: IPostV1GrpcService;
+   private userGrpcService!: IUserV1GrpcService;
 
    private readonly searchBulkhead = BulkheadRegistry.getOrCreate(SEARCH_V1_GRPC_SERVICE_NAME, {
       maxConcurrent: 50,
@@ -51,6 +54,12 @@ export class PostsService implements OnModuleInit {
       initialDelayMs: 100,
       multiplier: 2,
       maxDelayMs: 2000,
+   });
+
+   private readonly userGrpcBreaker = CircuitBreakerRegistry.getOrCreate(USER_V1_GRPC_SERVICE_NAME, {
+      timeout: 3000,
+      failureThreshold: 5,
+      resetTimeout: 10000,
    });
 
    private readonly postBulkhead = BulkheadRegistry.getOrCreate(POST_V1_GRPC_SERVICE_NAME, {
@@ -76,12 +85,15 @@ export class PostsService implements OnModuleInit {
       private readonly searchGrpcClient: ClientGrpc,
       @Inject(POST_V1_GRPC_CLIENT)
       private readonly postGrpcClient: ClientGrpc,
+      @Inject(USER_V1_GRPC_CLIENT)
+      private readonly userGrpcClient: ClientGrpc,
       private readonly redisService: RedisService,
    ) {}
 
    onModuleInit(): void {
       this.searchGrpcService = this.searchGrpcClient.getService<ISearchV1GrpcService>(SEARCH_V1_GRPC_SERVICE_NAME);
       this.postGrpcService = this.postGrpcClient.getService<IPostV1GrpcService>(POST_V1_GRPC_SERVICE_NAME);
+      this.userGrpcService = this.userGrpcClient.getService<IUserV1GrpcService>(USER_V1_GRPC_SERVICE_NAME);
    }
 
    /**
@@ -106,8 +118,10 @@ export class PostsService implements OnModuleInit {
             ),
          );
 
+         const items = await this.enrichAuthors((res.items || []).map((hit) => this.mapSearchProtoToPostDto(hit)));
+
          return {
-            items: (res.items || []).map((hit) => this.mapSearchProtoToPostDto(hit)),
+            items,
             nextCursor: res.nextCursor || null,
             hasMore: res.hasMore,
          };
@@ -163,7 +177,7 @@ export class PostsService implements OnModuleInit {
             ),
          );
 
-         const dto = this.mapSearchProtoToPostDto(res.post);
+         const [dto] = await this.enrichAuthors([this.mapSearchProtoToPostDto(res.post)]);
 
          // Write-Through to Redis Cache
          await this.redisService.setJson(cacheKey, dto, POST_CACHE_TTL.DETAIL_SECONDS);
@@ -233,9 +247,9 @@ export class PostsService implements OnModuleInit {
                         playbackUrl: dto.playbackUrl,
                         thumbnailUrl: dto.thumbnailUrl,
                         blurHash: dto.blurHash,
-                        duration: dto.duration,
-                        videoWidth: dto.videoWidth,
-                        videoHeight: dto.videoHeight,
+                        duration: Math.round(dto.duration || 0),
+                        videoWidth: dto.videoWidth !== undefined ? Math.round(dto.videoWidth) : undefined,
+                        videoHeight: dto.videoHeight !== undefined ? Math.round(dto.videoHeight) : undefined,
                         visibility: dto.visibility,
                         allowComments: dto.allowComments,
                         allowDuet: dto.allowDuet,
@@ -275,7 +289,7 @@ export class PostsService implements OnModuleInit {
             ),
          );
 
-         const createdPost = this.mapPostProtoToDto(res.post);
+         const [createdPost] = await this.enrichAuthors([this.mapPostProtoToDto(res.post)]);
 
          // Mark recent author write for Read-Your-Own-Writes consistency
          await this.markRecentPostCreation(createdPost.postId, userId);
@@ -304,8 +318,10 @@ export class PostsService implements OnModuleInit {
             ),
          );
 
+         const items = await this.enrichAuthors((res.items || []).map((item) => this.mapPostProtoToDto(item)));
+
          return {
-            items: (res.items || []).map((item) => this.mapPostProtoToDto(item)),
+            items,
             nextCursor: res.nextCursor || null,
             hasMore: res.hasMore,
          };
@@ -326,9 +342,68 @@ export class PostsService implements OnModuleInit {
             ),
          );
 
-         return this.mapPostProtoToDto(res.post);
+         const [dto] = await this.enrichAuthors([this.mapPostProtoToDto(res.post)]);
+         return dto;
       } catch (error: unknown) {
          return handleGrpcError(error);
+      }
+   }
+
+   /**
+    * Fills missing author display names (and avatars) so clients receive the author's name
+    * together with each post. Uses a Redis cache and degrades gracefully if User service is down.
+    */
+   private async enrichAuthors(items: PostItemDto[]): Promise<PostItemDto[]> {
+      const missingUserIds = [...new Set(items.filter((item) => !item.author?.displayName).map((item) => item.userId))];
+      if (missingUserIds.length === 0) {
+         return items;
+      }
+
+      const authors = new Map<string, PostAuthorDto>();
+      await Promise.all(
+         missingUserIds.map(async (userId) => {
+            const author = await this.resolveAuthor(userId);
+            if (author) {
+               authors.set(userId, author);
+            }
+         }),
+      );
+
+      return items.map((item) => {
+         const resolved = authors.get(item.userId);
+         return resolved ? { ...item, author: resolved } : item;
+      });
+   }
+
+   private async resolveAuthor(userId: string): Promise<PostAuthorDto | null> {
+      const cacheKey = POST_CACHE_KEYS.author(userId);
+      try {
+         const cached = await this.redisService.getJson<PostAuthorDto>(cacheKey);
+         if (cached?.displayName) {
+            return cached;
+         }
+      } catch (error) {
+         this.logger.warn(`Failed to read author cache for ${userId}: ${(error as Error).message}`);
+      }
+
+      try {
+         const res = await this.userGrpcBreaker.execute(() =>
+            firstValueFrom(defer(() => this.userGrpcService.getUserById({ userId }))),
+         );
+         const displayName = res.user?.displayName || res.user?.profile?.displayName || null;
+         if (!displayName) {
+            return null;
+         }
+         const author: PostAuthorDto = {
+            userId,
+            displayName,
+            avatarUrl: res.user?.avatar || res.user?.profile?.avatar || null,
+         };
+         await this.redisService.setJson(cacheKey, author, POST_CACHE_TTL.AUTHOR_SECONDS);
+         return author;
+      } catch (error) {
+         this.logger.warn(`Failed to resolve author ${userId}: ${(error as Error).message}`);
+         return null;
       }
    }
 
@@ -336,6 +411,7 @@ export class PostsService implements OnModuleInit {
       return {
          postId: item.postId,
          userId: item.userId,
+         author: { userId: item.userId, displayName: null, avatarUrl: null },
          title: item.title,
          caption: item.caption || null,
          mediaId: item.mediaId || null,
@@ -394,6 +470,11 @@ export class PostsService implements OnModuleInit {
       return {
          postId: hit.postId,
          userId: hit.userId,
+         author: {
+            userId: hit.author?.userId || hit.userId,
+            displayName: hit.author?.displayName || null,
+            avatarUrl: hit.author?.avatarUrl || null,
+         },
          title: hit.title,
          caption: hit.caption || null,
          mediaId: hit.mediaId || null,

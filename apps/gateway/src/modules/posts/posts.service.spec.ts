@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 import { BulkheadRegistry, CircuitBreakerRegistry, RedisService } from '@common';
+import { USER_V1_GRPC_CLIENT } from '@contracts/user';
 import { SEARCH_V1_GRPC_CLIENT, type IPostSearchHitProto } from '@contracts/search';
 import {
    POST_CACHE_KEYS,
@@ -32,6 +33,16 @@ describe('PostsService (CQRS Read-Model Single-Hop Delegation & Resilience)', ()
 
    const mockPostClient = {
       getService: jest.fn().mockReturnValue(mockPostGrpcService),
+   };
+
+   const mockUserGrpcService = {
+      getUserById: jest
+         .fn()
+         .mockReturnValue(of({ user: { displayName: 'Chef Anh', avatar: 'https://cdn.example.com/a.jpg' } })),
+   };
+
+   const mockUserClient = {
+      getService: jest.fn().mockReturnValue(mockUserGrpcService),
    };
 
    const mockRedisService = {
@@ -106,6 +117,7 @@ describe('PostsService (CQRS Read-Model Single-Hop Delegation & Resilience)', ()
             PostsService,
             { provide: SEARCH_V1_GRPC_CLIENT, useValue: mockSearchClient },
             { provide: POST_V1_GRPC_CLIENT, useValue: mockPostClient },
+            { provide: USER_V1_GRPC_CLIENT, useValue: mockUserClient },
             { provide: RedisService, useValue: mockRedisService },
          ],
       }).compile();

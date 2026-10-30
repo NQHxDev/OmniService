@@ -40,6 +40,7 @@
       "codegraph:install": "npx @colbymchenry/codegraph install",
       "codegraph:sync": "npx @colbymchenry/codegraph sync",
       "keys:generate": "ts-node scripts/generate-keys.ts",
+      "generate:keys": "ts-node scripts/generate-keys.ts",
       "prepare": "husky",
       "build": "sh scripts/build-sequential.sh",
       "test": "jest",
@@ -55,7 +56,9 @@
       "start:nowatch:payment": "nest start payment -b swc",
       "start:nowatch:media:worker": "nest start media --entryFile worker -b swc",
       "start:product": "nest start product -b swc --watch",
-      "start:nowatch:product": "nest start product -b swc"
+      "start:nowatch:product": "nest start product -b swc",
+      "start:analyze": "nest start analyze -b swc --watch",
+      "start:nowatch:analyze": "nest start analyze -b swc"
    },
    "devDependencies": {
       "@eslint/eslintrc": "^3.2.0",
@@ -93,6 +96,7 @@
       "prettier": "^3.4.2",
       "prisma": "7.10.0",
       "react-email": "^6.11.0",
+      "rxjs": "7.8.1",
       "source-map-support": "^0.5.21",
       "supertest": "^7.0.0",
       "ts-jest": "^29.2.5",
@@ -142,7 +146,8 @@
          "^@contracts/([^/]+)$": "<rootDir>/libs/contracts/$1/src",
          "^@order/(.*)$": "<rootDir>/apps/order/src/$1",
          "^@payment/(.*)$": "<rootDir>/apps/payment/src/$1",
-         "^@product/(.*)$": "<rootDir>/apps/product/src/$1"
+         "^@product/(.*)$": "<rootDir>/apps/product/src/$1",
+         "^@analyze/(.*)$": "<rootDir>/apps/analyze/src/$1"
       }
    },
    "lint-staged": {

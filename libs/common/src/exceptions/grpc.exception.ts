@@ -130,6 +130,8 @@ export const handleGrpcError = (error: unknown): never => {
          // Fallback mapping by gRPC status code constant
          switch (grpcCode) {
             case GrpcStatus.INVALID_ARGUMENT:
+            case GrpcStatus.FAILED_PRECONDITION:
+            case GrpcStatus.OUT_OF_RANGE:
                throw new BadRequestException(errorCode, { params });
             case GrpcStatus.NOT_FOUND:
                throw new NotFoundException(errorCode, { params });

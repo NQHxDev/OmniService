@@ -61,6 +61,7 @@ export class UpdateProfileOperation extends AbstractProfileOperation<
          coverImage: data.coverImage,
          website: data.website,
          location: data.location,
+         address: data.address,
          dateOfBirth: data.dateOfBirth,
          gender: data.gender,
          existingUser: existingUser ?? undefined,

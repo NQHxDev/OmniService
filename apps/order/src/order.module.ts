@@ -24,6 +24,7 @@ import {
 } from '@order/commands';
 import {
    GetOrderByIdQueryHandler,
+   GetProductOrderStatsQueryHandler,
    GetOrdersByUserIdQueryHandler,
    GetSupplierOrderByIdQueryHandler,
    ListSupplierOrdersQueryHandler,
@@ -59,6 +60,7 @@ import { ORDER_REPOSITORY, OrderRepository } from '@order/repositories';
       UpdateOrderStatusCommandHandler,
       UpdateSupplierOrderStatusCommandHandler,
       GetOrderByIdQueryHandler,
+      GetProductOrderStatsQueryHandler,
       GetOrdersByUserIdQueryHandler,
       ListSupplierOrdersQueryHandler,
       GetSupplierOrderByIdQueryHandler,
@@ -73,6 +75,7 @@ import { ORDER_REPOSITORY, OrderRepository } from '@order/repositories';
       UpdateOrderStatusCommandHandler,
       UpdateSupplierOrderStatusCommandHandler,
       GetOrderByIdQueryHandler,
+      GetProductOrderStatsQueryHandler,
       GetOrdersByUserIdQueryHandler,
       ListSupplierOrdersQueryHandler,
       GetSupplierOrderByIdQueryHandler,

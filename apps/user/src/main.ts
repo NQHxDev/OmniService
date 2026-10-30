@@ -36,6 +36,12 @@ async function bootstrap() {
             protoPath: [getUserProtoPath(), getHealthProtoPath()],
             url: configService.grpcUrl,
             loader: getUserProtoLoaderOptions(),
+            maxReceiveMessageLength: 50 * 1024 * 1024,
+            maxSendMessageLength: 50 * 1024 * 1024,
+            channelOptions: {
+               'grpc.max_receive_message_length': 50 * 1024 * 1024,
+               'grpc.max_send_message_length': 50 * 1024 * 1024,
+            },
          },
       },
       {

@@ -86,4 +86,14 @@ export class UpdateUserDto {
    @IsOptional()
    @IsString()
    location?: string;
+
+   @ApiPropertyOptional({
+      example: '123 Nguyen Trai, Thanh Xuan, Hanoi',
+      description: 'Physical living address of user (min 3, max 255 characters)',
+   })
+   @IsOptional()
+   @IsString({ message: 'Address must be a string' })
+   @MinLength(3, { message: 'Address must be at least 3 characters' })
+   @MaxLength(255, { message: 'Address cannot exceed 255 characters' })
+   address?: string;
 }

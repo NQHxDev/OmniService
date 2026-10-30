@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { BadRequestException } from '@common';
 import { USER_ERROR_CODES } from '@contracts/user';
-import { Bio, DateOfBirth, DisplayName, Website } from '@user/domain/value-objects';
+import { Address, Bio, DateOfBirth, DisplayName, Website } from '@user/domain/value-objects';
 import { AbstractProfileValidationHandler } from '@user/chains/profile-validation/abstract-profile-validation.handler';
 import type { ProfileValidationContext } from '@user/chains/profile-validation/profile-validation.context';
 
 /**
  * Validates domain invariants for profile content attributes (Display Name, Date of Birth,
- * Biography, and Website URL) using domain Value Objects.
+ * Biography, Website URL, and Address) using domain Value Objects.
  */
 @Injectable()
 export class ProfileDetailsFormatHandler extends AbstractProfileValidationHandler {
@@ -47,6 +47,15 @@ export class ProfileDetailsFormatHandler extends AbstractProfileValidationHandle
          if (websiteResult.isFailure()) {
             throw new BadRequestException(websiteResult.getError() || USER_ERROR_CODES.INVALID_WEBSITE, {
                params: websiteResult.getParams(),
+            });
+         }
+      }
+
+      if (context.address !== undefined && context.address !== null && context.address !== '') {
+         const addressResult = Address.create(context.address);
+         if (addressResult.isFailure()) {
+            throw new BadRequestException(addressResult.getError() || USER_ERROR_CODES.INVALID_ADDRESS_FORMAT, {
+               params: addressResult.getParams(),
             });
          }
       }

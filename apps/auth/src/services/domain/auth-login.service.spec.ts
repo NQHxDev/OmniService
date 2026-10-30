@@ -23,7 +23,7 @@ describe('AuthLoginService', () => {
    };
 
    const mockAuthRbacService = {
-      getOrCacheRole: jest.fn().mockResolvedValue({ id: 'r1', code: SYSTEM_ROLES.USER, permissions: [] }),
+      getOrCacheRole: jest.fn().mockResolvedValue({ roleId: 'r1', id: 'r1', code: SYSTEM_ROLES.USER, permissions: [] }),
    };
 
    const mockPasswordHasher = {

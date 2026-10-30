@@ -26,6 +26,7 @@ describe('UsersService', () => {
    let service: UsersService;
    const mockUserGrpcService = {
       checkUsername: jest.fn(),
+      createProfile: jest.fn(),
       getUserById: jest.fn(),
       getMyProfile: jest.fn(),
       getAllUsers: jest.fn(),
@@ -357,5 +358,52 @@ describe('UsersService', () => {
 
       const result = await service.getFollowSuggestions(5, mockUser);
       expect(result).toEqual([]);
+   });
+
+   it('should create user profile with address included', async () => {
+      const mockCreatedUser = {
+         userId: 'auth-user-1',
+         displayName: 'John Doe',
+         address: '123 Nguyen Trai, Hanoi',
+      };
+      mockUserGrpcService.createProfile.mockReturnValue(of({ user: mockCreatedUser }));
+
+      const result = await service.createProfile(
+         {
+            displayName: 'John Doe',
+            address: '123 Nguyen Trai, Hanoi',
+         },
+         mockUser,
+      );
+
+      expect(mockUserGrpcService.createProfile).toHaveBeenCalledWith(
+         expect.objectContaining({
+            displayName: 'John Doe',
+            address: '123 Nguyen Trai, Hanoi',
+            userId: 'auth-user-1',
+            accountId: 'auth-user-1',
+         }),
+         expect.anything(),
+      );
+      expect(result).toEqual(mockCreatedUser);
+   });
+
+   it('should update user address via updateAddress', async () => {
+      const mockUpdatedUser = {
+         userId: 'auth-user-1',
+         address: '456 Le Loi, Da Nang',
+      };
+      mockUserGrpcService.updateUserProfile.mockReturnValue(of({ user: mockUpdatedUser }));
+
+      const result = await service.updateAddress('auth-user-1', '456 Le Loi, Da Nang', mockUser);
+
+      expect(mockUserGrpcService.updateUserProfile).toHaveBeenCalledWith(
+         expect.objectContaining({
+            userId: 'auth-user-1',
+            address: '456 Le Loi, Da Nang',
+         }),
+         expect.anything(),
+      );
+      expect(result).toEqual(mockUpdatedUser);
    });
 });

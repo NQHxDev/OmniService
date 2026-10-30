@@ -404,6 +404,21 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
          password.hash(this.passwordHasher),
       ]);
 
+      let targetRoleId = defaultRole?.roleId ?? (defaultRole as unknown as { id?: string })?.id;
+      if (!targetRoleId) {
+         const fallbackRole = await this.rbacRepository.findRoleByCode(targetRoleName);
+         if (fallbackRole) {
+            targetRoleId = fallbackRole.roleId;
+            await this.rbacCacheService.setRole(targetRoleName, {
+               roleId: fallbackRole.roleId,
+               code: fallbackRole.code,
+               name: fallbackRole.name,
+               description: fallbackRole.description,
+               permissions: fallbackRole.permissions || [],
+            });
+         }
+      }
+
       const saga = new RegisterSaga(
          this.accountRepository,
          this.tokenLifecycleService,
@@ -420,7 +435,7 @@ export class AuthRegistrationService extends AbstractAuthFlow<RegistrationFlowDt
          const account = await uow.accountRepository.create({
             email: normalizedEmail,
             passwordHash,
-            roleId: defaultRole?.roleId,
+            roleId: targetRoleId,
             status: initialStatus,
             isEmailVerified,
          });

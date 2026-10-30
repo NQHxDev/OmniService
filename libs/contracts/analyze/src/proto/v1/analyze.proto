@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package analyze.v1;
+
+message CategoryScore {
+  string categoryId = 1;
+  double score = 2;
+}
+
+message GetUserInterestsRequest {
+  string userId = 1;
+  int32 limit = 2;
+}
+
+message GetUserInterestsResponse {
+  string userId = 1;
+  repeated CategoryScore topCategories = 2;
+  repeated string seenVideoIds = 3;
+}
+
+message WatchInterval {
+  int32 startMs = 1;
+  int32 endMs = 2;
+}
+
+message RecordWatchSessionRequest {
+  optional string sessionId = 1;
+  string userId = 2;
+  string videoId = 3;
+  int32 watchDurationMs = 4;
+  int32 videoDurationMs = 5;
+  bool isCompleted = 6;
+  int32 loopCount = 7;
+  repeated string categoryIds = 8;
+  repeated string tagIds = 9;
+  repeated WatchInterval intervals = 10;
+}
+
+message RecordWatchSessionResponse {
+  bool success = 1;
+  string message = 2;
+  double calculatedScoreDelta = 3;
+}
+
+service AnalyzeService {
+  rpc GetUserInterests (GetUserInterestsRequest) returns (GetUserInterestsResponse);
+  rpc RecordWatchSession (RecordWatchSessionRequest) returns (RecordWatchSessionResponse);
+}

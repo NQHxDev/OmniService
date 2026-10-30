@@ -14,3 +14,4 @@ export * from '@contracts/product/dto/search-products-response.dto';
 export * from '@contracts/product/dto/suggest-products-response.dto';
 export * from '@contracts/product/dto/product-moderation-history.dto';
 export * from '@contracts/product/dto/product-pending-edit.dto';
+export * from '@contracts/product/dto/product-supplier-summary.dto';

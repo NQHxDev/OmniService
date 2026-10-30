@@ -8,6 +8,12 @@ import {
    getPostProtoPath,
 } from '@contracts/post';
 import {
+   USER_V1_GRPC_CLIENT,
+   USER_V1_GRPC_PACKAGE_NAME,
+   getUserProtoLoaderOptions,
+   getUserProtoPath,
+} from '@contracts/user';
+import {
    SEARCH_V1_GRPC_CLIENT,
    SEARCH_V1_GRPC_PACKAGE_NAME,
    getSearchProtoLoaderOptions,
@@ -34,6 +40,23 @@ import { PostsService } from '@/modules/posts/posts.service';
                   loader: getPostProtoLoaderOptions(),
                   channelOptions: createGrpcRetryChannelOptions({
                      serviceNames: [POST_V1_GRPC_PACKAGE_NAME],
+                  }),
+               },
+            }),
+         },
+         {
+            name: USER_V1_GRPC_CLIENT,
+            imports: [GatewayConfigModule],
+            inject: [GatewayConfigService],
+            useFactory: (configService: GatewayConfigService) => ({
+               transport: Transport.GRPC,
+               options: {
+                  package: [USER_V1_GRPC_PACKAGE_NAME],
+                  protoPath: [getUserProtoPath()],
+                  url: configService.userGrpcUrl,
+                  loader: getUserProtoLoaderOptions(),
+                  channelOptions: createGrpcRetryChannelOptions({
+                     serviceNames: [USER_V1_GRPC_PACKAGE_NAME],
                   }),
                },
             }),

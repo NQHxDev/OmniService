@@ -39,6 +39,8 @@ export interface ICreateOrderItemInput {
    quantity: number;
    unitPrice: number;
    imageUrl?: string;
+   note?: string;
+   productVariantId?: string;
 }
 
 export interface ICreateOrderRequest {
@@ -218,6 +220,20 @@ export interface IUpdateSupplierOrderStatusResponse {
    updatedAt: string;
 }
 
+export interface IGetProductOrderStatsRequest {
+   productIds: string[];
+}
+
+export interface IProductOrderStatsProto {
+   productId: string;
+   orderCount: number;
+   soldCount: number;
+}
+
+export interface IGetProductOrderStatsResponse {
+   stats: IProductOrderStatsProto[];
+}
+
 export interface IOrderV1GrpcService {
    createOrder(request: ICreateOrderRequest, metadata?: Metadata): Observable<ICreateOrderResponse>;
    getOrderById(request: IGetOrderByIdRequest, metadata?: Metadata): Observable<IGetOrderByIdResponse>;
@@ -237,6 +253,11 @@ export interface IOrderV1GrpcService {
       request: IUpdateSupplierOrderStatusRequest,
       metadata?: Metadata,
    ): Observable<IUpdateSupplierOrderStatusResponse>;
+
+   getProductOrderStats(
+      request: IGetProductOrderStatsRequest,
+      metadata?: Metadata,
+   ): Observable<IGetProductOrderStatsResponse>;
 }
 
 export type IOrderGrpcService = IOrderV1GrpcService;

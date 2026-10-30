@@ -226,8 +226,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
          message = errorCode || COMMON_ERROR_CODES.INTERNAL_SERVER_ERROR;
       }
 
+      const formattedValidationErrors =
+         validationErrors && validationErrors.length > 0
+            ? validationErrors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message)).join('; ')
+            : undefined;
+
       if (request) {
-         request.customLogMessage = message;
+         request.customLogMessage = formattedValidationErrors ? `${message} (${formattedValidationErrors})` : message;
          if (errorCode && !request.action) {
             request.action = errorCode;
          }
@@ -253,14 +258,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
          ...(correlationId ? { correlationId } : {}),
       };
 
+      const logSuffix = formattedValidationErrors ? ` - ValidationErrors: [${formattedValidationErrors}]` : '';
+
       if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
          this.logger.error(
-            `[${request?.method || 'UNKNOWN'}] ${request?.url || ''} - Status: ${status} - ErrorCode: ${errorCode} - Message: ${message}`,
+            `[${request?.method || 'UNKNOWN'}] ${request?.url || ''} - Status: ${status} - ErrorCode: ${errorCode} - Message: ${message}${logSuffix}`,
             exception instanceof Error ? exception.stack : undefined,
          );
       } else {
          this.logger.warn(
-            `[${request?.method || 'UNKNOWN'}] ${request?.url || ''} - Status: ${status} - ErrorCode: ${errorCode} - Message: ${message}`,
+            `[${request?.method || 'UNKNOWN'}] ${request?.url || ''} - Status: ${status} - ErrorCode: ${errorCode} - Message: ${message}${logSuffix}`,
          );
       }
 

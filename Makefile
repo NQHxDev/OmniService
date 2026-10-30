@@ -25,8 +25,27 @@ else
 	pnpm run prisma:seed
 endif
 
+.PHONY: generate-keys
+generate-keys:
+	pnpm run keys:generate
+
+.PHONY: stop
+stop:
+	@echo "Stopping running services and freeing ports..."
+	@process-compose -p 9999 down 2>/dev/null || true
+	@for port in 9999 8080 50051 50052 50053 50054 50055 50056 50057 50058 50059 50060 50061 50062; do \
+		pids=$$(lsof -ti :$$port 2>/dev/null); \
+		if [ -n "$$pids" ]; then \
+			echo "Freeing port $$port (PID: $$pids)..."; \
+			kill -9 $$pids 2>/dev/null || true; \
+		fi; \
+	done
+
+.PHONY: clean-ports
+clean-ports: stop
+
 .PHONY: start
-start:
+start: stop
 	@echo "Starting all services..."
 	pnpm run pc:start
 
@@ -81,6 +100,7 @@ start-commerce:
 start-product:
 	docker compose --profile infra --profile product up -d --wait
 	pnpm --filter @omni/product run prisma:push
+	pnpm --filter @omni/product run prisma:seed
 	pnpm run start:product
 
 .PHONY: start-supplier
@@ -100,6 +120,12 @@ start-payment:
 	docker compose --profile infra --profile payment up -d --wait
 	pnpm --filter @omni/payment run prisma:push
 	pnpm run start:payment
+
+.PHONY: start-analyze
+start-analyze:
+	docker compose --profile infra --profile analyze up -d --wait
+	pnpm --filter @omni/analyze run prisma:push
+	pnpm run start:analyze
 
 .PHONY: build
 build:
@@ -148,3 +174,21 @@ docker-clean:
 .PHONY: codegraph-sync
 codegraph-sync:
 	pnpm exec codegraph sync
+
+.PHONY: detect-changed
+detect-changed:
+	@sh scripts/detect-changed-services.sh $(service)
+
+.PHONY: docker-build
+docker-build:
+ifndef service
+	$(error "Please specify service name, e.g. make docker-build service=auth")
+endif
+	docker build --build-arg SERVICE_NAME=$(service) -t omni-$(service):latest .
+
+.PHONY: docker-run
+docker-run:
+ifndef service
+	$(error "Please specify service name, e.g. make docker-run service=auth")
+endif
+	docker run --rm -it -p 3000:3000 omni-$(service):latest

@@ -66,6 +66,8 @@ export type PostEvent = (typeof POST_EVENTS)[keyof typeof POST_EVENTS];
 export const POST_CACHE_KEYS = {
    DETAIL_PREFIX: 'post:detail:cache',
    RECENT_AUTHOR_PREFIX: 'post:recent-author',
+   AUTHOR_PREFIX: 'post:author:cache',
+   author: (userId: string): string => `post:author:cache:${userId}`,
    detail: (postId: string): string => `post:detail:cache:${postId}`,
    recentAuthor: (postId: string, userId: string): string => `post:recent-author:${postId}:${userId}`,
 } as const;
@@ -73,6 +75,7 @@ export const POST_CACHE_KEYS = {
 export const POST_CACHE_TTL = {
    DETAIL_SECONDS: 60,
    RECENT_AUTHOR_SECONDS: 5,
+   AUTHOR_SECONDS: 300,
 } as const;
 
 export const POST_EVENT_KEYS = {

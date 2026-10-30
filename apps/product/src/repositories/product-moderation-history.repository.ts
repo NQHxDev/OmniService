@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { uuidv7 } from '@common';
+import { isUuid, uuidv7 } from '@common';
 import { PrismaService } from '@product/prisma';
 import { ProductModerationHistoryEntity } from '@product/entities';
 import type { Prisma } from '@product/prisma-client';
@@ -48,6 +48,9 @@ export class ProductModerationHistoryRepository implements IProductModerationHis
    }
 
    async findByProductId(productId: string): Promise<ProductModerationHistoryEntity[]> {
+      if (!isUuid(productId)) {
+         return [];
+      }
       const records = await this.prisma.productModerationHistory.findMany({
          where: { productId },
          orderBy: { createdAt: 'desc' },

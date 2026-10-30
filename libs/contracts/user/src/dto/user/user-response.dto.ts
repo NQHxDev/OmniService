@@ -55,6 +55,13 @@ export class UserProfileDto {
    })
    location?: string | null;
 
+   @ApiPropertyOptional({
+      description: 'User physical address',
+      example: '123 Nguyen Trai, Thanh Xuan, Hanoi',
+      nullable: true,
+   })
+   address?: string | null;
+
    @ApiProperty({
       description: 'Timestamp when profile was created',
       example: '2026-01-01T00:00:00.000Z',
@@ -250,4 +257,11 @@ export class UserResponseDto {
       nullable: true,
    })
    bio?: string | null;
+
+   @ApiPropertyOptional({
+      description: 'Flattened physical address',
+      example: '123 Nguyen Trai, Thanh Xuan, Hanoi',
+      nullable: true,
+   })
+   address?: string | null;
 }

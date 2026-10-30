@@ -4,8 +4,8 @@ import {
    IsArray,
    IsBoolean,
    IsEnum,
-   IsInt,
    IsNotEmpty,
+   IsNumber,
    IsOptional,
    IsString,
    IsUrl,
@@ -41,7 +41,7 @@ export class CreatePostDto {
       description: 'Media asset ID from Media Service',
       example: '0192e21b-0002-7000-8000-000000000005',
    })
-   @IsUUID('4')
+   @IsUUID()
    @IsOptional()
    mediaId?: string;
 
@@ -49,7 +49,7 @@ export class CreatePostDto {
       description: 'Direct video playback URL (hosted on Cloudflare R2)',
       example: 'https://pub-50b1ab619efd4084959e011fe2e5a273.r2.dev/videos/video_1.mp4',
    })
-   @IsUrl()
+   @IsUrl({ require_tld: false })
    @IsNotEmpty()
    videoUrl!: string;
 
@@ -57,7 +57,7 @@ export class CreatePostDto {
       description: 'HLS / DASH streaming playback URL if processed',
       example: 'https://pub-50b1ab619efd4084959e011fe2e5a273.r2.dev/videos/video_1/master.m3u8',
    })
-   @IsUrl()
+   @IsUrl({ require_tld: false })
    @IsOptional()
    playbackUrl?: string;
 
@@ -65,7 +65,7 @@ export class CreatePostDto {
       description: 'Cover thumbnail image URL',
       example: 'https://pub-50b1ab619efd4084959e011fe2e5a273.r2.dev/thumbnails/video_1.jpg',
    })
-   @IsUrl()
+   @IsUrl({ require_tld: false })
    @IsNotEmpty()
    thumbnailUrl!: string;
 
@@ -81,15 +81,15 @@ export class CreatePostDto {
       description: 'Video duration in seconds',
       example: 45,
    })
-   @IsInt()
-   @Min(1)
+   @IsNumber()
+   @Min(0)
    duration!: number;
 
    @ApiPropertyOptional({
       description: 'Video pixel width resolution',
       example: 1080,
    })
-   @IsInt()
+   @IsNumber()
    @IsOptional()
    videoWidth?: number;
 
@@ -97,7 +97,7 @@ export class CreatePostDto {
       description: 'Video pixel height resolution',
       example: 1920,
    })
-   @IsInt()
+   @IsNumber()
    @IsOptional()
    videoHeight?: number;
 
@@ -143,7 +143,7 @@ export class CreatePostDto {
       example: ['0192e21b-0002-7000-8000-000000000010'],
    })
    @IsArray()
-   @IsUUID('4', { each: true })
+   @IsUUID(undefined, { each: true })
    @IsOptional()
    mentionedUserIds?: string[];
 
@@ -152,7 +152,7 @@ export class CreatePostDto {
       example: ['0192e21b-0002-7000-8000-000000000020'],
    })
    @IsArray()
-   @IsUUID('4', { each: true })
+   @IsUUID(undefined, { each: true })
    @IsOptional()
    categoryIds?: string[];
 

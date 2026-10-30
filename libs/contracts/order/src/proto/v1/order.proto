@@ -40,6 +40,8 @@ message CreateOrderItemInput {
   int32 quantity = 3;
   double unitPrice = 4;
   string imageUrl = 5;
+  string note = 6;
+  string productVariantId = 7;
 }
 
 message CreateOrderRequest {
@@ -219,6 +221,20 @@ message UpdateSupplierOrderStatusResponse {
   string updatedAt = 3;
 }
 
+message GetProductOrderStatsRequest {
+  repeated string productIds = 1;
+}
+
+message ProductOrderStatsProto {
+  string productId = 1;
+  int32 orderCount = 2;
+  int32 soldCount = 3;
+}
+
+message GetProductOrderStatsResponse {
+  repeated ProductOrderStatsProto stats = 1;
+}
+
 service OrderService {
   rpc CreateOrder (CreateOrderRequest) returns (CreateOrderResponse);
   rpc GetOrderById (GetOrderByIdRequest) returns (GetOrderByIdResponse);
@@ -229,4 +245,6 @@ service OrderService {
   rpc ListSupplierOrders (ListSupplierOrdersRequest) returns (ListSupplierOrdersResponse);
   rpc GetSupplierOrderById (GetSupplierOrderByIdRequest) returns (GetSupplierOrderByIdResponse);
   rpc UpdateSupplierOrderStatus (UpdateSupplierOrderStatusRequest) returns (UpdateSupplierOrderStatusResponse);
+
+  rpc GetProductOrderStats (GetProductOrderStatsRequest) returns (GetProductOrderStatsResponse);
 }

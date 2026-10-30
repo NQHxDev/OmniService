@@ -40,6 +40,7 @@ export class CreateOrderCommandHandler {
             quantity: Number(item.quantity),
             unitPrice: Number(item.unitPrice),
             totalPrice: itemTotal,
+            imageUrl: item.imageUrl || null,
          };
       });
 
@@ -50,19 +51,30 @@ export class CreateOrderCommandHandler {
       const orderStatus: OrderStatusEnum = dto.paymentMethod === 'COD' ? 'CONFIRMED' : 'AWAITING_PAYMENT';
       const paymentStatus: PaymentStatusEnum = 'PENDING';
 
+      // Combine order note with any item-specific notes
+      const itemNotes = dto.items
+         .filter((item) => item.note && item.note.trim().length > 0)
+         .map((item) => `${item.productName}: ${item.note!.trim()}`)
+         .join('; ');
+
+      const combinedNote =
+         [dto.note?.trim(), itemNotes ? `[Item notes: ${itemNotes}]` : null].filter(Boolean).join(' | ') || undefined;
+
       const order = await this.uow.runInTransaction(async (repos) => {
          const createdOrder = await repos.orderRepository.create({
             userId: dto.userId,
+            supplierId: dto.supplierId || '5097672a-87b6-4871-8a48-df6159b97a60',
             orderNumber,
             orderStatus,
             paymentMethod: dto.paymentMethod as PaymentMethodEnum,
             paymentStatus,
+            shippingMethod: dto.shippingMethod,
             totalAmount: calculatedTotal,
             shippingFee,
             shippingAddress: dto.shippingAddress,
             receiverName: dto.receiverName,
             receiverPhone: dto.receiverPhone,
-            note: dto.note,
+            note: combinedNote,
             items: orderItems,
          });
 

@@ -79,16 +79,11 @@ export class SupplierService {
       }
 
       const slugVo = new Slug(dto.supplierName);
-      const existingBySlug = await this.supplierRepository.findBySlug(slugVo.value);
-      if (existingBySlug) {
-         throw new ConflictException(SUPPLIER_ERROR_CODES.SUPPLIER_SLUG_ALREADY_EXISTS, {
-            params: { slug: slugVo.value },
-         });
-      }
+      const supplierSlug = await this.generateUniqueSlug(slugVo.value);
 
       const created = await this.supplierRepository.create({
          supplierName: dto.supplierName.trim(),
-         supplierSlug: slugVo.value,
+         supplierSlug,
          supplierCode: codeVo.value,
          contactEmail: dto.contactEmail?.trim(),
          contactPhone: dto.contactPhone?.trim(),
@@ -117,13 +112,8 @@ export class SupplierService {
 
       let newSlug: string | undefined;
       if (dto.supplierName && dto.supplierName.trim() !== existing.supplierName) {
-         newSlug = new Slug(dto.supplierName).value;
-         const existingBySlug = await this.supplierRepository.findBySlug(newSlug);
-         if (existingBySlug && existingBySlug.supplierId !== supplierId) {
-            throw new ConflictException(SUPPLIER_ERROR_CODES.SUPPLIER_SLUG_ALREADY_EXISTS, {
-               params: { slug: newSlug },
-            });
-         }
+         const baseSlug = new Slug(dto.supplierName).value;
+         newSlug = await this.generateUniqueSlug(baseSlug, supplierId);
       }
 
       const updated = await this.supplierRepository.update(supplierId, {
@@ -205,16 +195,16 @@ export class SupplierService {
       const updated = await this.supplierRepository.update(supplierId, {
          supplierStatus: SUPPLIER_STATUS.UNDER_REVIEW,
          merchantType: dto.merchantType,
-         citizenId: dto.citizenId?.trim(),
+         citizenId: dto.citizenId?.trim() || undefined,
          citizenIdIssuedDate: dto.citizenIdIssuedDate ? new Date(dto.citizenIdIssuedDate) : undefined,
-         idCardFrontUrl: dto.idCardFrontUrl?.trim(),
-         idCardBackUrl: dto.idCardBackUrl?.trim(),
-         businessName: dto.businessName?.trim(),
-         taxCode: dto.taxCode?.trim(),
-         businessLicenseUrl: dto.businessLicenseUrl?.trim(),
-         bankName: dto.bankName?.trim(),
-         bankAccountNumber: dto.bankAccountNumber?.trim(),
-         bankAccountHolder: dto.bankAccountHolder?.trim(),
+         idCardFrontUrl: dto.idCardFrontUrl?.trim() || undefined,
+         idCardBackUrl: dto.idCardBackUrl?.trim() || undefined,
+         businessName: dto.businessName?.trim() || undefined,
+         taxCode: dto.taxCode?.trim() || undefined,
+         businessLicenseUrl: dto.businessLicenseUrl?.trim() || undefined,
+         bankName: dto.bankName?.trim() || undefined,
+         bankAccountNumber: dto.bankAccountNumber?.trim() || undefined,
+         bankAccountHolder: dto.bankAccountHolder?.trim() || undefined,
          rejectionReason: null,
       });
 
@@ -286,5 +276,20 @@ export class SupplierService {
       this.eventEmitter.emit(SUPPLIER_EVENTS.SUPPLIER_REJECTED, new SupplierRejectedEvent(supplierId, reason.trim()));
 
       return updated;
+   }
+
+   private async generateUniqueSlug(baseSlug: string, excludeSupplierId?: string): Promise<string> {
+      const trimmedBase = baseSlug.length > 160 ? baseSlug.slice(0, 160) : baseSlug;
+      let candidate = trimmedBase;
+      let counter = 1;
+
+      while (true) {
+         const existing = await this.supplierRepository.findBySlug(candidate);
+         if (!existing || (excludeSupplierId && existing.supplierId === excludeSupplierId)) {
+            return candidate;
+         }
+         candidate = `${trimmedBase}-${counter}`;
+         counter++;
+      }
    }
 }

@@ -1,0 +1,28 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma-client"
+}
+
+model WatchSession {
+  sessionId       String   @id @default(uuid()) @map("session_id")
+  userId          String   @map("user_id")
+  videoId         String   @map("video_id")
+  watchDurationMs Int      @map("watch_duration_ms")
+  videoDurationMs Int      @map("video_duration_ms")
+  completionRate  Float    @map("completion_rate")
+  isCompleted     Boolean  @default(false) @map("is_completed")
+  loopCount       Int      @default(0) @map("loop_count")
+  calculatedScore Float    @map("calculated_score")
+  categoryIds     String[] @default([]) @map("category_ids")
+  tagIds          String[] @default([]) @map("tag_ids")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([videoId])
+  @@index([userId, videoId])
+  @@map("watch_sessions")
+}

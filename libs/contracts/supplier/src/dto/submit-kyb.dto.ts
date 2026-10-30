@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength, ValidateIf } from 'class-validator';
 import { MERCHANT_TYPE, MerchantTypeEnum, type MerchantType } from '@contracts/supplier/constants/status.constant';
 
 export class SubmitKybDto {
@@ -35,7 +35,8 @@ export class SubmitKybDto {
       example: 'https://cdn.omniservices.com/kyb/id-front.jpg',
    })
    @IsOptional()
-   @IsUrl()
+   @ValidateIf((_, val) => typeof val === 'string' && val.trim().length > 0)
+   @IsUrl({ require_tld: false })
    idCardFrontUrl?: string;
 
    @ApiPropertyOptional({
@@ -43,7 +44,8 @@ export class SubmitKybDto {
       example: 'https://cdn.omniservices.com/kyb/id-back.jpg',
    })
    @IsOptional()
-   @IsUrl()
+   @ValidateIf((_, val) => typeof val === 'string' && val.trim().length > 0)
+   @IsUrl({ require_tld: false })
    idCardBackUrl?: string;
 
    @ApiPropertyOptional({
@@ -71,7 +73,8 @@ export class SubmitKybDto {
       example: 'https://cdn.omniservices.com/kyb/business-license.pdf',
    })
    @IsOptional()
-   @IsUrl()
+   @ValidateIf((_, val) => typeof val === 'string' && val.trim().length > 0)
+   @IsUrl({ require_tld: false })
    businessLicenseUrl?: string;
 
    @ApiPropertyOptional({

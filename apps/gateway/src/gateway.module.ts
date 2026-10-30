@@ -4,17 +4,18 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottlerGuard, JwtAuthGuard, PermissionsGuard, RedisModule, RolesGuard } from '@common';
 import { GatewayConfigModule, GatewayConfigService } from '@/config';
 import { GatewayLoggerModule } from '@/logger';
+import { AnalyzeModule } from '@/modules/analyze/analyze.module';
 import { AuditLogsModule } from '@/modules/audit-logs/audit-logs.module';
 import { AuthModule } from '@/modules/auth/auth.module';
-import { HealthModule } from '@/modules/health/health.module';
-import { UsersModule } from '@/modules/users/users.module';
-import { MediaModule } from '@/modules/media/media.module';
-import { PostsModule } from '@/modules/posts/posts.module';
 import { CommerceModule } from '@/modules/commerce/commerce.module';
-import { SuppliersModule } from '@/modules/suppliers/suppliers.module';
+import { HealthModule } from '@/modules/health/health.module';
+import { MediaModule } from '@/modules/media/media.module';
 import { OrdersModule } from '@/modules/orders/orders.module';
 import { PaymentsModule } from '@/modules/payments/payments.module';
+import { PostsModule } from '@/modules/posts/posts.module';
 import { ProductsModule } from '@/modules/products/products.module';
+import { SuppliersModule } from '@/modules/suppliers/suppliers.module';
+import { UsersModule } from '@/modules/users/users.module';
 
 @Module({
    imports: [
@@ -53,6 +54,7 @@ import { ProductsModule } from '@/modules/products/products.module';
       OrdersModule,
       PaymentsModule,
       ProductsModule,
+      AnalyzeModule,
    ],
    controllers: [],
    providers: [

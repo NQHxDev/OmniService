@@ -49,6 +49,39 @@ export class CreateOrderItemDto {
    @IsNumber()
    @IsPositive()
    unitPrice!: number;
+
+   @ApiPropertyOptional({
+      description: 'Optional image URL for the product item',
+      example: 'https://cdn.example.com/products/tomato.png',
+   })
+   @IsOptional()
+   @IsString()
+   imageUrl?: string;
+
+   @ApiPropertyOptional({
+      description: 'Optional note or instruction specific to this product item',
+      example: 'Less sweet, warm water',
+   })
+   @IsOptional()
+   @IsString()
+   @MaxLength(500)
+   note?: string;
+
+   @ApiPropertyOptional({
+      description: 'Optional product variant UUID if purchasing a specific variation',
+      example: 'b0000000-0000-0000-0000-000000000001',
+   })
+   @IsOptional()
+   @IsString()
+   productVariantId?: string;
+
+   @ApiPropertyOptional({
+      description: 'Optional total price calculated for this line item',
+      example: 90000,
+   })
+   @IsOptional()
+   @IsNumber()
+   totalPrice?: number;
 }
 
 export class CreateOrderDto {
@@ -105,6 +138,39 @@ export class CreateOrderDto {
    @IsOptional()
    @IsNumber()
    shippingFee?: number;
+
+   @ApiPropertyOptional({
+      description: 'Supplier / Store ID fulfillment partner',
+      example: '5097672a-87b6-4871-8a48-df6159b97a60',
+   })
+   @IsOptional()
+   @IsString()
+   supplierId?: string;
+
+   @ApiPropertyOptional({
+      description: 'Shipping delivery method code or courier service name',
+      example: 'STANDARD',
+   })
+   @IsOptional()
+   @IsString()
+   @MaxLength(50)
+   shippingMethod?: string;
+
+   @ApiPropertyOptional({
+      description: 'Optional subtotal calculation before shipping fee',
+      example: 90000,
+   })
+   @IsOptional()
+   @IsNumber()
+   subtotal?: number;
+
+   @ApiPropertyOptional({
+      description: 'Optional grand total amount for validation or verification',
+      example: 115000,
+   })
+   @IsOptional()
+   @IsNumber()
+   totalAmount?: number;
 
    @ApiProperty({
       description: 'List of product items in this order',

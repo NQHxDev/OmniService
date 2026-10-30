@@ -1,0 +1,49 @@
+# Version control & CI/CD metadata
+.git
+.github
+.husky
+.gitignore
+
+# Dependencies & Cache
+node_modules
+apps/*/node_modules
+libs/*/node_modules
+.pnpm-store
+.npm
+.cache
+
+# Build outputs & temporary data
+dist
+build
+temp
+logs
+apps/*/logs
+coverage
+.nyc_output
+*.tsbuildinfo
+*.log
+
+# Sensitive / Environment variables
+.env
+.env.*
+!.env.example
+apps/*/.env*
+!apps/*/.env.example
+*.pem
+*.key
+
+# Tests
+**/*.spec.ts
+**/*.test.ts
+apps/*/test
+test
+jest*.json
+
+# Documentation & Agent configurations
+docs
+.vscode
+.idea
+*.md
+.agents
+.claude
+.codex

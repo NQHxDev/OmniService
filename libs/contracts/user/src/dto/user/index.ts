@@ -12,5 +12,6 @@ export * from '@contracts/user/dto/user/update-display-name.dto';
 export * from '@contracts/user/dto/user/update-bio.dto';
 export * from '@contracts/user/dto/user/update-personal-info.dto';
 export * from '@contracts/user/dto/user/update-location.dto';
+export * from '@contracts/user/dto/user/update-address.dto';
 export * from '@contracts/user/dto/user/update-website.dto';
 export * from '@contracts/user/dto/user/update-cover-image.dto';

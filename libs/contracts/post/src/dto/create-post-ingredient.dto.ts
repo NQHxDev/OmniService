@@ -51,7 +51,7 @@ export class CreatePostIngredientDto {
       description: 'Catalog ingredient ID linked with commerce ecosystem to enable 1-click buy',
       example: '0192e21b-0002-7000-8000-000000000001',
    })
-   @IsUUID('4')
+   @IsUUID()
    @IsOptional()
    catalogIngredientId?: string;
 }

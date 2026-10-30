@@ -12,6 +12,9 @@ export const ORDER_STATUS = {
 
 export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
 
+/** Order statuses whose items are counted as successfully sold for product statistics. */
+export const SOLD_ORDER_STATUSES: readonly OrderStatus[] = [ORDER_STATUS.DELIVERED, ORDER_STATUS.COMPLETED];
+
 export const PAYMENT_METHODS = {
    COD: 'COD',
    CREDIT_CARD: 'CREDIT_CARD',

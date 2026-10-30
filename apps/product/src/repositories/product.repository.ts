@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isUuid } from '@common';
 import { MODERATION_STATUS, PRODUCT_STATUS } from '@contracts/product';
 import { PrismaService } from '@product/prisma';
 import { ProductEntity } from '@product/entities';
@@ -64,6 +65,9 @@ export class ProductRepository implements IProductRepository {
    }
 
    async findById(productId: string): Promise<ProductEntity | null> {
+      if (!isUuid(productId)) {
+         return null;
+      }
       const found = await this.prisma.product.findFirst({
          where: { productId, deletedAt: null },
          include: {
@@ -78,12 +82,13 @@ export class ProductRepository implements IProductRepository {
    }
 
    async findByIds(productIds: string[]): Promise<ProductEntity[]> {
-      if (!productIds.length) {
+      const validIds = productIds.filter((id) => isUuid(id));
+      if (!validIds.length) {
          return [];
       }
       const found = await this.prisma.product.findMany({
          where: {
-            productId: { in: productIds },
+            productId: { in: validIds },
             deletedAt: null,
          },
          include: {
@@ -116,6 +121,9 @@ export class ProductRepository implements IProductRepository {
       };
 
       if (params.supplierId) {
+         if (!isUuid(params.supplierId)) {
+            return { items: [], total: 0 };
+         }
          where.supplierId = params.supplierId;
       }
       if (params.whoCategoryCode) {

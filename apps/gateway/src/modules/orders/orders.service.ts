@@ -15,6 +15,7 @@ import {
    ORDER_V1_GRPC_SERVICE_NAME,
    type CreateOrderDto,
    type IOrderProto,
+   type IProductOrderStatsProto,
    type IOrderV1GrpcService,
    type ListSupplierOrdersQueryDto,
    type OrderResponseDto,
@@ -73,6 +74,8 @@ export class OrdersService implements OnModuleInit {
                            note: dto.note,
                            shippingFee: dto.shippingFee,
                            items: dto.items,
+                           supplierId: dto.supplierId || '5097672a-87b6-4871-8a48-df6159b97a60',
+                           shippingMethod: dto.shippingMethod,
                         },
                         metadata,
                      ),
@@ -82,6 +85,25 @@ export class OrdersService implements OnModuleInit {
          );
 
          return response.order as unknown as OrderResponseDto;
+      } catch (error: unknown) {
+         return handleGrpcError(error);
+      }
+   }
+
+   async getProductOrderStats(productIds: string[], correlationId?: string): Promise<IProductOrderStatsProto[]> {
+      try {
+         const metadata = createGrpcMetadata({ correlationId });
+         const response = await this.bulkhead.execute(() =>
+            this.circuitBreaker.execute(() =>
+               firstValueFrom(
+                  defer(() => this.orderGrpcService.getProductOrderStats({ productIds }, metadata)).pipe(
+                     withGrpcRetry(this.retryPolicy),
+                  ),
+               ),
+            ),
+         );
+
+         return response.stats ?? [];
       } catch (error: unknown) {
          return handleGrpcError(error);
       }

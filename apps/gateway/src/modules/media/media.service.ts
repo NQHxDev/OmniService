@@ -268,7 +268,7 @@ export class MediaService implements OnModuleInit {
                         uploadId: dto.uploadId,
                         parts: dto.parts.map((p) => ({
                            partNumber: p.partNumber,
-                           etag: p.etag,
+                           etag: p.etag || p.eTag || p.ETag || '',
                         })),
                      },
                      metadata,
