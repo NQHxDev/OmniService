@@ -35,6 +35,9 @@ spec:
                  - secretRef:
                       name: omni-services-secret
                       optional: true
+                 - secretRef:
+                      name: omni-{{SERVICE_NAME}}-secret
+                      optional: true
               env:
                  - name: SERVICE_NAME
                    value: '{{SERVICE_NAME}}'

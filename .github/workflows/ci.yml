@@ -181,8 +181,8 @@ jobs:
          - name: Setup Environment & Dependencies
            uses: ./.github/actions/setup-pnpm-env
 
-         - name: Deploy Database Migrations
-           run: pnpm run prisma:migrate:deploy || pnpm run prisma:generate
+         - name: Push Database Schema
+           run: pnpm --filter @omni/auth run prisma:push -- --accept-data-loss
 
          - name: Execute E2E Tests
            run: pnpm run test:e2e

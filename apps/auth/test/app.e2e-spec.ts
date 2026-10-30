@@ -25,7 +25,7 @@ describe('AuthModule (e2e)', () => {
       prismaService = moduleFixture.get<PrismaService>(PrismaService);
 
       try {
-         await prismaService.$queryRaw`SELECT 1`;
+         await prismaService.$queryRaw`SELECT 1 FROM accounts LIMIT 1`;
          isDbConnected = true;
       } catch {
          isDbConnected = false;
