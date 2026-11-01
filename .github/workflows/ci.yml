@@ -98,7 +98,7 @@ jobs:
                 --coverageReporters=text-summary
 
          - name: Upload Coverage Shard Artifact
-           uses: actions/upload-artifact@v4
+           uses: actions/upload-artifact@v7
            with:
               name: coverage-shard-${{ matrix.shard }}
               path: coverage/
@@ -212,7 +212,7 @@ jobs:
            run: sh scripts/build-sequential.sh "${{ matrix.services }}"
 
          - name: Upload Build Artifacts
-           uses: actions/upload-artifact@v4
+           uses: actions/upload-artifact@v7
            with:
               name: dist-group-${{ matrix.group }}
               path: dist/
