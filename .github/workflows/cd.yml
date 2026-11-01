@@ -65,7 +65,7 @@ jobs:
          short_sha: ${{ steps.env_info.outputs.short_sha }}
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
            with:
               ref: ${{ github.event.workflow_run.head_sha || github.sha }}
               fetch-depth: 0
@@ -130,7 +130,7 @@ jobs:
             service: ${{ fromJson(needs.discovery.outputs.services_json) }}
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
            with:
               ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
@@ -184,7 +184,7 @@ jobs:
             service: ${{ fromJson(needs.discovery.outputs.services_json) }}
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
            with:
               ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
@@ -233,7 +233,7 @@ jobs:
             service: ${{ fromJson(needs.discovery.outputs.services_json) }}
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
            with:
               ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
