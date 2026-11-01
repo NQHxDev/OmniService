@@ -106,7 +106,7 @@ services:
    debezium:
       profiles:
          - cdc
-      image: debezium/server:2.7.3.Final
+      image: debezium/server:3.0.0.Final
       container_name: omni-services-debezium
       restart: unless-stopped
       volumes:
