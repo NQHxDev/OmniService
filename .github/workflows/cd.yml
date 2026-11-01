@@ -146,7 +146,7 @@ jobs:
 
          - name: Extract Docker Metadata
            id: meta
-           uses: docker/metadata-action@v5
+           uses: docker/metadata-action@v6
            with:
               images: ${{ needs.discovery.outputs.image_repo }}/${{ matrix.service }}
               tags: |
