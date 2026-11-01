@@ -24,7 +24,7 @@
       "@opentelemetry/instrumentation-amqplib": "^0.70.0",
       "@opentelemetry/instrumentation-express": "^0.71.1",
       "@opentelemetry/instrumentation-grpc": "^0.223.0",
-      "@opentelemetry/instrumentation-http": "^0.223.0",
+      "@opentelemetry/instrumentation-http": "^0.300.0",
       "@opentelemetry/instrumentation-ioredis": "^0.71.0",
       "@opentelemetry/instrumentation-nestjs-core": "^0.70.0",
       "@opentelemetry/resources": "^2.12.0",
