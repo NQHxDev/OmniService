@@ -110,7 +110,7 @@ jobs:
       needs: [unit-tests]
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
          - name: Setup Environment & Dependencies
            uses: ./.github/actions/setup-pnpm-env
@@ -176,7 +176,7 @@ jobs:
          NODE_ENV: 'test'
       steps:
          - name: Checkout Code
-           uses: actions/checkout@v4
+           uses: actions/checkout@v7
 
          - name: Setup Environment & Dependencies
            uses: ./.github/actions/setup-pnpm-env
