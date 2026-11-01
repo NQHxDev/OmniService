@@ -17,7 +17,7 @@
       "@nestjs/microservices": "^11.2.6",
       "@nestjs/terminus": "^11.1.1",
       "@willsoto/nestjs-prometheus": "^7.0.0",
-      "amqp-connection-manager": "^5.0.0",
+      "amqp-connection-manager": "^5.0.1",
       "amqplib": "^2.0.1",
       "bullmq": "^6.3.12",
       "ioredis": "^6.0.0",
