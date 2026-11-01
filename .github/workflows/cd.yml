@@ -156,7 +156,7 @@ jobs:
                  type=sha,prefix=sha-,format=short
 
          - name: Build and Push Service Image
-           uses: docker/build-push-action@v5
+           uses: docker/build-push-action@v7
            with:
               context: .
               file: ./Dockerfile
